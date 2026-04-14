@@ -184,7 +184,7 @@ export default function CreatorStudioScreen() {
         <TapScale onPress={handleBack} accessibilityLabel="Voltar">
           <Text style={styles.backButton}>←</Text>
         </TapScale>
-        <Text style={styles.headerTitle}>Creator Studio</Text>
+        <Text style={styles.headerTitle}>Estúdio do Criador</Text>
         <View style={styles.headerSpacer} />
       </View>
 

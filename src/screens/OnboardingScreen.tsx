@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, OddsBtn } from '../components/ui';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore } from '../store/nexaStore';
+import { hapticMedium, hapticSuccess } from '../services/haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -146,7 +147,8 @@ export default function OnboardingScreen() {
   }
 
   function handleCTA() {
-    if (isLast) { completeOnboarding(); return; }
+    if (isLast) { hapticSuccess(); completeOnboarding(); return; }
+    hapticMedium();
     transition(step + 1, 1);
   }
 
@@ -158,6 +160,7 @@ export default function OnboardingScreen() {
 
   function placeBet(side: OddSide) {
     if (betDone) return;
+    hapticSuccess();
     setPick(side);
     setBetDone(true);
     addXP(100);
@@ -185,7 +188,7 @@ export default function OnboardingScreen() {
       {cur.showSkip && (
         <TouchableOpacity
           style={styles.skipBtn}
-          onPress={completeOnboarding}
+          onPress={() => { hapticSuccess(); completeOnboarding(); }}
           accessibilityLabel="Pular onboarding"
         >
           <Text style={styles.skipText}>Pular</Text>

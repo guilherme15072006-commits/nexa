@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Avatar, Card, LiveBadge, Pill } from '../components/ui';
 import {
   AvatarStack,
@@ -747,6 +748,10 @@ export default function ApostasScreen() {
   const purchasePowerUp   = useNexaStore(s => s.purchasePowerUp);
   const antiCollapse      = useNexaStore(s => s.antiCollapse);
   const acknowledgeCooldown = useNexaStore(s => s.acknowledgeCooldown);
+  const currentSubscription = useNexaStore(s => s.currentSubscription);
+  const pushToast           = useNexaStore(s => s.pushToast);
+
+  const navigation = useNavigation<any>();
 
   const panelY = useRef(new Animated.Value(BETSLIP_HEIGHT)).current;
 
@@ -842,7 +847,8 @@ export default function ApostasScreen() {
     }, 1400);
 
     setRewardData({ xpBefore, xpToNext, level: leveledUp ? level + 1 : level, leveledUp, betsToday, missionHint });
-  }, [selectedBet, user, betsPlaced, placeBet, missionHint]);
+    setTimeout(() => pushToast('🎯 Confira os torneios para multiplicar seus ganhos!'), 3000);
+  }, [selectedBet, user, betsPlaced, placeBet, missionHint, pushToast]);
 
   const handleCancelBet  = useCallback(() => setSelectedBet(null), []);
   const handleDismissReward = useCallback(() => setRewardData(null), []);
@@ -1031,6 +1037,22 @@ export default function ApostasScreen() {
         )}
 
         {renderTabContent()}
+
+        {/* ── Pro upsell ── */}
+        {currentSubscription === 'free' && (
+          <SmoothEntry delay={300}>
+            <Card style={styles.upsellCard}>
+              <Text style={styles.upsellBadge}>⭐ PRO</Text>
+              <Text style={styles.upsellTitle}>Desbloqueie power-ups grátis</Text>
+              <Text style={styles.upsellDesc}>Assinantes Pro ganham 1 power-up por semana + feed personalizado</Text>
+              <TapScale onPress={() => navigation.navigate('Subscription' as never)}>
+                <View style={styles.upsellBtn}>
+                  <Text style={styles.upsellBtnText}>Conhecer NEXA Pro →</Text>
+                </View>
+              </TapScale>
+            </Card>
+          </SmoothEntry>
+        )}
       </ScrollView>
 
       {/* ── Betslip ── */}
@@ -1395,4 +1417,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
   },
+
+  upsellCard: { alignItems: 'center' as const, marginTop: spacing.md, borderColor: colors.gold + '40', borderWidth: 1 },
+  upsellBadge: { ...typography.monoBold, fontSize: 11, color: colors.gold, backgroundColor: colors.gold + '18', borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 2, marginBottom: spacing.sm, overflow: 'hidden' as const },
+  upsellTitle: { ...typography.bodySemiBold, fontSize: 15, color: colors.textPrimary, marginBottom: spacing.xs },
+  upsellDesc: { ...typography.body, fontSize: 12, color: colors.textSecondary, textAlign: 'center' as const, marginBottom: spacing.sm, paddingHorizontal: spacing.md },
+  upsellBtn: { backgroundColor: colors.gold + '20', borderRadius: radius.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderWidth: 0.5, borderColor: colors.gold + '50' },
+  upsellBtnText: { ...typography.bodySemiBold, fontSize: 13, color: colors.gold },
 });

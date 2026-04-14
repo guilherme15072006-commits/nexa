@@ -450,6 +450,7 @@ export default function FeedScreen() {
   const claimDailyLogin = useNexaStore(s => s.claimDailyLogin);
   const liveStats      = useNexaStore(s => s.liveStats);
   const popToast       = useNexaStore(s => s.popToast);
+  const betsPlaced     = useNexaStore(s => s.betsPlaced);
 
   // Score feed on mount
   useEffect(() => {
@@ -532,6 +533,18 @@ export default function FeedScreen() {
           <View style={styles.quickBtnInner}>
             <Text style={styles.quickBtnIcon}>🎙️</Text>
             <Text style={styles.quickBtnLabel}>Lives</Text>
+          </View>
+        </TapScale>
+        <TapScale onPress={() => navigation.navigate('Marketplace' as never)} style={styles.quickBtn}>
+          <View style={styles.quickBtnInner}>
+            <Text style={styles.quickBtnIcon}>🛒</Text>
+            <Text style={styles.quickBtnLabel}>Market</Text>
+          </View>
+        </TapScale>
+        <TapScale onPress={() => navigation.navigate('NexaPlay' as never)} style={styles.quickBtn}>
+          <View style={styles.quickBtnInner}>
+            <Text style={styles.quickBtnIcon}>🎮</Text>
+            <Text style={styles.quickBtnLabel}>Play</Text>
           </View>
         </TapScale>
       </View>
@@ -640,6 +653,29 @@ export default function FeedScreen() {
             );
           })
         )}
+
+        {/* ── Next action CTA ── */}
+        <SmoothEntry delay={400}>
+          <Card style={styles.nextActionCard}>
+            <Text style={styles.nextActionEmoji}>🎯</Text>
+            <Text style={styles.nextActionTitle}>Próximo passo</Text>
+            <Text style={styles.nextActionDesc}>
+              {user.streak < 1 ? 'Faça check-in para começar sua sequência!' :
+               betsPlaced < 1 ? 'Faça sua primeira aposta do dia!' :
+               'Explore os jogos ao vivo e encontre valor!'}
+            </Text>
+            <TapScale onPress={() => {
+              if (user.streak < 1) {} // check-in is already at top
+              else navigation.navigate('apostas' as never);
+            }}>
+              <View style={styles.nextActionBtn}>
+                <Text style={styles.nextActionBtnText}>
+                  {betsPlaced < 1 ? 'Ver apostas →' : 'Jogos ao vivo →'}
+                </Text>
+              </View>
+            </TapScale>
+          </Card>
+        </SmoothEntry>
 
         <View style={styles.bottomPad} />
       </ScrollView>
@@ -1188,4 +1224,11 @@ const styles = StyleSheet.create({
   bottomPad: {
     height: spacing.xxl,
   },
+
+  nextActionCard: { alignItems: 'center' as const, marginTop: spacing.md, borderColor: colors.primary + '30', borderWidth: 1 },
+  nextActionEmoji: { fontSize: 28, marginBottom: spacing.xs },
+  nextActionTitle: { ...typography.bodySemiBold, fontSize: 15, color: colors.textPrimary, marginBottom: spacing.xs },
+  nextActionDesc: { ...typography.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' as const, marginBottom: spacing.sm },
+  nextActionBtn: { backgroundColor: colors.primary, borderRadius: radius.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  nextActionBtnText: { ...typography.bodySemiBold, fontSize: 14, color: colors.textPrimary },
 });

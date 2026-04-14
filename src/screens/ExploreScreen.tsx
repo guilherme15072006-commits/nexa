@@ -211,6 +211,9 @@ export default function ExploreScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity onPress={() => { hapticLight(); navigation.goBack(); }} style={styles.backBtn}>
+            <Text style={styles.backBtnText}>←</Text>
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Explorar</Text>
           <TapScale onPress={() => { hapticLight(); navigation.navigate('Search'); }}>
             <View style={styles.searchIcon}>
@@ -356,6 +359,13 @@ const styles = StyleSheet.create({
     ...typography.display,
     color: colors.textPrimary,
     fontSize: 26,
+  },
+  backBtn: {
+    padding: spacing.xs,
+  },
+  backBtnText: {
+    fontSize: 22,
+    color: colors.textPrimary,
   },
   searchIcon: {
     width: 40,

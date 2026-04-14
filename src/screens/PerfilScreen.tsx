@@ -551,6 +551,7 @@ export default function PerfilScreen() {
   const streakAtRisk = useNexaStore((s) => s.streakAtRisk);
   const daysSinceLastVisit = useNexaStore((s) => s.daysSinceLastVisit);
   const antiCollapse = useNexaStore((s) => s.antiCollapse);
+  const currentSubscription = useNexaStore((s) => s.currentSubscription);
 
   // Compute influence score
   const influenceScore = useMemo(() => {
@@ -744,6 +745,16 @@ export default function PerfilScreen() {
               <Text style={styles.navButtonText}>⭐ NEXA Pro →</Text>
             </View>
           </TapScale>
+          <TapScale onPress={() => { hapticLight(); navigation.navigate('Marketplace' as never); }} scale={0.97}>
+            <View style={styles.navButton}>
+              <Text style={styles.navButtonText}>🛒 Marketplace →</Text>
+            </View>
+          </TapScale>
+          <TapScale onPress={() => { hapticLight(); navigation.navigate('NexaPlay' as never); }} scale={0.97}>
+            <View style={styles.navButton}>
+              <Text style={styles.navButtonText}>🎮 NEXA Play →</Text>
+            </View>
+          </TapScale>
           <TapScale onPress={() => { hapticLight(); navigation.navigate('Settings' as never); }} scale={0.97}>
             <View style={styles.navButton}>
               <Text style={styles.navButtonText}>⚙️ Configurações →</Text>
@@ -792,6 +803,12 @@ export default function PerfilScreen() {
             <Text style={styles.navButtonText}>Ver carteira →</Text>
           </View>
         </TapScale>
+
+        {currentSubscription === 'free' && (
+          <View style={styles.proPromoBanner}>
+            <Text style={styles.proPromoText}>⭐ Assine o NEXA Pro e ganhe cashback em todas as apostas</Text>
+          </View>
+        )}
 
         <View style={{ height: spacing.xxl * 2 }} />
       </ScrollView>
@@ -1480,4 +1497,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.primary,
   },
+
+  proPromoBanner: { backgroundColor: colors.gold + '10', borderRadius: radius.md, padding: spacing.sm, marginTop: spacing.xs, borderWidth: 0.5, borderColor: colors.gold + '30' } as ViewStyle,
+  proPromoText: { ...typography.bodyMedium, fontSize: 12, color: colors.gold, textAlign: 'center' as const },
 });

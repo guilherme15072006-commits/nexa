@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { colors, typography, spacing, radius } from '../theme';
 import { useNexaStore, type MarketplaceItem, type TipsterTier } from '../store/nexaStore';
 import { Card, SectionHeader, Avatar, Pill } from '../components/ui';
@@ -189,6 +190,7 @@ function SellerCTA() {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function MarketplaceScreen() {
+  const navigation = useNavigation();
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const userCoins = useNexaStore((s) => s.user.coins);
   const items = useNexaStore((s) => s.marketplaceItems);
@@ -220,6 +222,9 @@ export default function MarketplaceScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity onPress={() => { hapticLight(); navigation.goBack(); }} style={styles.backBtn}>
+            <Text style={styles.backBtnText}>←</Text>
+          </TouchableOpacity>
           <View style={styles.headerRow}>
             <Text style={styles.headerTitle}>Marketplace</Text>
             <View style={styles.coinsDisplay}>
@@ -300,6 +305,13 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
+  },
+  backBtn: {
+    padding: spacing.xs,
+  },
+  backBtnText: {
+    fontSize: 22,
+    color: colors.textPrimary,
   },
   headerRow: {
     flexDirection: 'row',

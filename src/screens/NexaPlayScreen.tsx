@@ -5,8 +5,10 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { colors, typography, spacing, radius } from '../theme';
 import { useNexaStore, type MiniGame } from '../store/nexaStore';
 import { Card, SectionHeader } from '../components/ui';
@@ -175,6 +177,7 @@ function GameCard({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function NexaPlayScreen() {
+  const navigation = useNavigation();
   const miniGames = useNexaStore((s) => s.miniGames);
   const userLevel = useNexaStore((s) => s.user.level);
   const playMiniGame = useNexaStore((s) => s.playMiniGame);
@@ -215,6 +218,9 @@ export default function NexaPlayScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity onPress={() => { hapticLight(); navigation.goBack(); }} style={styles.backBtn}>
+            <Text style={styles.backBtnText}>←</Text>
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>NEXA Play 🎮</Text>
           <Text style={styles.headerSubtitle}>
             Jogue, ganhe XP e suba de nivel
@@ -266,6 +272,13 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
+  },
+  backBtn: {
+    padding: spacing.xs,
+  },
+  backBtnText: {
+    fontSize: 22,
+    color: colors.textPrimary,
   },
   headerTitle: {
     ...typography.display,

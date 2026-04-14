@@ -8,6 +8,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { SmoothEntry, TapScale } from '../components/LiveComponents';
+import { hapticLight } from '../services/haptics';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore } from '../store/nexaStore';
 
@@ -133,7 +134,7 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TapScale onPress={() => navigation.goBack()}>
+        <TapScale onPress={() => { hapticLight(); navigation.goBack(); }}>
           <View style={styles.backBtn}>
             <Text style={styles.backIcon}>←</Text>
           </View>

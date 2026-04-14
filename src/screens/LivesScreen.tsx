@@ -8,6 +8,7 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { colors, typography, spacing, radius } from '../theme';
 import { useNexaStore, type LiveStream, type TipsterTier } from '../store/nexaStore';
 import { Card, SectionHeader, Avatar, Pill } from '../components/ui';
@@ -159,6 +160,7 @@ function EmptyState() {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function LivesScreen() {
+  const navigation = useNavigation();
   const liveStreams = useNexaStore((s) => s.liveStreams);
   const tickViewers = useNexaStore((s) => s.tickViewers);
 
@@ -184,6 +186,9 @@ export default function LivesScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity onPress={() => { hapticLight(); navigation.goBack(); }} style={styles.backBtn}>
+            <Text style={styles.backBtnText}>←</Text>
+          </TouchableOpacity>
           <View style={styles.headerRow}>
             <Text style={styles.headerTitle}>Lives</Text>
             <PulsingDot color={colors.red} size={10} />
@@ -243,6 +248,13 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
+  },
+  backBtn: {
+    padding: spacing.xs,
+  },
+  backBtnText: {
+    fontSize: 22,
+    color: colors.textPrimary,
   },
   headerRow: {
     flexDirection: 'row',

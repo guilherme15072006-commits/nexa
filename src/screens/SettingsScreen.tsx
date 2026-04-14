@@ -156,15 +156,15 @@ export default function SettingsScreen() {
                 <Text style={styles.backIcon}>{'<'}</Text>
               </View>
             </TapScale>
-            <Text style={styles.headerTitle}>Configuracoes</Text>
+            <Text style={styles.headerTitle}>Configurações</Text>
             <View style={styles.backButton} />
           </View>
         </SmoothEntry>
 
-        {/* Aparencia */}
+        {/* Aparência */}
         <SmoothEntry delay={100}>
           <Card style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Aparencia</Text>
+            <Text style={styles.sectionTitle}>Aparência</Text>
             <TouchableOpacity
               style={styles.settingRow}
               onPress={handleThemeToggle}
@@ -189,7 +189,7 @@ export default function SettingsScreen() {
                       settings.theme === 'dark' && styles.themeOptionTextActive,
                     ]}
                   >
-                    Dark
+                    Escuro
                   </Text>
                 </View>
                 <View
@@ -204,7 +204,7 @@ export default function SettingsScreen() {
                       settings.theme === 'darker' && styles.themeOptionTextActive,
                     ]}
                   >
-                    Darker
+                    Mais Escuro
                   </Text>
                 </View>
               </View>
