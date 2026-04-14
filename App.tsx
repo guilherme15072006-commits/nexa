@@ -10,6 +10,9 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 import TabNavigator from './src/navigation/TabNavigator';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import NexaLogo from './src/components/NexaLogo';
+import { auth, AuthUser } from './src/services/firebase';
+import { ENV } from './src/config/env';
+import LoginScreen from './src/screens/LoginScreen';
 
 function AppContent() {
   const hasCompletedOnboarding = useNexaStore(s => s.user.hasCompletedOnboarding);
@@ -49,10 +52,25 @@ function AppContent() {
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(ENV.USE_REAL_AUTH);
 
   useEffect(() => {
     const t = setTimeout(() => setShowSplash(false), 2000);
     return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!ENV.USE_REAL_AUTH) {
+      setAuthUser({ uid: 'mock', email: null, displayName: 'você', photoURL: null, provider: 'mock' });
+      setAuthLoading(false);
+      return;
+    }
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setAuthUser(user);
+      setAuthLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
   if (showSplash) {
@@ -64,6 +82,18 @@ export default function App() {
         </Text>
       </View>
     );
+  }
+
+  if (authLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <NexaLogo size="large" />
+      </View>
+    );
+  }
+
+  if (!authUser) {
+    return <LoginScreen onLoginSuccess={(user) => setAuthUser(user)} />;
   }
 
   return (

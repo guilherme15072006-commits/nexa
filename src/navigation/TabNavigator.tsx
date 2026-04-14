@@ -28,6 +28,7 @@ import CreatorStudioScreen from '../screens/CreatorStudioScreen';
 import AudioRoomsScreen from '../screens/AudioRoomsScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
 import ReferralScreen from '../screens/ReferralScreen';
+import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 
 const BottomTab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -126,6 +127,7 @@ export default function RootNavigator() {
       <Stack.Screen name="AudioRooms" component={withErrorBoundary(AudioRoomsScreen, 'Salas de Áudio')} />
       <Stack.Screen name="Subscription" component={withErrorBoundary(SubscriptionScreen, 'Assinatura')} />
       <Stack.Screen name="Referral" component={withErrorBoundary(ReferralScreen, 'Convite')} />
+      <Stack.Screen name="AdminDashboard" component={withErrorBoundary(AdminDashboardScreen, 'Admin')} />
     </Stack.Navigator>
   );
 }
