@@ -1,0 +1,55 @@
+# =====================================================
+# NEXA — Cloudflare Workers Configuration
+# Edge API para odds em tempo real, caching e performance
+# =====================================================
+
+name = "nexa-api"
+main = "workers/index.ts"
+compatibility_date = "2024-12-01"
+workers_dev = true
+
+# Rotas de producao
+# routes = [
+#   { pattern = "api.nexa.bet/*", zone_name = "nexa.bet" }
+# ]
+
+[vars]
+ENVIRONMENT = "development"
+APP_NAME = "NEXA"
+
+# KV Namespaces para cache de odds e sessoes
+# [[kv_namespaces]]
+# binding = "ODDS_CACHE"
+# id = ""
+# preview_id = ""
+
+# [[kv_namespaces]]
+# binding = "SESSION_STORE"
+# id = ""
+# preview_id = ""
+
+# D1 Database para dados persistentes
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "nexa-db"
+# database_id = ""
+
+# R2 para assets e uploads
+# [[r2_buckets]]
+# binding = "ASSETS"
+# bucket_name = "nexa-assets"
+
+# Durable Objects para WebSocket de odds ao vivo
+# [[durable_objects.bindings]]
+# name = "LIVE_ODDS"
+# class_name = "LiveOddsRoom"
+
+# Rate limiting
+# [[unsafe.bindings]]
+# name = "RATE_LIMITER"
+# type = "ratelimit"
+# namespace_id = "0"
+# simple = { limit = 100, period = 60 }
+
+[placement]
+mode = "smart"

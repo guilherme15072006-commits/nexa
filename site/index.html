@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXA — Aposte. Compita. Domine.</title>
+  <meta name="description" content="A plataforma onde voce aposta, compete, evolui e domina. Apostas esportivas, gamificacao, rede social e economia propria em um unico ecossistema.">
+  <meta name="theme-color" content="#0D0B14">
+  <meta property="og:title" content="NEXA — Aposte. Compita. Domine.">
+  <meta property="og:description" content="Apostas esportivas com gamificacao, ranking ao vivo e comunidade. Baixe agora.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nexa.bet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #7C5CFC;
+      --primary-light: #9B7FFF;
+      --gold: #F5C842;
+      --green: #00C896;
+      --red: #FF4D6A;
+      --bg: #0D0B14;
+      --bg-card: #16131F;
+      --bg-elevated: #1E1A2E;
+      --text-primary: #F0EDF8;
+      --text-secondary: #9B95B8;
+      --text-muted: #5C5780;
+      --border: #2A2545;
+    }
+
+    @font-face {
+      font-family: 'Inter';
+      src: url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* --- Hero --- */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(124,92,252,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .logo {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: 0.4em;
+      color: var(--text-primary);
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .tagline {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      max-width: 500px;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+
+    .tagline strong {
+      color: var(--primary-light);
+      font-weight: 600;
+    }
+
+    .cta-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .cta-primary {
+      background: var(--primary);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.9rem 2.5rem;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      letter-spacing: 0.02em;
+      text-decoration: none;
+    }
+
+    .cta-primary:hover {
+      transform: scale(1.03);
+      box-shadow: 0 8px 32px rgba(124,92,252,0.35);
+    }
+
+    .cta-secondary {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 0.9rem 2.5rem;
+      border-radius: 14px;
+      border: 0.5px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+      text-decoration: none;
+    }
+
+    .cta-secondary:hover {
+      transform: scale(1.03);
+      border-color: var(--primary);
+      color: var(--text-primary);
+    }
+
+    /* --- Stats bar --- */
+    .stats-bar {
+      display: flex;
+      gap: 3rem;
+      margin-top: 4rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-light);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* --- Features --- */
+    .features {
+      padding: 6rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .features-title {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 3rem;
+      letter-spacing: -0.02em;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 0.5px solid var(--border);
+      border-radius: 14px;
+      padding: 2rem;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--primary);
+    }
+
+    .feature-icon {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(124,92,252,0.12);
+      border-radius: 10px;
+    }
+
+    .feature-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-desc {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* --- CTA section --- */
+    .cta-section {
+      padding: 6rem 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(124,92,252,0.1) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .cta-section-title {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .cta-section-sub {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* --- Footer --- */
+    footer {
+      border-top: 0.5px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.15s;
+    }
+
+    .footer-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .footer-copy {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 640px) {
+      .logo { font-size: 2.5rem; }
+      .tagline { font-size: 1rem; }
+      .stat-val { font-size: 1.5rem; }
+      .stats-bar { gap: 1.5rem; }
+      .features-title { font-size: 1.5rem; }
+      .cta-section-title { font-size: 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="logo">NEXA</div>
+    <p class="tagline">
+      A plataforma onde voce <strong>aposta</strong>, <strong>compete</strong>, <strong>evolui</strong> e <strong>domina</strong>.
+      Apostas esportivas, gamificacao, rede social e economia propria em um unico ecossistema.
+    </p>
+    <div class="cta-row">
+      <a href="/app" class="cta-primary">Baixar para Android</a>
+      <a href="/ios" class="cta-secondary">Disponivel em breve no iOS</a>
+    </div>
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="stat-val">12k+</div>
+        <div class="stat-label">Usuarios ativos</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">R$ 2.8M</div>
+        <div class="stat-label">Volume mensal</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">340k</div>
+        <div class="stat-label">Apostas no mes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">61%</div>
+        <div class="stat-label">Taxa de retencao</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <h2 class="features-title">Tudo que uma bet deveria ter</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">A</div>
+        <div class="feature-name">Apostas ao vivo</div>
+        <div class="feature-desc">Odds em tempo real com atualizacao a cada segundo. Flash visual quando as odds mudam. Interface Bet365-level.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">T</div>
+        <div class="feature-name">Copy bet de tipsters</div>
+        <div class="feature-desc">Copie apostas dos melhores tipsters com um toque. Veja historico, win rate e ROI antes de seguir.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">R</div>
+        <div class="feature-name">Ranking e competicao</div>
+        <div class="feature-desc">Leaderboard semanal, mensal e por temporada. Clas com metas coletivas. Podium para os melhores.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">M</div>
+        <div class="feature-name">Missoes e XP</div>
+        <div class="feature-desc">Missoes diarias, semanais e ocultas. Sistema de XP, niveis e badges com raridade. Progressao constante.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">F</div>
+        <div class="feature-name">Feed social</div>
+        <div class="feature-desc">Feed personalizado com tips, resultados e conquistas. Double-tap para curtir. Trending em tempo real.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">S</div>
+        <div class="feature-name">Jogo responsavel</div>
+        <div class="feature-desc">Deteccao de comportamento, limites de deposito, pause sugerido. Compliance total com regulamentacao brasileira.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <h2 class="cta-section-title">Pronto para dominar?</h2>
+    <p class="cta-section-sub">Junte-se a milhares de apostadores que ja evoluiram o jeito de apostar.</p>
+    <a href="/app" class="cta-primary">Comecar agora</a>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="/termos">Termos de uso</a>
+      <a href="/privacidade">Politica de privacidade</a>
+      <a href="/jogo-responsavel">Jogo responsavel</a>
+      <a href="/suporte">Suporte</a>
+      <a href="https://github.com/nexa-bet">GitHub</a>
+    </div>
+    <p class="footer-copy">NEXA Entertainment. Jogue com responsabilidade. +18 apenas.</p>
+  </footer>
+
+  <!-- Amplitude snippet -->
+  <script>
+    (function() {
+      var AMPLITUDE_KEY = '';
+      if (!AMPLITUDE_KEY) return;
+      // Amplitude SDK init would go here
+    })();
+  </script>
+
+</body>
+</html>

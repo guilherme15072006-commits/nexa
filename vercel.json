@@ -1,0 +1,33 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "name": "nexa-site",
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": "site",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ],
+  "redirects": [
+    { "source": "/app", "destination": "https://play.google.com/store/apps/details?id=bet.nexa.app", "statusCode": 302 },
+    { "source": "/ios", "destination": "https://apps.apple.com/app/nexa/id0000000000", "statusCode": 302 }
+  ],
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://api.nexa.bet/v1/:path*" }
+  ]
+}
