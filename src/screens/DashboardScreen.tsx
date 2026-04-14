@@ -8,7 +8,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { SmoothEntry, TapScale } from '../components/LiveComponents';
+import { SectionHeader } from '../components/ui';
 import { hapticLight } from '../services/haptics';
+import { hapticSuccess } from '../services/haptics';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore } from '../store/nexaStore';
 
@@ -82,6 +84,32 @@ function WinLossBar({ wins, losses }: { wins: number; losses: number }) {
 
   return (
     <View style={styles.wlContainer}>
+      {/* Donut-style percentage badge */}
+      <View style={styles.wlDonutRow}>
+        <View style={styles.wlDonutOuter}>
+          <View style={styles.wlDonutInner}>
+            <Text style={styles.wlDonutPct}>{winPct}%</Text>
+            <Text style={styles.wlDonutLabel}>acerto</Text>
+          </View>
+        </View>
+        <View style={styles.wlDonutLegend}>
+          <View style={styles.wlDonutLegendItem}>
+            <View style={[styles.wlDonutLegendDot, { backgroundColor: colors.green }]} />
+            <View>
+              <Text style={styles.wlDonutLegendCount}>{wins}</Text>
+              <Text style={styles.wlDonutLegendLabel}>Ganhas</Text>
+            </View>
+          </View>
+          <View style={styles.wlDonutLegendItem}>
+            <View style={[styles.wlDonutLegendDot, { backgroundColor: colors.red }]} />
+            <View>
+              <Text style={styles.wlDonutLegendCount}>{losses}</Text>
+              <Text style={styles.wlDonutLegendLabel}>Perdidas</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+      {/* Enhanced bar */}
       <View style={styles.wlLabels}>
         <View style={styles.wlLabelRow}>
           <View style={[styles.wlDot, { backgroundColor: colors.green }]} />
@@ -282,6 +310,37 @@ export default function DashboardScreen() {
                 </View>
               ))}
             </View>
+          </View>
+        </SmoothEntry>
+
+        {/* Shareable Stats Card */}
+        <SmoothEntry delay={500}>
+          <SectionHeader title="Compartilhar" style={styles.shareSection} />
+          <View style={styles.shareCard}>
+            <View style={styles.shareContent}>
+              <Text style={styles.shareBrand}>NEXA</Text>
+              <Text style={styles.shareUsername}>{user.username}</Text>
+              <View style={styles.shareStats}>
+                <View style={styles.shareStatItem}>
+                  <Text style={styles.shareStatValue}>{stats.wins}/{stats.totalBets}</Text>
+                  <Text style={styles.shareStatLabel}>Acertos</Text>
+                </View>
+                <View style={styles.shareStatItem}>
+                  <Text style={[styles.shareStatValue, { color: colors.green }]}>+{Math.round(user.roi * 100)}%</Text>
+                  <Text style={styles.shareStatLabel}>ROI</Text>
+                </View>
+                <View style={styles.shareStatItem}>
+                  <Text style={[styles.shareStatValue, { color: colors.gold }]}>{user.streak}d</Text>
+                  <Text style={styles.shareStatLabel}>Streak</Text>
+                </View>
+              </View>
+              <Text style={styles.shareWatermark}>nexa.app</Text>
+            </View>
+            <TapScale onPress={() => hapticSuccess()}>
+              <View style={styles.shareBtn}>
+                <Text style={styles.shareBtnText}>Compartilhar stats</Text>
+              </View>
+            </TapScale>
           </View>
         </SmoothEntry>
 
@@ -629,6 +688,129 @@ const styles = StyleSheet.create({
     ...typography.bodyMedium,
     fontSize: 12,
     color: colors.primary,
+  },
+
+  // Donut-style percentage badge
+  wlDonutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    gap: spacing.lg,
+  },
+  wlDonutOuter: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 10,
+    borderColor: colors.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgCard,
+  },
+  wlDonutInner: {
+    alignItems: 'center',
+  },
+  wlDonutPct: {
+    ...typography.display,
+    fontSize: 22,
+    color: colors.textPrimary,
+  },
+  wlDonutLabel: {
+    ...typography.body,
+    fontSize: 10,
+    color: colors.textMuted,
+  },
+  wlDonutLegend: {
+    flex: 1,
+    gap: spacing.md,
+  },
+  wlDonutLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  wlDonutLegendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  wlDonutLegendCount: {
+    ...typography.monoBold,
+    fontSize: 18,
+    color: colors.textPrimary,
+  },
+  wlDonutLegendLabel: {
+    ...typography.body,
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+
+  // Share Card
+  shareSection: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  shareCard: {
+    backgroundColor: colors.bgElevated,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  shareContent: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  shareBrand: {
+    ...typography.display,
+    fontSize: 28,
+    color: colors.primary,
+    letterSpacing: 4,
+    marginBottom: spacing.xs,
+  },
+  shareUsername: {
+    ...typography.bodyMedium,
+    fontSize: 16,
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
+  },
+  shareStats: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  shareStatItem: {
+    alignItems: 'center',
+    minWidth: 70,
+  },
+  shareStatValue: {
+    ...typography.monoBold,
+    fontSize: 18,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  shareStatLabel: {
+    ...typography.body,
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  shareWatermark: {
+    ...typography.mono,
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  shareBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm + 4,
+    alignItems: 'center',
+  },
+  shareBtnText: {
+    ...typography.bodySemiBold,
+    fontSize: 14,
+    color: '#FFFFFF',
   },
 
   bottomSpacer: {

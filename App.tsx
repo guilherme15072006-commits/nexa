@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { StatusBar, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { StatusBar, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useNexaStore } from './src/store/nexaStore';
@@ -9,6 +9,7 @@ import { colors } from './src/theme';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import TabNavigator from './src/navigation/TabNavigator';
 import OnboardingScreen from './src/screens/OnboardingScreen';
+import NexaLogo from './src/components/NexaLogo';
 
 function AppContent() {
   const hasCompletedOnboarding = useNexaStore(s => s.user.hasCompletedOnboarding);
@@ -47,6 +48,24 @@ function AppContent() {
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setShowSplash(false), 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (showSplash) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <NexaLogo size="large" />
+        <Text style={{ color: colors.textMuted, fontFamily: 'Inter-Regular', fontSize: 12, marginTop: 16 }}>
+          Carregando...
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider>

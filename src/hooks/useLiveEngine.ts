@@ -21,6 +21,7 @@ export function useLiveEngine() {
   const scoreFeed = useNexaStore((s) => s.scoreFeed);
   const tickViewers = useNexaStore((s) => s.tickViewers);
   const injectChatMessage = useNexaStore((s) => s.injectChatMessage);
+  const tickLiveOdds = useNexaStore((s) => s.tickLiveOdds);
   const matches = useNexaStore((s) => s.matches);
 
   const timersRef = useRef<ReturnType<typeof setInterval>[]>([]);
@@ -66,6 +67,9 @@ export function useLiveEngine() {
       setInterval(() => injectChatMessage(matchId), 4000),
     );
 
+    // Fluctuate odds on live matches every 10s
+    const oddsTick = setInterval(tickLiveOdds, 10000);
+
     // ── Store all timers for cleanup ─────────────────────────────────────
 
     timersRef.current = [
@@ -77,6 +81,7 @@ export function useLiveEngine() {
       powerUpsTick,
       feedTick,
       viewersTick,
+      oddsTick,
       ...chatTicks,
     ];
 
@@ -94,6 +99,7 @@ export function useLiveEngine() {
     scoreFeed,
     tickViewers,
     injectChatMessage,
+    tickLiveOdds,
     matches,
   ]);
 }

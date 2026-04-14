@@ -535,6 +535,10 @@ interface NexaStore {
   // System 15: Anti-Collapse
   antiCollapse: AntiCollapse;
 
+  // Cashout Suggestion
+  showCashoutSuggestion: boolean;
+  dismissCashoutSuggestion: () => void;
+
   // Bet History, Search, Settings
   betHistory: PlacedBet[];
   searchQuery: string;
@@ -620,6 +624,9 @@ interface NexaStore {
 
   // System 12
   tickPredictions: () => void;
+
+  // Live Odds
+  tickLiveOdds: () => void;
 
   // System 13
   markNotificationRead: (id: string) => void;
@@ -800,6 +807,9 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     showCooldownSuggestion: false,
     showBigWinProtection: false,
   },
+
+  // Cashout Suggestion
+  showCashoutSuggestion: false,
 
   // Bet History
   betHistory: [
@@ -1284,6 +1294,27 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       }),
     })),
 
+  // ─── Live Odds ──────────────────────────────────────────────────────────
+
+  tickLiveOdds: () =>
+    set((s) => ({
+      matches: s.matches.map((m) => {
+        if (m.status !== 'live') return m;
+        const fluctuate = (odd: number) => {
+          const delta = (Math.random() - 0.5) * 0.1;
+          return Math.max(1.01, +(odd + delta).toFixed(2));
+        };
+        return {
+          ...m,
+          odds: {
+            home: fluctuate(m.odds.home),
+            draw: fluctuate(m.odds.draw),
+            away: fluctuate(m.odds.away),
+          },
+        };
+      }),
+    })),
+
   // ─── System 13: Notifications ─────────────────────────────────────────────
 
   markNotificationRead: (id) =>
@@ -1335,6 +1366,10 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
         showBigWinProtection: false,
       },
     })),
+
+  // ─── Cashout Suggestion ────────────────────────────────────────────────────
+
+  dismissCashoutSuggestion: () => set({ showCashoutSuggestion: false }),
 
   // ─── System 8: Wallet ─────────────────────────────────────────────────────
 

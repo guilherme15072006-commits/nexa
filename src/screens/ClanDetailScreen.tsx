@@ -10,7 +10,8 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore } from '../store/nexaStore';
 import { SmoothEntry, TapScale } from '../components/LiveComponents';
-import { Card } from '../components/ui';
+import { Card, SectionHeader } from '../components/ui';
+import LiveChat from '../components/LiveChat';
 import { hapticLight } from '../services/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -26,6 +27,8 @@ export default function ClanDetailScreen() {
 
   const clan = useNexaStore((s) => s.clans.find((c) => c.id === clanId));
   const leaderboard = useNexaStore((s) => s.leaderboard);
+  const expandedChat = useNexaStore((s) => s.expandedChat);
+  const toggleChat = useNexaStore((s) => s.toggleChat);
 
   const handleGoBack = useCallback(() => {
     hapticLight();
@@ -135,6 +138,16 @@ export default function ClanDetailScreen() {
               <Text style={styles.emptyText}>Nenhum membro encontrado</Text>
             )}
           </Card>
+        </SmoothEntry>
+
+        {/* Clan Chat */}
+        <SmoothEntry delay={400}>
+          <SectionHeader title="Chat do Cl\u00e3" style={styles.section} />
+          <LiveChat
+            matchId={`clan_${clan.id}`}
+            expanded={expandedChat === `clan_${clan.id}`}
+            onToggle={() => toggleChat(`clan_${clan.id}`)}
+          />
         </SmoothEntry>
 
         <View style={{ height: spacing.xxl }} />
@@ -312,5 +325,11 @@ const styles = StyleSheet.create({
     ...typography.mono,
     color: colors.gold,
     fontSize: 12,
+  },
+
+  // Section
+  section: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
   },
 });

@@ -46,6 +46,11 @@ interface SelectedBet {
   odds: number;
 }
 
+interface AccumulatorBet {
+  bets: SelectedBet[];
+  totalOdds: number;
+}
+
 interface RewardData {
   xpBefore: number;
   xpToNext: number;
@@ -652,11 +657,14 @@ interface BetslipPanelProps {
   panelY: Animated.Value;
   user: { xp: number; xpToNext: number; level: number };
   missionHint: string;
+  accumulator: SelectedBet[];
+  totalOdds: number;
+  onRemoveFromAccumulator: (matchId: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-function BetslipPanel({ bet, panelY, user, missionHint, onConfirm, onCancel }: BetslipPanelProps) {
+function BetslipPanel({ bet, panelY, user, missionHint, accumulator, totalOdds, onRemoveFromAccumulator, onConfirm, onCancel }: BetslipPanelProps) {
   const xpAfterPct = Math.min((user.xp + 20) / user.xpToNext, 1);
   const xpNowPct   = user.xp / user.xpToNext;
 
@@ -679,6 +687,27 @@ function BetslipPanel({ bet, panelY, user, missionHint, onConfirm, onCancel }: B
               {bet.side === 'home' ? bet.homeTeam : bet.side === 'away' ? bet.awayTeam : 'Empate'}
             </Text>
             <Text style={styles.betslipOdds}>@{bet.odds.toFixed(2)}</Text>
+          </View>
+        </View>
+      )}
+
+      {accumulator.length > 1 && (
+        <View style={styles.accumulatorSection}>
+          <Text style={styles.accumulatorTitle}>{'🎯 Acumulada (' + accumulator.length + ' jogos)'}</Text>
+          {accumulator.map(accBet => (
+            <View key={accBet.matchId} style={styles.accumulatorRow}>
+              <Text style={styles.accumulatorTeams} numberOfLines={1}>
+                {accBet.homeTeam} × {accBet.awayTeam}
+              </Text>
+              <Text style={styles.accumulatorOdds}>{accBet.odds.toFixed(2)}</Text>
+              <TouchableOpacity onPress={() => onRemoveFromAccumulator(accBet.matchId)}>
+                <Text style={styles.accumulatorRemove}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+          <View style={styles.accumulatorTotal}>
+            <Text style={styles.accumulatorTotalLabel}>Odds combinada</Text>
+            <Text style={styles.accumulatorTotalValue}>{totalOdds.toFixed(2)}</Text>
           </View>
         </View>
       )}
@@ -726,6 +755,7 @@ function BetslipPanel({ bet, panelY, user, missionHint, onConfirm, onCancel }: B
 export default function ApostasScreen() {
   const [activeTab,    setActiveTab]    = useState<ApostasTab>('ao-vivo');
   const [selectedBet,  setSelectedBet]  = useState<SelectedBet | null>(null);
+  const [accumulator,  setAccumulator]  = useState<SelectedBet[]>([]);
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [rewardData,   setRewardData]   = useState<RewardData | null>(null);
   const [extraBettors, setExtraBettors] = useState(0);
@@ -747,6 +777,7 @@ export default function ApostasScreen() {
   const activePowerUps    = useNexaStore(s => s.activePowerUps);
   const purchasePowerUp   = useNexaStore(s => s.purchasePowerUp);
   const antiCollapse      = useNexaStore(s => s.antiCollapse);
+  const betHistory        = useNexaStore(s => s.betHistory);
   const acknowledgeCooldown = useNexaStore(s => s.acknowledgeCooldown);
   const currentSubscription = useNexaStore(s => s.currentSubscription);
   const pushToast           = useNexaStore(s => s.pushToast);
@@ -821,10 +852,21 @@ export default function ApostasScreen() {
 
   const handleSelectOdd = useCallback((match: Match, side: OddSide) => {
     hapticLight();
-    setSelectedBet({
+    const newBet: SelectedBet = {
       matchId: match.id, homeTeam: match.homeTeam, awayTeam: match.awayTeam,
       side, odds: match.odds[side],
+    };
+    setAccumulator(prev => {
+      const existing = prev.findIndex(b => b.matchId === match.id);
+      if (existing >= 0) {
+        // Replace existing selection for this match
+        const updated = [...prev];
+        updated[existing] = newBet;
+        return updated;
+      }
+      return [...prev, newBet];
     });
+    setSelectedBet(newBet); // keep for single-bet backward compat
   }, []);
 
   const handleConfirmBet = useCallback(() => {
@@ -852,6 +894,15 @@ export default function ApostasScreen() {
 
   const handleCancelBet  = useCallback(() => setSelectedBet(null), []);
   const handleDismissReward = useCallback(() => setRewardData(null), []);
+
+  const removeFromAccumulator = useCallback((matchId: string) => {
+    setAccumulator(prev => prev.filter(b => b.matchId !== matchId));
+  }, []);
+
+  const totalOdds = useMemo(() =>
+    accumulator.reduce((acc, b) => acc * b.odds, 1),
+    [accumulator],
+  );
 
   // ── Render helpers ───────────────────────────────────────────────────────────
 
@@ -1036,6 +1087,24 @@ export default function ApostasScreen() {
           </Card>
         )}
 
+        {/* Cashout suggestion */}
+        {betHistory.some(b => b.result === 'won') && betsPlaced > 2 && (
+          <SmoothEntry delay={200}>
+            <Card style={styles.cashoutCard}>
+              <Text style={styles.cashoutEmoji}>{'💰'}</Text>
+              <View style={styles.cashoutContent}>
+                <Text style={styles.cashoutTitle}>Proteja seus ganhos!</Text>
+                <Text style={styles.cashoutDesc}>Você acertou apostas recentes. Considere sacar parte do lucro.</Text>
+              </View>
+              <TapScale onPress={() => navigation.navigate('Wallet' as never)}>
+                <View style={styles.cashoutBtn}>
+                  <Text style={styles.cashoutBtnText}>Ver carteira</Text>
+                </View>
+              </TapScale>
+            </Card>
+          </SmoothEntry>
+        )}
+
         {renderTabContent()}
 
         {/* ── Pro upsell ── */}
@@ -1061,6 +1130,9 @@ export default function ApostasScreen() {
         panelY={panelY}
         user={user}
         missionHint={missionHint}
+        accumulator={accumulator}
+        totalOdds={totalOdds}
+        onRemoveFromAccumulator={removeFromAccumulator}
         onConfirm={handleConfirmBet}
         onCancel={handleCancelBet}
       />
@@ -1417,6 +1489,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
   },
+
+  // Accumulator
+  accumulatorSection: { marginTop: spacing.sm, borderTopWidth: 0.5, borderTopColor: colors.border, paddingTop: spacing.sm },
+  accumulatorTitle: { ...typography.bodySemiBold, fontSize: 13, color: colors.primary, marginBottom: spacing.xs },
+  accumulatorRow: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, paddingVertical: 3 },
+  accumulatorTeams: { ...typography.body, fontSize: 12, color: colors.textSecondary, flex: 1 },
+  accumulatorOdds: { ...typography.monoBold, fontSize: 12, color: colors.textPrimary, marginHorizontal: spacing.sm },
+  accumulatorRemove: { ...typography.body, fontSize: 14, color: colors.red, paddingHorizontal: spacing.xs },
+  accumulatorTotal: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, marginTop: spacing.xs, paddingTop: spacing.xs, borderTopWidth: 0.5, borderTopColor: colors.border },
+  accumulatorTotalLabel: { ...typography.bodySemiBold, fontSize: 13, color: colors.gold },
+  accumulatorTotalValue: { ...typography.monoBold, fontSize: 16, color: colors.gold },
+
+  // Cashout suggestion
+  cashoutCard: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: spacing.sm, marginBottom: spacing.sm, borderColor: colors.green + '40', borderWidth: 0.5 },
+  cashoutEmoji: { fontSize: 24 },
+  cashoutContent: { flex: 1 },
+  cashoutTitle: { ...typography.bodySemiBold, fontSize: 13, color: colors.green },
+  cashoutDesc: { ...typography.body, fontSize: 11, color: colors.textSecondary },
+  cashoutBtn: { backgroundColor: colors.green + '20', borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
+  cashoutBtnText: { ...typography.bodyMedium, fontSize: 11, color: colors.green },
 
   upsellCard: { alignItems: 'center' as const, marginTop: spacing.md, borderColor: colors.gold + '40', borderWidth: 1 },
   upsellBadge: { ...typography.monoBold, fontSize: 11, color: colors.gold, backgroundColor: colors.gold + '18', borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 2, marginBottom: spacing.sm, overflow: 'hidden' as const },
