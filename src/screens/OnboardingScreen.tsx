@@ -374,9 +374,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   onboardingLogo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
     alignSelf: 'center',
     marginBottom: spacing.sm,
   },

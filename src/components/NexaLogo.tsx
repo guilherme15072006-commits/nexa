@@ -97,7 +97,6 @@ export function NexaLogo({
               {
                 width: config.glowSize,
                 height: config.glowSize,
-                borderRadius: config.glowSize / 2,
                 opacity: glowAnim,
               },
             ]}
@@ -108,11 +107,10 @@ export function NexaLogo({
               {
                 width: config.imageSize,
                 height: config.imageSize,
-                borderRadius: config.imageSize / 2,
               },
               spinning && { transform: [{ rotate: spinInterpolate }] },
             ]}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         </View>
       )}

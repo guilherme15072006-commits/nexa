@@ -99,9 +99,8 @@ function SplashScreen() {
       <Animated.Image
         source={Assets.logo}
         style={{
-          width: 140,
-          height: 140,
-          borderRadius: 70,
+          width: 160,
+          height: 160,
           opacity: logoOpacity,
           transform: [{ scale: logoScale }],
           marginBottom: 20,
