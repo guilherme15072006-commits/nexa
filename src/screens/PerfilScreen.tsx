@@ -755,6 +755,16 @@ export default function PerfilScreen() {
               <Text style={styles.navButtonText}>🎮 NEXA Play →</Text>
             </View>
           </TapScale>
+          <TapScale onPress={() => { hapticLight(); navigation.navigate('AudioRooms' as never); }} scale={0.97}>
+            <View style={styles.navButton}>
+              <Text style={styles.navButtonText}>🎙️ Audio Rooms →</Text>
+            </View>
+          </TapScale>
+          <TapScale onPress={() => { hapticLight(); navigation.navigate('Referral' as never); }} scale={0.97}>
+            <View style={styles.navButton}>
+              <Text style={styles.navButtonText}>👥 Convide Amigos →</Text>
+            </View>
+          </TapScale>
           <TapScale onPress={() => { hapticLight(); navigation.navigate('Settings' as never); }} scale={0.97}>
             <View style={styles.navButton}>
               <Text style={styles.navButtonText}>⚙️ Configurações →</Text>
