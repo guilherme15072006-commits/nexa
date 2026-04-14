@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,6 +13,7 @@ import { Card, OddsBtn } from '../components/ui';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore } from '../store/nexaStore';
 import { hapticMedium, hapticSuccess } from '../services/haptics';
+import { Assets } from '../assets';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -213,6 +215,11 @@ export default function OnboardingScreen() {
       <Animated.View
         style={[styles.content, { opacity, transform: [{ translateX: slideX }] }]}
       >
+        {/* Logo on first step */}
+        {step === 0 && (
+          <Image source={Assets.logo} style={styles.onboardingLogo} resizeMode="contain" />
+        )}
+
         {/* Big emoji */}
         <Text style={styles.emoji}>{cur.emoji}</Text>
 
@@ -365,6 +372,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
+  },
+  onboardingLogo: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignSelf: 'center',
+    marginBottom: spacing.sm,
   },
   emoji: {
     fontSize: 80,

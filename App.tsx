@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { StatusBar, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Image, StatusBar, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useNexaStore } from './src/store/nexaStore';
@@ -10,6 +10,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 import TabNavigator from './src/navigation/TabNavigator';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import NexaLogo from './src/components/NexaLogo';
+import { Assets } from './src/assets';
 import { auth, AuthUser } from './src/services/firebase';
 import { ENV } from './src/config/env';
 import LoginScreen from './src/screens/LoginScreen';
@@ -50,6 +51,93 @@ function AppContent() {
   );
 }
 
+function SplashScreen() {
+  const logoScale = useRef(new Animated.Value(0.3)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  const glowScale = useRef(new Animated.Value(0.5)).current;
+  const glowOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Phase 1: Glow appears
+    Animated.parallel([
+      Animated.timing(glowOpacity, { toValue: 0.4, duration: 400, useNativeDriver: true }),
+      Animated.timing(glowScale, { toValue: 1.5, duration: 800, useNativeDriver: true }),
+    ]).start();
+
+    // Phase 2: Logo scales in
+    const t1 = setTimeout(() => {
+      Animated.parallel([
+        Animated.spring(logoScale, { toValue: 1, friction: 5, tension: 40, useNativeDriver: true }),
+        Animated.timing(logoOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ]).start();
+    }, 200);
+
+    // Phase 3: Text fades in
+    const t2 = setTimeout(() => {
+      Animated.timing(textOpacity, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+    }, 800);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [logoScale, logoOpacity, textOpacity, glowScale, glowOpacity]);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+      {/* Background glow */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          width: 300,
+          height: 300,
+          borderRadius: 150,
+          backgroundColor: colors.primary,
+          opacity: glowOpacity,
+          transform: [{ scale: glowScale }],
+        }}
+      />
+      {/* Logo */}
+      <Animated.Image
+        source={Assets.logo}
+        style={{
+          width: 140,
+          height: 140,
+          borderRadius: 70,
+          opacity: logoOpacity,
+          transform: [{ scale: logoScale }],
+          marginBottom: 20,
+        }}
+        resizeMode="cover"
+      />
+      {/* Text */}
+      <Animated.Text
+        style={{
+          fontFamily: 'SpaceGrotesk-Bold',
+          fontSize: 36,
+          letterSpacing: 4,
+          color: colors.primary,
+          opacity: textOpacity,
+          textShadowColor: colors.primaryGlow,
+          textShadowOffset: { width: 0, height: 0 },
+          textShadowRadius: 16,
+        }}
+      >
+        NEXA
+      </Animated.Text>
+      <Animated.Text
+        style={{
+          fontFamily: 'Inter-Regular',
+          fontSize: 12,
+          color: colors.textMuted,
+          marginTop: 12,
+          opacity: textOpacity,
+        }}
+      >
+        Carregando...
+      </Animated.Text>
+    </View>
+  );
+}
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -74,20 +162,13 @@ export default function App() {
   }, []);
 
   if (showSplash) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <NexaLogo size="large" />
-        <Text style={{ color: colors.textMuted, fontFamily: 'Inter-Regular', fontSize: 12, marginTop: 16 }}>
-          Carregando...
-        </Text>
-      </View>
-    );
+    return <SplashScreen />;
   }
 
   if (authLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <NexaLogo size="large" />
+        <NexaLogo size="large" spinning showText={false} glowIntensity="intense" />
       </View>
     );
   }

@@ -1,18 +1,36 @@
+// ═══════════════════════════════════════════════════════════════
+// NEXA Design System — Derived from the Torus Knot Logo
+// The logo is a purple glowing orb radiating from deep space.
+// Every color, shadow, and glow in the app echoes this identity.
+// ═══════════════════════════════════════════════════════════════
+
 export const colors = {
-  primary: '#7C5CFC',
+  // ── Logo palette (extracted from torus knot) ────────────────
+  primary: '#7C5CFC',       // bright purple — the core glow
+  primaryLight: '#C084FC',  // pink-purple accent — outer ring
+  primaryDark: '#1A0A4A',   // deep purple — inner shadow
+  primaryGlow: '#7C5CFC66', // semi-transparent glow
+
+  // ── Semantic ────────────────────────────────────────────────
   gold: '#F5C842',
   green: '#00C896',
   red: '#FF4D6A',
   orange: '#FF8C42',
 
-  bg: '#0D0B14',
-  bgCard: '#16131F',
-  bgElevated: '#1E1A2E',
+  // ── Backgrounds (deep space, matching logo bg) ──────────────
+  bg: '#0D0B14',            // void black — the space around the orb
+  bgCard: '#16131F',        // slightly lifted surface
+  bgElevated: '#1E1A2E',   // elevated elements
+  bgGlow: '#1A0A4A22',     // subtle purple wash on surfaces
 
-  textPrimary: '#F0EDF8',
+  // ── Text ────────────────────────────────────────────────────
+  textPrimary: '#F0EDF8',   // white glow — matching logo highlight
   textSecondary: '#9B95B8',
   textMuted: '#5C5780',
-  border: '#2A2545',
+  border: '#2A2545',        // deep purple border
+
+  // ── Gradients (CSS-like stops for reference) ────────────────
+  // gradient: ['#1A0A4A', '#7C5CFC', '#C084FC']
 } as const;
 
 export const typography = {
@@ -70,6 +88,14 @@ export const shadows = {
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
+  },
+  // Purple glow shadow — matches logo radiance
+  glow: {
+    shadowColor: '#7C5CFC',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
 } as const;
 

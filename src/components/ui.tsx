@@ -97,11 +97,12 @@ interface CardProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   featured?: boolean;
+  glow?: boolean;
 }
 
-export function Card({ children, style, featured }: CardProps) {
+export function Card({ children, style, featured, glow }: CardProps) {
   return (
-    <View style={[styles.card, featured && styles.cardFeatured, style]}>
+    <View style={[styles.card, featured && styles.cardFeatured, glow && styles.cardGlow, style]}>
       {children}
     </View>
   );
@@ -267,6 +268,15 @@ const styles = StyleSheet.create({
   cardFeatured: {
     borderWidth: 2,
     borderColor: colors.primary,
+  } as ViewStyle,
+  cardGlow: {
+    borderWidth: 1,
+    borderColor: colors.primary + '40',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   } as ViewStyle,
 
   // XPBar
