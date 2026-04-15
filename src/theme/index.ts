@@ -99,5 +99,42 @@ export const shadows = {
   },
 } as const;
 
-const theme = { colors, typography, spacing, radius, shadows };
+// ── Animation timing (Bet365/Stripe precision) ──────────────
+export const anim = {
+  spring: { tension: 120, friction: 8, useNativeDriver: true },
+  springFast: { tension: 200, friction: 14, useNativeDriver: true },
+  springBouncy: { tension: 80, friction: 5, useNativeDriver: true },
+  springGentle: { tension: 60, friction: 10, useNativeDriver: true },
+  micro: 80,
+  fast: 150,
+  normal: 280,
+  slow: 450,
+  emphasis: 700,
+} as const;
+
+// ── Glass morphism presets (Stake-inspired) ──────────────────
+export const glass = {
+  card: {
+    backgroundColor: 'rgba(22, 19, 31, 0.88)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(42, 37, 69, 0.9)',
+  },
+  elevated: {
+    backgroundColor: 'rgba(30, 26, 46, 0.78)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(124, 92, 252, 0.1)',
+  },
+  accent: {
+    backgroundColor: 'rgba(124, 92, 252, 0.06)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(124, 92, 252, 0.2)',
+  },
+  live: {
+    backgroundColor: 'rgba(255, 77, 106, 0.06)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 77, 106, 0.2)',
+  },
+} as const;
+
+const theme = { colors, typography, spacing, radius, shadows, anim, glass };
 export default theme;

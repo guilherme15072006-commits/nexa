@@ -133,6 +133,13 @@ export const supabaseService = {
     await db.from('referrals').insert({ referrer_id: referrerId, referred_id: referredId, code, status: 'accepted' });
   },
 
+  /** Update match odds (chamado pelo odds engine) */
+  updateMatch: async (matchId: string, updates: Partial<DBMatch>): Promise<void> => {
+    const db = getClient();
+    if (!db) return;
+    await db.from('matches').update(updates).eq('id', matchId);
+  },
+
   /** Subscribe to realtime changes */
   subscribeToMatches: (callback: (match: DBMatch) => void): (() => void) => {
     const db = getClient();

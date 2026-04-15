@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Image, StatusBar, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useNexaStore } from './src/store/nexaStore';
 import { useLiveEngine } from './src/hooks/useLiveEngine';
 import { LevelUpOverlay, StreakCelebration } from './src/components/Celebrations';
@@ -12,7 +13,10 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import NexaLogo from './src/components/NexaLogo';
 import { Assets } from './src/assets';
 import { auth, AuthUser } from './src/services/firebase';
+import { supabaseAuth } from './src/services/supabaseAuth';
 import { ENV } from './src/config/env';
+import { useSupabaseSync } from './src/hooks/useSupabaseSync';
+import { useOddsEngine } from './src/hooks/useOddsEngine';
 import LoginScreen from './src/screens/LoginScreen';
 
 function AppContent() {
@@ -22,6 +26,12 @@ function AppContent() {
   const dismissLevelUp = useNexaStore(s => s.dismissLevelUp);
   const dismissStreak = useNexaStore(s => s.dismissStreak);
   useLiveEngine();
+
+  // Carrega dados reais do Supabase (se USE_REAL_DATABASE = true)
+  useSupabaseSync();
+
+  // Motor de odds ao vivo (atualiza a cada 10s)
+  useOddsEngine();
 
   const handleDismissLevel = useCallback(() => dismissLevelUp(), [dismissLevelUp]);
   const handleDismissStreak = useCallback(() => dismissStreak(), [dismissStreak]);
@@ -149,12 +159,12 @@ export default function App() {
 
   useEffect(() => {
     if (!ENV.USE_REAL_AUTH) {
-      setAuthUser({ uid: 'mock', email: null, displayName: 'você', photoURL: null, provider: 'mock' });
+      setAuthUser({ uid: 'mock', email: null, displayName: 'voce', photoURL: null, provider: 'mock' });
       setAuthLoading(false);
       return;
     }
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setAuthUser(user);
+    const unsubscribe = supabaseAuth.onAuthStateChanged((user) => {
+      setAuthUser(user as AuthUser | null);
       setAuthLoading(false);
     });
     return unsubscribe;
@@ -177,11 +187,13 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
-        <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
-        <AppContent />
-      </SafeAreaProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <SafeAreaProvider>
+          <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
+          <AppContent />
+        </SafeAreaProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }

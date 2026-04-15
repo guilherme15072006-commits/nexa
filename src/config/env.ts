@@ -6,8 +6,8 @@
 
 export const ENV = {
   // ── Supabase ────────────────────────────────────────────────
-  SUPABASE_URL: 'https://YOUR_PROJECT.supabase.co',
-  SUPABASE_ANON_KEY: 'YOUR_ANON_KEY',
+  SUPABASE_URL: 'https://ymuziccgrqjbugsdwgjo.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_lqe_c_pFLJqKprdsRhnt0w_PNIPLjkg',
 
   // ── Firebase (configured via google-services.json) ──────────
   // No keys needed here — Firebase reads from native config.
@@ -18,8 +18,8 @@ export const ENV = {
   ODDS_API_BASE: 'https://api.the-odds-api.com/v4',
 
   // ── Feature Flags ───────────────────────────────────────────
-  USE_REAL_AUTH: false,      // true = Firebase Auth, false = mock
-  USE_REAL_DATABASE: false,  // true = Supabase, false = Zustand mock
+  USE_REAL_AUTH: true,       // true = Supabase Auth, false = mock
+  USE_REAL_DATABASE: true,   // true = Supabase, false = Zustand mock
   USE_REAL_ODDS: false,      // true = TheOddsAPI, false = mock odds
 
   // ── App Config ──────────────────────────────────────────────

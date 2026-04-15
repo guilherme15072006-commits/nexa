@@ -4,11 +4,14 @@ import {
   Animated,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius } from '../theme';
 import { auth, AuthUser } from '../services/firebase';
+import { supabaseAuth } from '../services/supabaseAuth';
+import { ENV } from '../config/env';
 import { hapticLight, hapticMedium, hapticSuccess } from '../services/haptics';
 import { TapScale, SmoothEntry } from '../components/LiveComponents';
 import NexaLogo from '../components/NexaLogo';
@@ -23,8 +26,13 @@ interface LoginScreenProps {
 
 export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [loading, setLoading] = useState(false);
-  const [loadingType, setLoadingType] = useState<'google' | 'guest' | null>(null);
+  const [loadingType, setLoadingType] = useState<'google' | 'guest' | 'email' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Logo pulse animation
@@ -46,6 +54,33 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     pulse.start();
     return () => pulse.stop();
   }, [pulseAnim]);
+
+  const handleEmailAuth = useCallback(async () => {
+    if (!email || !password) {
+      setError('Preencha email e senha');
+      return;
+    }
+    if (isSignUp && !username) {
+      setError('Escolha um nome de usuario');
+      return;
+    }
+    setLoading(true);
+    setLoadingType('email');
+    setError(null);
+    hapticMedium();
+
+    try {
+      const user = isSignUp
+        ? await supabaseAuth.signUp(email, password, username)
+        : await supabaseAuth.signInWithEmail(email, password);
+      hapticSuccess();
+      onLoginSuccess(user as any);
+    } catch (err: any) {
+      setError(err?.message ?? 'Erro na autenticacao. Tente novamente.');
+      setLoading(false);
+      setLoadingType(null);
+    }
+  }, [email, password, username, isSignUp, onLoginSuccess]);
 
   const handleGoogleSignIn = useCallback(async () => {
     setLoading(true);
@@ -111,6 +146,79 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         {/* Spacer */}
         <View style={styles.spacer} />
 
+        {/* Email/senha form */}
+        {showEmailForm && !error && (
+          <SmoothEntry delay={0}>
+            <View style={styles.emailForm}>
+              {isSignUp && (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nome de usuario"
+                  placeholderTextColor={colors.textMuted}
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                />
+              )}
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor={colors.textMuted}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Senha"
+                placeholderTextColor={colors.textMuted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+              <TapScale onPress={handleEmailAuth} disabled={loading}>
+                <View style={styles.emailButton}>
+                  {loading && loadingType === 'email' ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.emailButtonText}>
+                      {isSignUp ? 'Criar conta' : 'Entrar'}
+                    </Text>
+                  )}
+                </View>
+              </TapScale>
+              <TapScale onPress={() => { setIsSignUp(!isSignUp); hapticLight(); }}>
+                <Text style={styles.toggleText}>
+                  {isSignUp ? 'Ja tem conta? Entrar' : 'Nao tem conta? Criar'}
+                </Text>
+              </TapScale>
+            </View>
+          </SmoothEntry>
+        )}
+
+        {/* Botao pra mostrar form de email */}
+        {!showEmailForm && !error && (
+          <SmoothEntry delay={500}>
+            <TapScale onPress={() => { setShowEmailForm(true); hapticLight(); }}>
+              <View style={styles.emailToggleButton}>
+                <Text style={styles.emailToggleText}>Entrar com email</Text>
+              </View>
+            </TapScale>
+          </SmoothEntry>
+        )}
+
+        {/* Divider antes do Google */}
+        {!error && (
+          <SmoothEntry delay={showEmailForm ? 200 : 550}>
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>ou</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          </SmoothEntry>
+        )}
+
         {/* Error state */}
         {error && (
           <SmoothEntry delay={0}>
@@ -142,17 +250,6 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                 )}
               </View>
             </TapScale>
-          </SmoothEntry>
-        )}
-
-        {/* Divider */}
-        {!error && (
-          <SmoothEntry delay={800}>
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ou</Text>
-              <View style={styles.dividerLine} />
-            </View>
           </SmoothEntry>
         )}
 
@@ -309,5 +406,55 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.xl,
     lineHeight: 18,
+  },
+  emailForm: {
+    width: '100%',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  input: {
+    ...typography.body,
+    fontSize: 15,
+    color: colors.textPrimary,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
+    width: '100%',
+  },
+  emailButton: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+    width: '100%',
+  },
+  emailButtonText: {
+    ...typography.bodySemiBold,
+    fontSize: 15,
+    color: '#fff',
+  },
+  toggleText: {
+    ...typography.bodyMedium,
+    fontSize: 13,
+    color: colors.primary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  emailToggleButton: {
+    borderWidth: 0.5,
+    borderColor: colors.primary + '44',
+    borderRadius: radius.md,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  emailToggleText: {
+    ...typography.bodyMedium,
+    fontSize: 14,
+    color: colors.primary,
   },
 });
