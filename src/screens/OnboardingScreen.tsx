@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, OddsBtn } from '../components/ui';
 import { CelebrationBurst } from '../components/ui';
+import { IconTarget, IconBolt, IconDNA, IconTrophy, IconChart, IconMission } from '../components/Icons';
 import { colors, radius, spacing, typography, typeScale } from '../theme';
 import { useNexaStore } from '../store/nexaStore';
 import { hapticMedium, hapticSuccess, hapticLight } from '../services/haptics';
@@ -24,16 +25,18 @@ type OddSide = 'home' | 'draw' | 'away';
 
 const STEPS = [
   {
-    emoji: '🎯',
-    title: 'Bem-vindo\nà NEXA',
+    icon: 'target' as const,
+    iconColor: colors.primary,
+    title: 'Bem-vindo\na NEXA',
     subtitle:
-      'A plataforma que une apostas, evolução e comunidade num único ecossistema.',
-    cta: 'Vamos lá',
+      'A plataforma que une apostas, evolucao e comunidade num unico ecossistema.',
+    cta: 'Vamos la',
     ctaColor: colors.primary,
     showSkip: true,
   },
   {
-    emoji: '⚡',
+    icon: 'bolt' as const,
+    iconColor: colors.green,
     title: 'Sua primeira\naposta',
     subtitle: 'Sem risco. Escolha um resultado e ganhe seus primeiros XP.',
     cta: 'Continuar',
@@ -41,7 +44,8 @@ const STEPS = [
     showSkip: false,
   },
   {
-    emoji: '🧬',
+    icon: 'dna' as const,
+    iconColor: colors.orange,
     title: 'Seu DNA\napostador',
     subtitle: 'Identificamos seu estilo com base na sua escolha.',
     cta: 'Entendi',
@@ -49,15 +53,17 @@ const STEPS = [
     showSkip: false,
   },
   {
-    emoji: '🏆',
+    icon: 'trophy' as const,
+    iconColor: colors.gold,
     title: '+100 XP\nconquistados!',
-    subtitle: 'Você já está na frente. Evolua para subir no ranking.',
-    cta: 'Incrível!',
+    subtitle: 'Voce ja esta na frente. Evolua para subir no ranking.',
+    cta: 'Incrivel!',
     ctaColor: colors.gold,
     showSkip: false,
   },
   {
-    emoji: '🚀',
+    icon: 'trending' as const,
+    iconColor: colors.primary,
     title: 'Pronto para\ncompetir',
     subtitle: 'Missoes, clas e recompensas te esperam. Seu caminho comeca agora.',
     cta: 'Entrar na NEXA',
@@ -66,23 +72,32 @@ const STEPS = [
   },
 ] as const;
 
+// Mapa de icone por nome
+const STEP_ICONS: Record<string, React.FC<{size?: number; color?: string}>> = {
+  target: IconTarget,
+  bolt: IconBolt,
+  dna: IconDNA,
+  trophy: IconTrophy,
+  trending: IconChart,
+};
+
 // ─── DNA result per pick ──────────────────────────────────────────────────────
 
-const DNA_MAP: Record<OddSide, { style: string; icon: string; desc: string }> = {
+const DNA_MAP: Record<OddSide, { style: string; color: string; desc: string }> = {
   home: {
     style: 'Apostador Favorito',
-    icon: '🏠',
-    desc: 'Você joga com consistência. Favorece dados sólidos e times confiáveis.',
+    color: colors.green,
+    desc: 'Voce joga com consistencia. Favorece dados solidos e times confiaveis.',
   },
   draw: {
-    style: 'Analista Estratégico',
-    icon: '🎲',
-    desc: 'Você enxerga onde outros não olham. Um apostador de valor real.',
+    style: 'Analista Estrategico',
+    color: colors.primary,
+    desc: 'Voce enxerga onde outros nao olham. Um apostador de valor real.',
   },
   away: {
-    style: 'Caçador de Valor',
-    icon: '💎',
-    desc: 'Você corre riscos calculados. Altas odds e retorno máximo.',
+    style: 'Cacador de Valor',
+    color: colors.gold,
+    desc: 'Voce corre riscos calculados. Altas odds e retorno maximo.',
   },
 };
 
@@ -239,8 +254,10 @@ export default function OnboardingScreen() {
           <Image source={Assets.logo} style={styles.onboardingLogo} resizeMode="contain" />
         )}
 
-        {/* Big emoji */}
-        <Text style={styles.emoji}>{cur.emoji}</Text>
+        {/* Step icon (SVG, nao emoji) */}
+        <View style={[styles.iconContainer, { borderColor: cur.iconColor + '30', backgroundColor: cur.iconColor + '10' }]}>
+          {STEP_ICONS[cur.icon]?.({ size: 40, color: cur.iconColor })}
+        </View>
 
         {/* Title */}
         <Text style={styles.title}>{cur.title}</Text>
@@ -289,7 +306,9 @@ export default function OnboardingScreen() {
         {/* ── Step 2 — DNA result ── */}
         {step === 2 && pick && (
           <Card style={styles.dnaCard}>
-            <Text style={styles.dnaIcon}>{DNA_MAP[pick].icon}</Text>
+            <View style={[styles.dnaIconWrap, { backgroundColor: DNA_MAP[pick].color + '15', borderColor: DNA_MAP[pick].color + '30' }]}>
+              <IconDNA size={32} color={DNA_MAP[pick].color} />
+            </View>
             <Text style={styles.dnaStyle}>{DNA_MAP[pick].style}</Text>
             <Text style={styles.dnaDesc}>{DNA_MAP[pick].desc}</Text>
           </Card>
@@ -319,12 +338,14 @@ export default function OnboardingScreen() {
         {step === 4 && (
           <View style={styles.previewSection}>
             {[
-              { icon: '📊', label: 'Feed personalizado', desc: 'Picks e analises da comunidade' },
-              { icon: '🏆', label: 'Ranking ao vivo', desc: 'Compita e suba de nivel' },
-              { icon: '🎯', label: 'Missoes diarias', desc: 'Ganhe XP e recompensas' },
+              { IconComp: IconChart, color: colors.green, label: 'Feed personalizado', desc: 'Picks e analises da comunidade' },
+              { IconComp: IconTrophy, color: colors.gold, label: 'Ranking ao vivo', desc: 'Compita e suba de nivel' },
+              { IconComp: IconMission, color: colors.primary, label: 'Missoes diarias', desc: 'Ganhe XP e recompensas' },
             ].map((item, i) => (
               <View key={i} style={styles.previewCard}>
-                <Text style={styles.previewIcon}>{item.icon}</Text>
+                <View style={[styles.previewIconWrap, { backgroundColor: item.color + '15' }]}>
+                  <item.IconComp size={20} color={item.color} />
+                </View>
                 <View style={styles.previewText}>
                   <Text style={styles.previewLabel}>{item.label}</Text>
                   <Text style={styles.previewDesc}>{item.desc}</Text>
@@ -420,11 +441,14 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.sm,
   },
-  emoji: {
-    fontSize: 80,
-    lineHeight: 96,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
   },
   title: {
     ...typography.display,
@@ -490,9 +514,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.sm,
   },
-  dnaIcon: {
-    fontSize: 48,
-    lineHeight: 58,
+  dnaIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dnaStyle: {
     ...typography.display,
@@ -550,8 +578,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.lg,
   },
-  previewIcon: {
-    fontSize: 24,
+  previewIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   previewText: {
     flex: 1,
