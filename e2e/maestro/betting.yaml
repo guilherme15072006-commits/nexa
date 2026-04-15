@@ -1,0 +1,26 @@
+# NEXA E2E: Fluxo de Aposta
+appId: com.nexa
+---
+- launchApp
+- waitForAnimationToEnd
+
+# Ir para aba Apostas
+- tapOn: "Apostas"
+- waitForAnimationToEnd
+
+# Verificar que jogos aparecem
+- assertVisible: "Ao vivo|ao vivo|LIVE"
+
+# Clicar em uma odd
+- tapOn:
+    index: 0
+    text: ".*[0-9]\.[0-9]+.*"
+
+# Verificar betslip
+- assertVisible: "Apostar|Confirmar"
+
+# Confirmar aposta
+- tapOn: "Apostar|Confirmar"
+
+# Verificar confirmacao
+- assertVisible: "XP|registrada|Aposta"

@@ -1,0 +1,28 @@
+# NEXA E2E: Fluxo de Onboarding
+# Testa se o usuario consegue completar o onboarding inteiro
+appId: com.nexa
+---
+- launchApp
+- assertVisible: "NEXA"
+- assertVisible: "Bem-vindo"
+
+# Passo 1: Apertar comecar
+- tapOn: "Começar"
+- assertVisible: "Aposte"
+
+# Passo 2: Fazer aposta simulada
+- tapOn:
+    index: 0
+    text: ".*[0-9]\.[0-9]+.*"
+
+# Passo 3: Proximo
+- tapOn: "Próximo|Continuar"
+
+# Passo 4: Ver resultado
+- assertVisible: "XP"
+
+# Passo 5: Entrar
+- tapOn: "Entrar|Começar"
+
+# Verificar que chegou no feed
+- assertVisible: "Feed|Início|Para você"

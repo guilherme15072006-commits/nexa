@@ -1,0 +1,22 @@
+# NEXA E2E: Fluxo de Copy Bet
+appId: com.nexa
+---
+- launchApp
+- waitForAnimationToEnd
+
+# Ir para feed
+- tapOn:
+    text: "Feed|Início"
+    optional: true
+
+# Scroll ate achar um post com copy bet
+- scrollUntilVisible:
+    element: "Copiar"
+    direction: DOWN
+    timeout: 8000
+
+# Clicar em copiar
+- tapOn: "Copiar"
+
+# Verificar XP ganho
+- assertVisible: "XP|+10"

@@ -1,0 +1,20 @@
+# NEXA E2E: Fluxo de Check-in diario
+appId: com.nexa
+---
+- launchApp
+- waitForAnimationToEnd
+
+# Ir para o feed (se nao estiver la)
+- tapOn:
+    text: "Feed|Início"
+    optional: true
+
+# Procurar e clicar no check-in
+- scrollUntilVisible:
+    element: "Check-in"
+    direction: DOWN
+    timeout: 5000
+- tapOn: "Check-in|Resgatar"
+
+# Verificar recompensa
+- assertVisible: "XP|Sequência|Streak"
