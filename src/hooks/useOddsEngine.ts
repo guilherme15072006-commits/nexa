@@ -18,10 +18,7 @@
 import { useEffect, useRef } from 'react';
 import { ENV, isConfigured } from '../config/env';
 import { oddsApi, LiveOdds } from '../services/oddsApi';
-// Lazy import pra evitar crash do URL polyfill
-function getSupabaseService() {
-  return require('../services/supabase').supabaseService;
-}
+import { supabaseService } from '../services/supabase';
 import { useNexaStore } from '../store/nexaStore';
 import type { Match } from '../store/nexaStore';
 
@@ -110,7 +107,7 @@ async function fetchRealOdds(liveMatches: Match[]) {
       for (const match of liveMatches) {
         const odds = oddsMap.get(match.homeTeam.toLowerCase());
         if (odds) {
-          getSupabaseService().updateMatch?.(match.id, {
+          supabaseService.updateMatch?.(match.id, {
             home_odds: odds.homeOdds,
             draw_odds: odds.drawOdds,
             away_odds: odds.awayOdds,

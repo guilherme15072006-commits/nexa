@@ -11,11 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius } from '../theme';
 import { auth, AuthUser } from '../services/firebase';
 import { ENV } from '../config/env';
-
-// Lazy import pra evitar crash quando USE_REAL_AUTH=false
-function getSupabaseAuth() {
-  return require('../services/supabaseAuth').supabaseAuth;
-}
+import { supabaseAuth } from '../services/supabaseAuth';
 import { hapticLight, hapticMedium, hapticSuccess } from '../services/haptics';
 import { TapScale, SmoothEntry } from '../components/LiveComponents';
 import NexaLogo from '../components/NexaLogo';
@@ -75,8 +71,8 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
     try {
       const user = isSignUp
-        ? await getSupabaseAuth().signUp(email, password, username)
-        : await getSupabaseAuth().signInWithEmail(email, password);
+        ? await supabaseAuth.signUp(email, password, username)
+        : await supabaseAuth.signInWithEmail(email, password);
       hapticSuccess();
       onLoginSuccess(user as any);
     } catch (err: any) {
