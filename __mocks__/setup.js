@@ -53,3 +53,17 @@ jest.mock('@supabase/supabase-js', () => ({
     removeChannel: jest.fn(),
   })),
 }));
+
+// Mock gesture handler for Jest
+jest.mock('react-native-gesture-handler', () => ({
+  GestureHandlerRootView: ({ children }) => children,
+  GestureDetector: ({ children }) => children,
+  Gesture: {
+    Tap: () => ({ enabled: () => ({ onBegin: () => ({ onFinalize: () => ({ onEnd: () => ({}) }) }) }) }),
+    Pan: () => ({ onUpdate: () => ({ onEnd: () => ({}) }) }),
+    LongPress: () => ({ enabled: () => ({ minDuration: () => ({ onStart: () => ({}) }) }) }),
+    Race: (...args) => args[0],
+  },
+}));
+
+jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
