@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView,
+  View, Text, StyleSheet, ScrollView, ViewStyle,
   TouchableOpacity, StatusBar, Animated, Easing,
 } from 'react-native';
 import { colors, spacing, radius, typography, anim, glass } from '../theme';
@@ -236,7 +236,7 @@ function BadgeGrid({ badges }: { badges: any[] }) {
               <GlowCard
                 color={b.unlocked ? color : colors.textMuted}
                 intensity={b.rarity === 'legendary' ? 'strong' : b.rarity === 'epic' ? 'normal' : 'subtle'}
-                style={[styles.badgeItem, !b.unlocked && styles.badgeLocked]}
+                style={StyleSheet.flatten([styles.badgeItem, !b.unlocked && styles.badgeLocked]) as ViewStyle}
               >
                 <Text style={styles.badgeIcon}>{b.unlocked ? b.icon : '?'}</Text>
                 <View>
