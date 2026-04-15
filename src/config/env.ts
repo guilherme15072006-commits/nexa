@@ -18,8 +18,8 @@ export const ENV = {
   ODDS_API_BASE: 'https://api.the-odds-api.com/v4',
 
   // ── Feature Flags ───────────────────────────────────────────
-  USE_REAL_AUTH: true,       // true = Supabase Auth, false = mock
-  USE_REAL_DATABASE: true,   // true = Supabase, false = Zustand mock
+  USE_REAL_AUTH: false,      // true = Supabase Auth, false = mock (Supabase URL polyfill pendente)
+  USE_REAL_DATABASE: false,  // true = Supabase, false = Zustand mock (Supabase URL polyfill pendente)
   USE_REAL_ODDS: false,      // true = TheOddsAPI, false = mock odds
 
   // ── App Config ──────────────────────────────────────────────

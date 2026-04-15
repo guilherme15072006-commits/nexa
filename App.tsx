@@ -13,10 +13,14 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import NexaLogo from './src/components/NexaLogo';
 import { Assets } from './src/assets';
 import { auth, AuthUser } from './src/services/firebase';
-import { supabaseAuth } from './src/services/supabaseAuth';
 import { ENV } from './src/config/env';
 import { useSupabaseSync } from './src/hooks/useSupabaseSync';
 import { useOddsEngine } from './src/hooks/useOddsEngine';
+
+// supabaseAuth importado condicionalmente pra evitar crash do URL polyfill no Hermes
+const supabaseAuth = ENV.USE_REAL_AUTH
+  ? require('./src/services/supabaseAuth').supabaseAuth
+  : null;
 import LoginScreen from './src/screens/LoginScreen';
 
 function AppContent() {

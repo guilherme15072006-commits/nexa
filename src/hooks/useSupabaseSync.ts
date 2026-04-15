@@ -10,9 +10,14 @@
 
 import { useEffect } from 'react';
 import { ENV } from '../config/env';
-import { supabaseService, DBMatch } from '../services/supabase';
 import { useNexaStore } from '../store/nexaStore';
-import type { Match, Clan, Mission } from '../store/nexaStore';
+import type { Match } from '../store/nexaStore';
+
+// Lazy import pra evitar crash do URL polyfill quando USE_REAL_DATABASE=false
+function getSupabaseService() {
+  return require('../services/supabase').supabaseService;
+}
+type DBMatch = import('../services/supabase').DBMatch;
 
 // Converte formato do banco (snake_case) para formato do app (camelCase)
 function dbMatchToApp(db: DBMatch): Match {
@@ -49,14 +54,14 @@ export function useSupabaseSync() {
     async function loadInitialData() {
       try {
         // Buscar jogos
-        const dbMatches = await supabaseService.getMatches();
+        const dbMatches = await getSupabaseService().getMatches();
         if (dbMatches.length > 0) {
           const matches = dbMatches.map(dbMatchToApp);
           useNexaStore.setState({ matches });
         }
 
         // Buscar jogos ao vivo separado (para garantir)
-        const dbLive = await supabaseService.getLiveMatches();
+        const dbLive = await getSupabaseService().getLiveMatches();
         if (dbLive.length > 0) {
           // Atualizar apenas os jogos ao vivo no estado
           const currentMatches = useNexaStore.getState().matches;
@@ -77,7 +82,7 @@ export function useSupabaseSync() {
 
     function subscribeToRealtime() {
       // Escutar mudancas nos jogos (odds ao vivo)
-      unsubMatches = supabaseService.subscribeToMatches((updatedMatch) => {
+      unsubMatches = getSupabaseService().subscribeToMatches((updatedMatch) => {
         const match = dbMatchToApp(updatedMatch);
         useNexaStore.setState((state) => ({
           matches: state.matches.map(m => m.id === match.id ? match : m),
@@ -85,7 +90,7 @@ export function useSupabaseSync() {
       });
 
       // Escutar novos posts no feed
-      unsubFeed = supabaseService.subscribeToFeed((newPost) => {
+      unsubFeed = getSupabaseService().subscribeToFeed((newPost) => {
         useNexaStore.setState((state) => ({
           feed: [newPost, ...state.feed],
         }));
