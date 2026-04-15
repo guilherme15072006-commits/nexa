@@ -10,9 +10,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, OddsBtn } from '../components/ui';
-import { colors, radius, spacing, typography } from '../theme';
+import { CelebrationBurst } from '../components/ui';
+import { colors, radius, spacing, typography, typeScale } from '../theme';
 import { useNexaStore } from '../store/nexaStore';
-import { hapticMedium, hapticSuccess } from '../services/haptics';
+import { hapticMedium, hapticSuccess, hapticLight } from '../services/haptics';
 import { Assets } from '../assets';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -57,8 +58,8 @@ const STEPS = [
   },
   {
     emoji: '🚀',
-    title: 'Pronto para\ncomperir',
-    subtitle: 'Missões, clãs e recompensas te esperam. Seu caminho começa agora.',
+    title: 'Pronto para\ncompetir',
+    subtitle: 'Missoes, clas e recompensas te esperam. Seu caminho comeca agora.',
     cta: 'Entrar na NEXA',
     ctaColor: colors.primary,
     showSkip: false,
@@ -100,6 +101,7 @@ export default function OnboardingScreen() {
   const [step, setStep]     = useState(0);
   const [pick, setPick]     = useState<OddSide | null>(null);
   const [betDone, setBetDone] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const addXP             = useNexaStore(s => s.addXP);
   const completeOnboarding = useNexaStore(s => s.completeOnboarding);
@@ -149,9 +151,26 @@ export default function OnboardingScreen() {
   }
 
   function handleCTA() {
-    if (isLast) { hapticSuccess(); completeOnboarding(); return; }
+    if (isLast) {
+      hapticSuccess();
+      setShowConfetti(true);
+      setTimeout(() => {
+        setShowConfetti(false);
+        completeOnboarding();
+      }, 1500);
+      return;
+    }
     hapticMedium();
     transition(step + 1, 1);
+
+    // Confetti no step de XP
+    if (step + 1 === 3) {
+      setTimeout(() => {
+        setShowConfetti(true);
+        hapticSuccess();
+        setTimeout(() => setShowConfetti(false), 1200);
+      }, 400);
+    }
   }
 
   function handleBack() {
@@ -292,10 +311,32 @@ export default function OnboardingScreen() {
                 ]}
               />
             </View>
-            <Text style={styles.xpMeta}>100 / 500 XP  ·  Nível 1</Text>
+            <Text style={styles.xpMeta}>100 / 500 XP  ·  Nivel 1</Text>
+          </View>
+        )}
+
+        {/* ── Step 4 — Progressive disclosure: o que espera ── */}
+        {step === 4 && (
+          <View style={styles.previewSection}>
+            {[
+              { icon: '📊', label: 'Feed personalizado', desc: 'Picks e analises da comunidade' },
+              { icon: '🏆', label: 'Ranking ao vivo', desc: 'Compita e suba de nivel' },
+              { icon: '🎯', label: 'Missoes diarias', desc: 'Ganhe XP e recompensas' },
+            ].map((item, i) => (
+              <View key={i} style={styles.previewCard}>
+                <Text style={styles.previewIcon}>{item.icon}</Text>
+                <View style={styles.previewText}>
+                  <Text style={styles.previewLabel}>{item.label}</Text>
+                  <Text style={styles.previewDesc}>{item.desc}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         )}
       </Animated.View>
+
+      {/* Confetti celebration */}
+      <CelebrationBurst active={showConfetti} />
 
       {/* ── Footer ── */}
       <View style={styles.footer}>
@@ -491,6 +532,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
     textAlign: 'center',
+  },
+
+  // Preview cards (progressive disclosure)
+  previewSection: {
+    width: '100%',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  previewCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bgCard,
+    borderRadius: radius.lg,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    gap: spacing.lg,
+  },
+  previewIcon: {
+    fontSize: 24,
+  },
+  previewText: {
+    flex: 1,
+  },
+  previewLabel: {
+    ...typeScale.label,
+    color: colors.textPrimary,
+  },
+  previewDesc: {
+    ...typeScale.bodySm,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
 
   // Footer
