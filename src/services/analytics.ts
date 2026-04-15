@@ -192,7 +192,7 @@ class NexaAnalytics {
     const batch = this.queue.splice(0, this.queue.length);
 
     if (!AMPLITUDE_API_KEY) {
-      if (__DEV__) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
         console.log(`[NEXA Analytics] ${batch.length} eventos em fila:`,
           batch.map(e => `${e.event_type} ${JSON.stringify(e.event_properties)}`));
       }
@@ -214,7 +214,7 @@ class NexaAnalytics {
     } catch (error) {
       // Re-enqueue failed events
       this.queue.unshift(...batch);
-      if (__DEV__) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
         console.warn('[NEXA Analytics] Flush falhou, eventos re-enfileirados:', error);
       }
     }

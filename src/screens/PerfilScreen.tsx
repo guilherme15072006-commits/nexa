@@ -46,8 +46,8 @@ function HeroSection({ user }: { user: any }) {
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(glowAnim, { toValue: 0.4, duration: 3000, useNativeDriver: true, easing: Easing.inOut(Easing.sine) }),
-        Animated.timing(glowAnim, { toValue: 0.2, duration: 3000, useNativeDriver: true, easing: Easing.inOut(Easing.sine) }),
+        Animated.timing(glowAnim, { toValue: 0.4, duration: 3000, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+        Animated.timing(glowAnim, { toValue: 0.2, duration: 3000, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
       ])
     ).start();
   }, []);

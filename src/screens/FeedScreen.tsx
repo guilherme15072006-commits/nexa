@@ -85,8 +85,8 @@ function CheckinBanner() {
     if (!checkinAvailable) return;
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.02, duration: 1800, useNativeDriver: true, easing: Easing.inOut(Easing.sine) }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1800, useNativeDriver: true, easing: Easing.inOut(Easing.sine) }),
+        Animated.timing(pulseAnim, { toValue: 1.02, duration: 1800, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1800, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
       ])
     ).start();
   }, [checkinAvailable]);

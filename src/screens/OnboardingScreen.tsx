@@ -78,8 +78,8 @@ export default function OnboardingScreen() {
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(glowPulse, { toValue: 0.6, duration: 2400, useNativeDriver: true, easing: Easing.inOut(Easing.sine) }),
-        Animated.timing(glowPulse, { toValue: 0.3, duration: 2400, useNativeDriver: true, easing: Easing.inOut(Easing.sine) }),
+        Animated.timing(glowPulse, { toValue: 0.6, duration: 2400, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+        Animated.timing(glowPulse, { toValue: 0.3, duration: 2400, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
       ])
     ).start();
   }, []);

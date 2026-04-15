@@ -123,8 +123,8 @@ export function Avatar({ label, size = 36, tier = 'default', ring }: {
     if (ring && (tier === 'elite' || tier === 'gold')) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.08, duration: 1800, useNativeDriver: true, easing: Easing.inOut(Easing.sine) }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 1800, useNativeDriver: true, easing: Easing.inOut(Easing.sine) }),
+          Animated.timing(pulseAnim, { toValue: 1.08, duration: 1800, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1800, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
         ])
       ).start();
     }
@@ -168,12 +168,12 @@ export function LiveBadge({ minute }: { minute?: number }) {
     Animated.loop(
       Animated.parallel([
         Animated.sequence([
-          Animated.timing(pulse, { toValue: 1.6, duration: 900, useNativeDriver: true, easing: Easing.out(Easing.sine) }),
-          Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true, easing: Easing.in(Easing.sine) }),
+          Animated.timing(pulse, { toValue: 1.6, duration: 900, useNativeDriver: true, easing: Easing.out(Easing.sin) }),
+          Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true, easing: Easing.in(Easing.sin) }),
         ]),
         Animated.sequence([
-          Animated.timing(glow, { toValue: 0.8, duration: 900, useNativeDriver: true, easing: Easing.out(Easing.sine) }),
-          Animated.timing(glow, { toValue: 0.4, duration: 900, useNativeDriver: true, easing: Easing.in(Easing.sine) }),
+          Animated.timing(glow, { toValue: 0.8, duration: 900, useNativeDriver: true, easing: Easing.out(Easing.sin) }),
+          Animated.timing(glow, { toValue: 0.4, duration: 900, useNativeDriver: true, easing: Easing.in(Easing.sin) }),
         ]),
       ])
     ).start();
@@ -454,8 +454,8 @@ export function TrendingIndicator({ count, label }: { count: number; label: stri
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.05, duration: 2000, useNativeDriver: true, easing: Easing.inOut(Easing.sine) }),
-        Animated.timing(pulse, { toValue: 1, duration: 2000, useNativeDriver: true, easing: Easing.inOut(Easing.sine) }),
+        Animated.timing(pulse, { toValue: 1.05, duration: 2000, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+        Animated.timing(pulse, { toValue: 1, duration: 2000, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
       ])
     ).start();
   }, []);

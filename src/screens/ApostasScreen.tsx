@@ -31,8 +31,8 @@ function MatchCard({ match, index }: { match: any; index: number }) {
     if (match.status === 'live') {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(livePulse, { toValue: 1, duration: 2000, useNativeDriver: false, easing: Easing.inOut(Easing.sine) }),
-          Animated.timing(livePulse, { toValue: 0, duration: 2000, useNativeDriver: false, easing: Easing.inOut(Easing.sine) }),
+          Animated.timing(livePulse, { toValue: 1, duration: 2000, useNativeDriver: false, easing: Easing.inOut(Easing.sin) }),
+          Animated.timing(livePulse, { toValue: 0, duration: 2000, useNativeDriver: false, easing: Easing.inOut(Easing.sin) }),
         ])
       ).start();
     }

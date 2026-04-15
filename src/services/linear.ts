@@ -71,7 +71,7 @@ const LABELS = {
 
 async function linearQuery<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   if (!LINEAR_CONFIG.apiKey) {
-    if (__DEV__) {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
       console.log('[Linear] Query (sem API key):', query.slice(0, 100));
     }
     return {} as T;
@@ -128,7 +128,7 @@ class NexaLinear {
 
       return result.issueCreate?.issue ?? null;
     } catch (error) {
-      if (__DEV__) console.warn('[Linear] Erro ao criar issue:', error);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[Linear] Erro ao criar issue:', error);
       return null;
     }
   }
@@ -249,20 +249,35 @@ export const linear = new NexaLinear();
 // --- Error boundary integration ---
 
 export function setupErrorReporting(): void {
-  const originalHandler = ErrorUtils.getGlobalHandler();
-
-  ErrorUtils.setGlobalHandler((error, isFatal) => {
-    linear.reportBug({
-      screen: 'Global',
-      action: isFatal ? 'Fatal error' : 'Unhandled error',
-      expected: 'App funcionar normalmente',
-      actual: error.message,
-      userId: 'unknown',
-      deviceInfo: `${require('react-native').Platform.OS} ${require('react-native').Platform.Version}`,
-      appVersion: '0.1.0',
-      stackTrace: error.stack,
+  if (typeof window !== 'undefined') {
+    const prev = window.onerror;
+    window.onerror = (message, source, lineno, colno, error) => {
+      linear.reportBug({
+        screen: 'Global',
+        action: 'Unhandled error',
+        expected: 'App funcionar normalmente',
+        actual: String(message),
+        userId: 'unknown',
+        deviceInfo: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+        appVersion: '0.1.0',
+        stackTrace: error?.stack,
+      });
+      if (prev) prev(message, source, lineno, colno, error);
+    };
+  } else if (typeof ErrorUtils !== 'undefined') {
+    const originalHandler = ErrorUtils.getGlobalHandler();
+    ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
+      linear.reportBug({
+        screen: 'Global',
+        action: isFatal ? 'Fatal error' : 'Unhandled error',
+        expected: 'App funcionar normalmente',
+        actual: error.message,
+        userId: 'unknown',
+        deviceInfo: 'react-native',
+        appVersion: '0.1.0',
+        stackTrace: error.stack,
+      });
+      originalHandler(error, isFatal);
     });
-
-    originalHandler(error, isFatal);
-  });
+  }
 }

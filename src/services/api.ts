@@ -4,7 +4,7 @@
 // Otimizado para Cloudflare Workers com edge caching
 // =====================================================
 
-import type { User, Match, FeedPost, Tipster, Mission, Clan } from './nexaStore';
+import type { User, Match, FeedPost, Tipster, Mission, Clan } from '../store/nexaStore';
 
 // --- Config ---
 
