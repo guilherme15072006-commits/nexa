@@ -51,6 +51,12 @@ export interface BadgeProgress {
   description: string;
 }
 
+export interface KYCData {
+  fullName: string;
+  cpf: string;       // digits only (11)
+  birthDate: string;  // ISO string
+}
+
 export interface User {
   id: string;
   username: string;
@@ -70,6 +76,8 @@ export interface User {
   dna: UserDNA;
   state: UserState;
   hasCompletedOnboarding: boolean;
+  kycCompleted: boolean;
+  kycData: KYCData | null;
 }
 
 export interface Match {
@@ -188,23 +196,121 @@ export interface NarrativeCard {
   createdAt: number;
 }
 
-// System 6: Seasons
+// System 6: Seasons (Fortnite battle pass + Clash Royale season)
+export type SeasonStatus = 'active' | 'ended' | 'upcoming';
+
+export interface SeasonTier {
+  level: number;
+  xpRequired: number;
+  reward: SeasonReward;
+  claimed: boolean;
+}
+
+export interface SeasonReward {
+  type: 'coins' | 'badge' | 'title' | 'lootbox' | 'powerup' | 'avatar_frame';
+  label: string;
+  value: number;       // coins amount or quantity
+  badge?: string;      // icon
+  title?: string;      // display title
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary';
+}
+
+export interface SeasonRankReward {
+  rankMin: number;
+  rankMax: number;
+  tier: string;        // "Challenger", "Diamond", "Gold", etc.
+  badge: string;
+  title: string;
+  coins: number;
+  exclusiveBadge?: { id: string; title: string; icon: string; tier: BadgeTier };
+}
+
 export interface Season {
   id: string;
   name: string;
+  number: number;       // season number (1, 2, 3...)
   weekNumber: number;
-  endsAt: number; // seconds remaining
+  totalWeeks: number;
+  endsAt: number;       // seconds remaining
+  startsAt: string;     // ISO date
+  status: SeasonStatus;
+  // Battle pass tiers
+  battlePass: SeasonTier[];
+  userSeasonXP: number;
+  userSeasonLevel: number;
+  // Rank rewards (end of season)
+  rankRewards: SeasonRankReward[];
+  // Legacy fields
   rewards: { rank: number; badge: string; title: string; coins: number }[];
 }
 
-// System 7: Creator Economy
+export interface PastSeason {
+  id: string;
+  name: string;
+  number: number;
+  finalRank: number;
+  finalXP: number;
+  finalLevel: number;
+  tierReached: string;  // "Challenger", "Diamond", etc.
+  rewardsClaimed: SeasonReward[];
+  startDate: string;
+  endDate: string;
+}
+
+// System 7: Creator Economy (TikTok Creator Fund / YouTube Partner)
+export type PayoutStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export interface CreatorEarningsBreakdown {
+  fromCopies: number;      // coins earned from bet copies
+  fromMarketplace: number; // coins earned from marketplace sales
+  fromAffiliates: number;  // coins from referral program
+  fromTips: number;        // direct tips from followers
+}
+
+export interface CreatorPayout {
+  id: string;
+  amount: number;          // in BRL
+  status: PayoutStatus;
+  requestedAt: string;
+  completedAt: string | null;
+  pixKey: string;
+}
+
 export interface CreatorStats {
   weeklyEarnings: number;
   totalEarnings: number;
   totalCopies: number;
   weeklyReach: number;
   isTopTipster: boolean;
+  // Monetization
+  availableBalance: number;    // coins ready to withdraw
+  pendingBalance: number;      // coins being processed
+  lifetimePayouts: number;     // total BRL paid out
+  earningsBreakdown: CreatorEarningsBreakdown;
+  payoutHistory: CreatorPayout[];
+  // Rates
+  coinsPerCopy: number;        // coins earned per copy bet (default: 5)
+  coinsPerTip: number;         // coins per direct tip
 }
+
+// Affiliate program tiers
+export type AffiliateTier = 'starter' | 'partner' | 'ambassador';
+
+export interface AffiliateProgram {
+  tier: AffiliateTier;
+  commissionRate: number;    // % of referee's first deposit
+  bonusPerReferral: number;  // flat coins per accepted referral
+  totalReferrals: number;
+  activeReferrals: number;   // still active after 30 days
+  totalCommission: number;   // total coins earned
+  nextTierAt: number;        // referrals needed for next tier
+}
+
+export const AFFILIATE_TIERS: Record<AffiliateTier, { label: string; color: string; commissionRate: number; bonusPerReferral: number; minReferrals: number }> = {
+  starter:    { label: 'Starter',    color: '#9B95B8', commissionRate: 0.05, bonusPerReferral: 50,  minReferrals: 0 },
+  partner:    { label: 'Partner',    color: '#7C5CFC', commissionRate: 0.10, bonusPerReferral: 100, minReferrals: 10 },
+  ambassador: { label: 'Ambassador', color: '#F5C842', commissionRate: 0.15, bonusPerReferral: 200, minReferrals: 50 },
+};
 
 // System 9: Live Chat
 export interface ChatMessage {
@@ -246,6 +352,7 @@ export interface AppNotification {
   icon: string;
   read: boolean;
   createdAt: string;
+  deepLink?: string;
 }
 
 // Referral System
@@ -255,6 +362,7 @@ export interface ReferralInfo {
   invitesSent: number;
   invitesAccepted: number;
   bonusEarned: number;
+  affiliate: AffiliateProgram;
 }
 
 // Daily Login Calendar
@@ -283,6 +391,49 @@ export interface AntiCollapse {
   cooldownEndsAt: number | null;
   showCooldownSuggestion: boolean;
   showBigWinProtection: boolean;
+}
+
+// Responsible Gaming (UK Gambling Commission / Bet365 reference)
+export type ExclusionPeriod = '24h' | '7d' | '30d';
+
+export interface DepositLimits {
+  daily: number | null;     // max BRL per day
+  weekly: number | null;    // max BRL per week
+  monthly: number | null;   // max BRL per month
+}
+
+export interface DepositTracking {
+  todayTotal: number;
+  weekTotal: number;
+  monthTotal: number;
+  lastResetDay: string;     // YYYY-MM-DD
+  lastResetWeek: string;    // YYYY-WW
+  lastResetMonth: string;   // YYYY-MM
+}
+
+export interface SelfExclusion {
+  active: boolean;
+  expiresAt: number | null; // timestamp
+  period: ExclusionPeriod | null;
+  activatedAt: number | null;
+}
+
+export interface ComplianceLogEntry {
+  id: string;
+  timestamp: number;
+  action: 'deposit_blocked' | 'bet_blocked' | 'cooldown_triggered' | 'cooldown_acknowledged'
+    | 'self_exclusion_activated' | 'self_exclusion_expired' | 'deposit_limit_set'
+    | 'deposit_limit_removed' | 'state_change' | 'deposit_allowed' | 'bet_allowed';
+  detail: string;
+  userState?: UserState;
+  amount?: number;
+}
+
+export interface ResponsibleGaming {
+  depositLimits: DepositLimits;
+  depositTracking: DepositTracking;
+  selfExclusion: SelfExclusion;
+  complianceLog: ComplianceLogEntry[];
 }
 
 // Stories (Instagram/TikTok style)
@@ -339,14 +490,42 @@ export interface ExploreCategory {
   count: number;
 }
 
-// Subscriptions
+// Subscriptions (YouTube Premium / Spotify reference)
 export type SubscriptionTier = 'free' | 'pro' | 'elite';
+
 export interface Subscription {
   tier: SubscriptionTier;
   price: number;
   features: string[];
   isActive: boolean;
 }
+
+export interface UserSubscription {
+  tier: SubscriptionTier;
+  productId: string | null;       // Google Play / App Store product ID
+  subscribedAt: string | null;    // ISO date
+  expiresAt: string | null;       // ISO date — null if free
+  trialEndsAt: string | null;     // ISO date — 7-day trial
+  isTrialing: boolean;
+  autoRenew: boolean;
+  platform: 'google' | 'apple' | 'web' | null;
+}
+
+// Feature gating per tier
+export const TIER_FEATURES: Record<string, SubscriptionTier> = {
+  unlimited_bets: 'pro',
+  power_ups: 'pro',
+  lives_vip: 'pro',
+  creator_studio: 'pro',
+  audio_rooms: 'pro',
+  priority_support: 'pro',
+  elite_tipsters: 'pro',
+  tournaments_exclusive: 'elite',
+  cashback: 'elite',
+  unlimited_power_ups: 'elite',
+  vip_support: 'elite',
+  elite_badge: 'elite',
+};
 
 // Audio Rooms
 export interface AudioRoom {
@@ -418,18 +597,33 @@ export interface LiveStream {
 }
 
 // Marketplace
+export interface MarketplaceReview {
+  id: string;
+  userId: string;
+  username: string;
+  rating: number;       // 1-5
+  comment: string;
+  createdAt: string;
+}
+
 export interface MarketplaceItem {
   id: string;
   type: 'strategy' | 'analysis' | 'vip_tips';
   title: string;
   seller: { id: string; username: string; tier: TipsterTier };
-  price: number; // in NEXA coins
-  rating: number; // 0-5
-  reviews: number;
+  price: number;        // in NEXA coins
+  rating: number;       // 0-5 average
+  reviews: number;      // count
+  reviewList: MarketplaceReview[];
   description: string;
   isBestseller: boolean;
   purchased: boolean;
+  salesCount: number;
+  sellerEarnings: number; // total coins earned by seller (after 20% commission)
+  createdAt: string;
 }
+
+export const MARKETPLACE_COMMISSION = 0.20; // 20% platform fee
 
 // Mini-Games
 export interface MiniGame {
@@ -477,6 +671,7 @@ const MOCK_CHAT_MESSAGES = [
 // ─── Store interface ──────────────────────────────────────────────────────────
 
 interface NexaStore {
+  isLoading: boolean;
   activeTab: Tab;
   user: User;
   checkinClaimed: boolean;
@@ -510,9 +705,12 @@ interface NexaStore {
 
   // System 6: Seasons
   currentSeason: Season;
+  pastSeasons: PastSeason[];
 
   // System 7: Creator Economy
   creatorStats: CreatorStats;
+  requestCreatorPayout: (amount: number, pixKey: string) => void;
+  addCreatorEarning: (source: keyof CreatorEarningsBreakdown, amount: number) => void;
 
   // System 9: Live Chat
   matchChats: Record<string, ChatMessage[]>;
@@ -535,6 +733,9 @@ interface NexaStore {
   // System 15: Anti-Collapse
   antiCollapse: AntiCollapse;
 
+  // System 16: Responsible Gaming
+  responsibleGaming: ResponsibleGaming;
+
   // Cashout Suggestion
   showCashoutSuggestion: boolean;
   dismissCashoutSuggestion: () => void;
@@ -550,6 +751,9 @@ interface NexaStore {
   stories: Story[];
   activeStoryIndex: number | null;
   viewStory: (storyId: string) => void;
+  createStory: (slides: StorySlide[]) => void;
+  votePoll: (storyId: string, slideId: string, optionIndex: number) => void;
+  reactStory: (storyId: string, reaction: string) => void;
 
   // Events
   tournaments: Tournament[];
@@ -562,10 +766,20 @@ interface NexaStore {
   // Subscriptions
   subscriptions: Subscription[];
   currentSubscription: SubscriptionTier;
+  userSubscription: UserSubscription;
   upgradeTier: (tier: SubscriptionTier) => void;
+  startTrial: () => void;
+  cancelSubscription: () => void;
+  restorePurchase: (tier: SubscriptionTier, expiresAt: string, productId: string, platform: 'google' | 'apple') => void;
+  isFeatureLocked: (feature: string) => boolean;
 
   // Audio Rooms
   audioRooms: AudioRoom[];
+  joinedRoomId: string | null;
+  isHandRaised: boolean;
+  joinAudioRoom: (roomId: string) => void;
+  leaveAudioRoom: () => void;
+  raiseHand: () => void;
 
   // Referral & Daily Login
   referral: ReferralInfo;
@@ -581,11 +795,14 @@ interface NexaStore {
   marketplaceItems: MarketplaceItem[];
   miniGames: MiniGame[];
   purchaseItem: (itemId: string) => void;
+  submitReview: (itemId: string, rating: number, comment: string) => void;
+  createListing: (item: { type: MarketplaceItem['type']; title: string; description: string; price: number }) => void;
   playMiniGame: (gameId: string) => void;
   tickViewers: () => void;
 
   // ─── Actions ─────────────────────────────────────────────────────────────────
 
+  setLoading: (v: boolean) => void;
   setActiveTab: (tab: Tab) => void;
   dismissLevelUp: () => void;
   dismissStreak: () => void;
@@ -599,6 +816,7 @@ interface NexaStore {
   claimCheckin: () => void;
   placeBet: () => void;
   completeOnboarding: () => void;
+  completeKYC: (data: KYCData) => void;
   addXP: (amount: number) => void;
   detectUserState: () => void;
   challengeUser: (targetId: string) => void;
@@ -611,12 +829,17 @@ interface NexaStore {
   injectNarrative: () => void;
   dismissNarrative: (id: string) => void;
 
-  // System 6
+  // System 6: Seasons
   tickSeason: () => void;
+  addSeasonXP: (amount: number) => void;
+  claimSeasonTier: (level: number) => void;
+  endSeason: () => void;
+  getSeasonRankTier: () => SeasonRankReward | null;
 
-  // System 9
+  // System 9: Live Chat
   toggleChat: (matchId: string) => void;
   injectChatMessage: (matchId: string) => void;
+  sendChatMessage: (matchId: string, text: string) => void;
 
   // System 11
   purchasePowerUp: (type: PowerUpType) => void;
@@ -636,6 +859,14 @@ interface NexaStore {
   checkAntiCollapse: () => void;
   acknowledgeCooldown: () => void;
   dismissBigWinProtection: () => void;
+
+  // System 16: Responsible Gaming
+  setDepositLimit: (period: 'daily' | 'weekly' | 'monthly', amount: number | null) => void;
+  activateSelfExclusion: (period: ExclusionPeriod) => void;
+  checkSelfExclusion: () => boolean;
+  canDeposit: (amount: number) => { allowed: boolean; reason?: string };
+  canPlaceBet: () => { allowed: boolean; reason?: string };
+  logCompliance: (entry: Omit<ComplianceLogEntry, 'id' | 'timestamp'>) => void;
 
   // System 8: Wallet
   deposit: (amount: number) => void;
@@ -679,11 +910,14 @@ const initialUser: User = {
   },
   state: 'motivated',
   hasCompletedOnboarding: false,
+  kycCompleted: false,
+  kycData: null,
 };
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 export const useNexaStore = create<NexaStore>((set, get) => ({
+  isLoading: true,
   activeTab: 'feed',
   user: initialUser,
   checkinClaimed: false,
@@ -751,14 +985,57 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   currentSeason: {
     id: 's1',
     name: 'Temporada Alpha',
+    number: 1,
     weekNumber: 3,
+    totalWeeks: 4,
     endsAt: 3 * 24 * 3600 + 14 * 3600 + 32 * 60,
+    startsAt: '2026-03-25T00:00:00Z',
+    status: 'active' as SeasonStatus,
+    userSeasonXP: 1850,
+    userSeasonLevel: 5,
+    battlePass: [
+      { level: 1, xpRequired: 0,    reward: { type: 'coins', label: '100 Coins', value: 100, badge: '🪙' }, claimed: true },
+      { level: 2, xpRequired: 200,  reward: { type: 'coins', label: '200 Coins', value: 200, badge: '🪙' }, claimed: true },
+      { level: 3, xpRequired: 500,  reward: { type: 'badge', label: 'Badge Season Alpha', value: 1, badge: '⚡', title: 'Iniciante Alpha', rarity: 'common' }, claimed: true },
+      { level: 4, xpRequired: 900,  reward: { type: 'title', label: 'Titulo: Veterano', value: 1, title: 'Veterano Alpha' }, claimed: true },
+      { level: 5, xpRequired: 1400, reward: { type: 'lootbox', label: 'Loot Box Rara', value: 1, badge: '📦', rarity: 'rare' }, claimed: true },
+      { level: 6, xpRequired: 2000, reward: { type: 'coins', label: '500 Coins', value: 500, badge: '🪙' }, claimed: false },
+      { level: 7, xpRequired: 2800, reward: { type: 'powerup', label: 'XP Boost 2x', value: 1, badge: '🚀' }, claimed: false },
+      { level: 8, xpRequired: 3800, reward: { type: 'badge', label: 'Badge Exclusiva', value: 1, badge: '🔥', title: 'Alpha Fire', rarity: 'epic' }, claimed: false },
+      { level: 9, xpRequired: 5000, reward: { type: 'coins', label: '1000 Coins', value: 1000, badge: '🪙' }, claimed: false },
+      { level: 10, xpRequired: 7000, reward: { type: 'avatar_frame', label: 'Moldura Lendaria', value: 1, badge: '👑', title: 'Moldura Alpha', rarity: 'legendary' }, claimed: false },
+    ],
+    rankRewards: [
+      { rankMin: 1, rankMax: 1, tier: 'Challenger', badge: '👑', title: 'Campeao Alpha', coins: 5000, exclusiveBadge: { id: 'bs1_champ', title: 'Campeao S1', icon: '👑', tier: 'legendary' as BadgeTier } },
+      { rankMin: 2, rankMax: 3, tier: 'Diamond', badge: '💎', title: 'Diamante Alpha', coins: 3000, exclusiveBadge: { id: 'bs1_diamond', title: 'Diamante S1', icon: '💎', tier: 'epic' as BadgeTier } },
+      { rankMin: 4, rankMax: 10, tier: 'Gold', badge: '🥇', title: 'Ouro Alpha', coins: 1500, exclusiveBadge: { id: 'bs1_gold', title: 'Ouro S1', icon: '🥇', tier: 'rare' as BadgeTier } },
+      { rankMin: 11, rankMax: 50, tier: 'Silver', badge: '🥈', title: 'Prata Alpha', coins: 800 },
+      { rankMin: 51, rankMax: 100, tier: 'Bronze', badge: '🥉', title: 'Bronze Alpha', coins: 400 },
+      { rankMin: 101, rankMax: 9999, tier: 'Participante', badge: '🎖️', title: 'Participante', coins: 100 },
+    ],
     rewards: [
       { rank: 1, badge: '👑', title: 'Campeão Alpha', coins: 5000 },
       { rank: 2, badge: '🥈', title: 'Vice Alpha', coins: 3000 },
       { rank: 3, badge: '🥉', title: 'Bronze Alpha', coins: 1500 },
     ],
   },
+  pastSeasons: [
+    {
+      id: 's0',
+      name: 'Pre-Season',
+      number: 0,
+      finalRank: 42,
+      finalXP: 3200,
+      finalLevel: 7,
+      tierReached: 'Silver',
+      rewardsClaimed: [
+        { type: 'coins', label: '800 Coins', value: 800, badge: '🪙' },
+        { type: 'badge', label: 'Badge Pre-Season', value: 1, badge: '🌟', title: 'Pioneer', rarity: 'rare' },
+      ],
+      startDate: '2026-03-01',
+      endDate: '2026-03-24',
+    },
+  ],
 
   // System 7: Creator Economy
   creatorStats: {
@@ -767,6 +1044,21 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     totalCopies: 521,
     weeklyReach: 3400,
     isTopTipster: false,
+    availableBalance: 4250,
+    pendingBalance: 800,
+    lifetimePayouts: 320.00,
+    earningsBreakdown: {
+      fromCopies: 2605,
+      fromMarketplace: 1200,
+      fromAffiliates: 350,
+      fromTips: 95,
+    },
+    payoutHistory: [
+      { id: 'po1', amount: 200.00, status: 'completed' as PayoutStatus, requestedAt: '2026-04-01', completedAt: '2026-04-02', pixKey: '***@email.com' },
+      { id: 'po2', amount: 120.00, status: 'completed' as PayoutStatus, requestedAt: '2026-03-15', completedAt: '2026-03-16', pixKey: '***@email.com' },
+    ],
+    coinsPerCopy: 5,
+    coinsPerTip: 10,
   },
 
   // System 9: Live Chat
@@ -806,6 +1098,21 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     cooldownEndsAt: null,
     showCooldownSuggestion: false,
     showBigWinProtection: false,
+  },
+
+  // System 16: Responsible Gaming
+  responsibleGaming: {
+    depositLimits: { daily: null, weekly: null, monthly: null },
+    depositTracking: {
+      todayTotal: 0,
+      weekTotal: 0,
+      monthTotal: 0,
+      lastResetDay: new Date().toISOString().slice(0, 10),
+      lastResetWeek: `${new Date().getFullYear()}-W${String(Math.ceil((new Date().getDate()) / 7)).padStart(2, '0')}`,
+      lastResetMonth: new Date().toISOString().slice(0, 7),
+    },
+    selfExclusion: { active: false, expiresAt: null, period: null, activatedAt: null },
+    complianceLog: [],
   },
 
   // Cashout Suggestion
@@ -897,6 +1204,16 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     { tier: 'elite', price: 79.90, features: ['Tudo do Pro', 'Acesso VIP a lives', 'Creator Studio completo', 'Torneios exclusivos', 'Cashback 2%', 'Suporte prioritário', 'Badge Elite animado'], isActive: false },
   ],
   currentSubscription: 'free' as SubscriptionTier,
+  userSubscription: {
+    tier: 'free' as SubscriptionTier,
+    productId: null,
+    subscribedAt: null,
+    expiresAt: null,
+    trialEndsAt: null,
+    isTrialing: false,
+    autoRenew: false,
+    platform: null,
+  },
 
   // Audio Rooms
   audioRooms: [
@@ -904,6 +1221,8 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     { id: 'ar2', title: 'Champions League — Quem avança?', host: { id: 't1', username: 'KingBet', tier: 'elite' as TipsterTier }, speakers: [{ id: 't3', username: 'ValueHunt' }], listeners: 567, isLive: true, topic: 'Champions League' },
     { id: 'ar3', title: 'Dicas de gestão de banca', host: { id: 't2', username: 'StatMaster', tier: 'gold' as TipsterTier }, speakers: [], listeners: 0, isLive: false, topic: 'Educacional' },
   ],
+  joinedRoomId: null,
+  isHandRaised: false,
 
   // Referral
   referral: {
@@ -912,6 +1231,15 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     invitesSent: 3,
     invitesAccepted: 1,
     bonusEarned: 200,
+    affiliate: {
+      tier: 'starter' as AffiliateTier,
+      commissionRate: 0.05,
+      bonusPerReferral: 50,
+      totalReferrals: 1,
+      activeReferrals: 1,
+      totalCommission: 200,
+      nextTierAt: 10,
+    },
   },
 
   // Daily Login Calendar (30 days)
@@ -942,11 +1270,25 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
 
   // Marketplace
   marketplaceItems: [
-    { id: 'mk1', type: 'strategy', title: 'Método Fibonacci para Futebol', seller: { id: 't5', username: 'AcePredict', tier: 'elite' }, price: 500, rating: 4.8, reviews: 127, description: 'Estratégia comprovada com 72% de acerto', isBestseller: true, purchased: false },
-    { id: 'mk2', type: 'analysis', title: 'Análise Completa Brasileirão 2026', seller: { id: 't2', username: 'StatMaster', tier: 'gold' }, price: 300, rating: 4.5, reviews: 84, description: 'Estatísticas detalhadas de todos os times', isBestseller: false, purchased: false },
-    { id: 'mk3', type: 'vip_tips', title: 'VIP Picks Premium — Semana 12', seller: { id: 't1', username: 'KingBet', tier: 'elite' }, price: 200, rating: 4.3, reviews: 56, description: '5 picks exclusivos com análise profunda', isBestseller: false, purchased: true },
-    { id: 'mk4', type: 'strategy', title: 'Over/Under Masterclass', seller: { id: 't3', username: 'ValueHunt', tier: 'gold' }, price: 400, rating: 4.6, reviews: 93, description: 'Dominando o mercado de gols', isBestseller: true, purchased: false },
-    { id: 'mk5', type: 'analysis', title: 'Champions League Special Report', seller: { id: 't5', username: 'AcePredict', tier: 'elite' }, price: 350, rating: 4.9, reviews: 201, description: 'Relatório completo das oitavas', isBestseller: true, purchased: false },
+    { id: 'mk1', type: 'strategy', title: 'Método Fibonacci para Futebol', seller: { id: 't5', username: 'AcePredict', tier: 'elite' as TipsterTier }, price: 500, rating: 4.8, reviews: 127, reviewList: [
+      { id: 'rv1', userId: 'u10', username: 'BetPro99', rating: 5, comment: 'Melhor estrategia que ja comprei. ROI subiu 15% no primeiro mes.', createdAt: '2026-04-10' },
+      { id: 'rv2', userId: 'u11', username: 'GolDeOuro', rating: 4, comment: 'Muito bom, mas precisa de paciencia. Resultados vem com o tempo.', createdAt: '2026-04-08' },
+      { id: 'rv3', userId: 'u12', username: 'Striker77', rating: 5, comment: 'Fibonacci adaptado pro futebol e genial. Recomendo demais.', createdAt: '2026-04-05' },
+    ], description: 'Estratégia comprovada com 72% de acerto', isBestseller: true, purchased: false, salesCount: 127, sellerEarnings: 50800, createdAt: '2026-03-15' },
+    { id: 'mk2', type: 'analysis', title: 'Análise Completa Brasileirão 2026', seller: { id: 't2', username: 'StatMaster', tier: 'gold' as TipsterTier }, price: 300, rating: 4.5, reviews: 84, reviewList: [
+      { id: 'rv4', userId: 'u13', username: 'Analista01', rating: 5, comment: 'Dados incriveis, muito detalhado.', createdAt: '2026-04-09' },
+      { id: 'rv5', userId: 'u14', username: 'ChuteCerto', rating: 4, comment: 'Vale cada coin. Boa analise.', createdAt: '2026-04-07' },
+    ], description: 'Estatísticas detalhadas de todos os times', isBestseller: false, purchased: false, salesCount: 84, sellerEarnings: 20160, createdAt: '2026-03-20' },
+    { id: 'mk3', type: 'vip_tips', title: 'VIP Picks Premium — Semana 12', seller: { id: 't1', username: 'KingBet', tier: 'elite' as TipsterTier }, price: 200, rating: 4.3, reviews: 56, reviewList: [
+      { id: 'rv6', userId: 'u15', username: 'LuckyShot', rating: 4, comment: '3 de 5 picks deram green. Bom!', createdAt: '2026-04-11' },
+    ], description: '5 picks exclusivos com análise profunda', isBestseller: false, purchased: true, salesCount: 56, sellerEarnings: 8960, createdAt: '2026-04-06' },
+    { id: 'mk4', type: 'strategy', title: 'Over/Under Masterclass', seller: { id: 't3', username: 'ValueHunt', tier: 'gold' as TipsterTier }, price: 400, rating: 4.6, reviews: 93, reviewList: [
+      { id: 'rv7', userId: 'u16', username: 'GoalMachine', rating: 5, comment: 'Mudou minha forma de analisar gols. Excelente.', createdAt: '2026-04-10' },
+    ], description: 'Dominando o mercado de gols', isBestseller: true, purchased: false, salesCount: 93, sellerEarnings: 29760, createdAt: '2026-03-25' },
+    { id: 'mk5', type: 'analysis', title: 'Champions League Special Report', seller: { id: 't5', username: 'AcePredict', tier: 'elite' as TipsterTier }, price: 350, rating: 4.9, reviews: 201, reviewList: [
+      { id: 'rv8', userId: 'u17', username: 'EuroFan', rating: 5, comment: 'Relatorio mais completo que ja vi. Previ todas as classificacoes.', createdAt: '2026-04-12' },
+      { id: 'rv9', userId: 'u18', username: 'UCLKing', rating: 5, comment: 'Impecavel. Paguei 350 e fiz 2000 nas apostas.', createdAt: '2026-04-11' },
+    ], description: 'Relatório completo das oitavas', isBestseller: true, purchased: false, salesCount: 201, sellerEarnings: 56280, createdAt: '2026-04-01' },
   ],
 
   // Mini-Games
@@ -960,6 +1302,7 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
 
   // ─── Existing Actions ──────────────────────────────────────────────────────
 
+  setLoading: (v) => set({ isLoading: v }),
   setActiveTab: (tab) => set({ activeTab: tab }),
 
   dismissLevelUp: () => set({ pendingLevelUp: null }),
@@ -1001,6 +1344,8 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       ),
     }));
     get().addXP(10);
+    // Tipster earns coins from the copy
+    get().addCreatorEarning('fromCopies', get().creatorStats.coinsPerCopy);
   },
 
   followTipster: (tipsterId) =>
@@ -1045,6 +1390,17 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   },
 
   placeBet: () => {
+    // Enforce responsible gaming
+    const betCheck = get().canPlaceBet();
+    if (!betCheck.allowed) {
+      get().logCompliance({ action: 'bet_blocked', detail: betCheck.reason ?? 'Bet blocked' });
+      get().pushToast(betCheck.reason ?? 'Aposta bloqueada');
+      return;
+    }
+    if (betCheck.reason) {
+      // Warning but not blocked (e.g. frustrated state)
+      get().pushToast(betCheck.reason);
+    }
     set((s) => {
       const next = s.betsPlaced + 1;
       const shouldReveal = next >= 3;
@@ -1066,6 +1422,7 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     });
     get().addXP(20);
     get().checkAntiCollapse();
+    get().logCompliance({ action: 'bet_allowed', detail: 'Bet placed successfully' });
   },
 
   completeOnboarding: () =>
@@ -1078,7 +1435,16 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       },
     })),
 
-  addXP: (amount) =>
+  completeKYC: (data) =>
+    set((s) => ({
+      user: {
+        ...s.user,
+        kycCompleted: true,
+        kycData: data,
+      },
+    })),
+
+  addXP: (amount) => {
     set((s) => {
       const newXP = s.user.xp + amount;
       const leveledUp = newXP >= s.user.xpToNext;
@@ -1092,7 +1458,10 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
           xpToNext: leveledUp ? Math.round(s.user.xpToNext * 1.4) : s.user.xpToNext,
         },
       };
-    }),
+    });
+    // Also feed season XP
+    get().addSeasonXP(amount);
+  },
 
   detectUserState: () =>
     set((s) => {
@@ -1196,12 +1565,164 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   // ─── System 6: Seasons ─────────────────────────────────────────────────────
 
   tickSeason: () =>
-    set((s) => ({
-      currentSeason: {
-        ...s.currentSeason,
-        endsAt: Math.max(0, s.currentSeason.endsAt - 1),
-      },
-    })),
+    set((s) => {
+      const newEndsAt = Math.max(0, s.currentSeason.endsAt - 1);
+      // Auto-end season when countdown reaches 0
+      if (newEndsAt === 0 && s.currentSeason.endsAt > 0) {
+        get().endSeason();
+      }
+      return {
+        currentSeason: { ...s.currentSeason, endsAt: newEndsAt },
+      };
+    }),
+
+  addSeasonXP: (amount) =>
+    set((s) => {
+      const newXP = s.currentSeason.userSeasonXP + amount;
+      // Calculate new level based on battle pass tiers
+      let newLevel = s.currentSeason.userSeasonLevel;
+      for (const tier of s.currentSeason.battlePass) {
+        if (newXP >= tier.xpRequired) {
+          newLevel = tier.level;
+        }
+      }
+      return {
+        currentSeason: {
+          ...s.currentSeason,
+          userSeasonXP: newXP,
+          userSeasonLevel: newLevel,
+        },
+      };
+    }),
+
+  claimSeasonTier: (level) =>
+    set((s) => {
+      const tier = s.currentSeason.battlePass.find(t => t.level === level);
+      if (!tier || tier.claimed) return {};
+      if (s.currentSeason.userSeasonXP < tier.xpRequired) return {};
+
+      const reward = tier.reward;
+      let coinsDelta = 0;
+      let newBadges = [...s.user.badges];
+
+      if (reward.type === 'coins') coinsDelta = reward.value;
+      if (reward.type === 'badge' && reward.title) {
+        newBadges.push({
+          id: `season_${s.currentSeason.id}_${level}`,
+          title: reward.title,
+          icon: reward.badge ?? '⭐',
+          tier: (reward.rarity ?? 'common') as BadgeTier,
+          unlockedAt: new Date().toISOString().slice(0, 10),
+        });
+      }
+
+      return {
+        currentSeason: {
+          ...s.currentSeason,
+          battlePass: s.currentSeason.battlePass.map(t =>
+            t.level === level ? { ...t, claimed: true } : t,
+          ),
+        },
+        user: {
+          ...s.user,
+          coins: s.user.coins + coinsDelta,
+          badges: newBadges,
+        },
+      };
+    }),
+
+  endSeason: () =>
+    set((s) => {
+      const season = s.currentSeason;
+      const rankReward = s.currentSeason.rankRewards.find(
+        r => s.user.rank >= r.rankMin && s.user.rank <= r.rankMax,
+      );
+
+      // Archive current season
+      const archived: PastSeason = {
+        id: season.id,
+        name: season.name,
+        number: season.number,
+        finalRank: s.user.rank,
+        finalXP: season.userSeasonXP,
+        finalLevel: season.userSeasonLevel,
+        tierReached: rankReward?.tier ?? 'Participante',
+        rewardsClaimed: season.battlePass.filter(t => t.claimed).map(t => t.reward),
+        startDate: season.startsAt.slice(0, 10),
+        endDate: new Date().toISOString().slice(0, 10),
+      };
+
+      // Grant rank rewards
+      let coinsDelta = rankReward?.coins ?? 0;
+      let newBadges = [...s.user.badges];
+      if (rankReward?.exclusiveBadge) {
+        newBadges.push({
+          ...rankReward.exclusiveBadge,
+          unlockedAt: new Date().toISOString().slice(0, 10),
+        });
+      }
+
+      // Generate next season
+      const nextNumber = season.number + 1;
+      const SEASON_NAMES = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta'];
+      const nextName = `Temporada ${SEASON_NAMES[nextNumber % SEASON_NAMES.length]}`;
+      const WEEK_DURATION = 7 * 24 * 3600; // 7 days in seconds
+
+      const nextSeason: Season = {
+        id: `s${nextNumber}`,
+        name: nextName,
+        number: nextNumber,
+        weekNumber: 1,
+        totalWeeks: 4,
+        endsAt: 4 * WEEK_DURATION,
+        startsAt: new Date().toISOString(),
+        status: 'active',
+        userSeasonXP: 0,
+        userSeasonLevel: 0,
+        battlePass: [
+          { level: 1, xpRequired: 0,    reward: { type: 'coins', label: '100 Coins', value: 100, badge: '🪙' }, claimed: false },
+          { level: 2, xpRequired: 200,  reward: { type: 'coins', label: '200 Coins', value: 200, badge: '🪙' }, claimed: false },
+          { level: 3, xpRequired: 500,  reward: { type: 'badge', label: `Badge ${nextName}`, value: 1, badge: '⚡', title: `Iniciante ${SEASON_NAMES[nextNumber % SEASON_NAMES.length]}`, rarity: 'common' }, claimed: false },
+          { level: 4, xpRequired: 900,  reward: { type: 'title', label: 'Titulo Exclusivo', value: 1, title: `Veterano ${SEASON_NAMES[nextNumber % SEASON_NAMES.length]}` }, claimed: false },
+          { level: 5, xpRequired: 1400, reward: { type: 'lootbox', label: 'Loot Box Rara', value: 1, badge: '📦', rarity: 'rare' }, claimed: false },
+          { level: 6, xpRequired: 2000, reward: { type: 'coins', label: '500 Coins', value: 500, badge: '🪙' }, claimed: false },
+          { level: 7, xpRequired: 2800, reward: { type: 'powerup', label: 'XP Boost 2x', value: 1, badge: '🚀' }, claimed: false },
+          { level: 8, xpRequired: 3800, reward: { type: 'badge', label: 'Badge Exclusiva', value: 1, badge: '🔥', title: `${SEASON_NAMES[nextNumber % SEASON_NAMES.length]} Fire`, rarity: 'epic' }, claimed: false },
+          { level: 9, xpRequired: 5000, reward: { type: 'coins', label: '1000 Coins', value: 1000, badge: '🪙' }, claimed: false },
+          { level: 10, xpRequired: 7000, reward: { type: 'avatar_frame', label: 'Moldura Lendaria', value: 1, badge: '👑', title: `Moldura ${SEASON_NAMES[nextNumber % SEASON_NAMES.length]}`, rarity: 'legendary' }, claimed: false },
+        ],
+        rankRewards: [
+          { rankMin: 1, rankMax: 1, tier: 'Challenger', badge: '👑', title: `Campeao ${nextName}`, coins: 5000, exclusiveBadge: { id: `bs${nextNumber}_champ`, title: `Campeao S${nextNumber}`, icon: '👑', tier: 'legendary' as BadgeTier } },
+          { rankMin: 2, rankMax: 3, tier: 'Diamond', badge: '💎', title: `Diamante ${nextName}`, coins: 3000, exclusiveBadge: { id: `bs${nextNumber}_diamond`, title: `Diamante S${nextNumber}`, icon: '💎', tier: 'epic' as BadgeTier } },
+          { rankMin: 4, rankMax: 10, tier: 'Gold', badge: '🥇', title: `Ouro ${nextName}`, coins: 1500, exclusiveBadge: { id: `bs${nextNumber}_gold`, title: `Ouro S${nextNumber}`, icon: '🥇', tier: 'rare' as BadgeTier } },
+          { rankMin: 11, rankMax: 50, tier: 'Silver', badge: '🥈', title: `Prata ${nextName}`, coins: 800 },
+          { rankMin: 51, rankMax: 100, tier: 'Bronze', badge: '🥉', title: `Bronze ${nextName}`, coins: 400 },
+          { rankMin: 101, rankMax: 9999, tier: 'Participante', badge: '🎖️', title: 'Participante', coins: 100 },
+        ],
+        rewards: [
+          { rank: 1, badge: '👑', title: `Campeao ${nextName}`, coins: 5000 },
+          { rank: 2, badge: '💎', title: `Vice ${nextName}`, coins: 3000 },
+          { rank: 3, badge: '🥉', title: `Bronze ${nextName}`, coins: 1500 },
+        ],
+      };
+
+      return {
+        currentSeason: nextSeason,
+        pastSeasons: [archived, ...s.pastSeasons],
+        user: {
+          ...s.user,
+          coins: s.user.coins + coinsDelta,
+          badges: newBadges,
+        },
+      };
+    }),
+
+  getSeasonRankTier: () => {
+    const s = get();
+    return s.currentSeason.rankRewards.find(
+      r => s.user.rank >= r.rankMin && s.user.rank <= r.rankMax,
+    ) ?? null;
+  },
 
   // ─── System 9: Live Chat ───────────────────────────────────────────────────
 
@@ -1217,6 +1738,23 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       const message: ChatMessage = {
         id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         user,
+        text,
+        timestamp: Date.now(),
+      };
+      const existing = s.matchChats[matchId] || [];
+      return {
+        matchChats: {
+          ...s.matchChats,
+          [matchId]: [...existing, message],
+        },
+      };
+    }),
+
+  sendChatMessage: (matchId, text) =>
+    set((s) => {
+      const message: ChatMessage = {
+        id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        user: s.user.username,
         text,
         timestamp: Date.now(),
       };
@@ -1349,7 +1887,7 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       return {};
     }),
 
-  acknowledgeCooldown: () =>
+  acknowledgeCooldown: () => {
     set((s) => ({
       antiCollapse: {
         ...s.antiCollapse,
@@ -1357,7 +1895,9 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
         cooldownEndsAt: Date.now() + 30 * 60 * 1000,
         showCooldownSuggestion: false,
       },
-    })),
+    }));
+    get().logCompliance({ action: 'cooldown_acknowledged', detail: 'User accepted 30min cooldown after 3 consecutive losses', userState: get().user.state });
+  },
 
   dismissBigWinProtection: () =>
     set((s) => ({
@@ -1367,30 +1907,157 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       },
     })),
 
+  // ─── System 16: Responsible Gaming ──────────────────────────────────────────
+
+  logCompliance: (entry) =>
+    set((s) => ({
+      responsibleGaming: {
+        ...s.responsibleGaming,
+        complianceLog: [
+          { ...entry, id: `cl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, timestamp: Date.now() },
+          ...s.responsibleGaming.complianceLog,
+        ].slice(0, 500), // keep last 500 entries
+      },
+    })),
+
+  setDepositLimit: (period, amount) => {
+    set((s) => ({
+      responsibleGaming: {
+        ...s.responsibleGaming,
+        depositLimits: { ...s.responsibleGaming.depositLimits, [period]: amount },
+      },
+    }));
+    get().logCompliance({
+      action: amount !== null ? 'deposit_limit_set' : 'deposit_limit_removed',
+      detail: `${period} limit ${amount !== null ? `set to R$${amount}` : 'removed'}`,
+    });
+  },
+
+  activateSelfExclusion: (period) => {
+    const durations: Record<ExclusionPeriod, number> = {
+      '24h': 24 * 60 * 60 * 1000,
+      '7d': 7 * 24 * 60 * 60 * 1000,
+      '30d': 30 * 24 * 60 * 60 * 1000,
+    };
+    const expiresAt = Date.now() + durations[period];
+    set((s) => ({
+      responsibleGaming: {
+        ...s.responsibleGaming,
+        selfExclusion: { active: true, expiresAt, period, activatedAt: Date.now() },
+      },
+    }));
+    get().logCompliance({
+      action: 'self_exclusion_activated',
+      detail: `Self-exclusion activated for ${period}. Expires at ${new Date(expiresAt).toISOString()}`,
+      userState: get().user.state,
+    });
+  },
+
+  checkSelfExclusion: () => {
+    const s = get();
+    const excl = s.responsibleGaming.selfExclusion;
+    if (!excl.active) return false;
+    if (excl.expiresAt && Date.now() >= excl.expiresAt) {
+      // Expired — deactivate
+      set((prev) => ({
+        responsibleGaming: {
+          ...prev.responsibleGaming,
+          selfExclusion: { active: false, expiresAt: null, period: null, activatedAt: null },
+        },
+      }));
+      get().logCompliance({ action: 'self_exclusion_expired', detail: `Self-exclusion period (${excl.period}) expired` });
+      return false;
+    }
+    return true;
+  },
+
+  canDeposit: (amount) => {
+    const s = get();
+    // Check self-exclusion
+    if (s.checkSelfExclusion()) {
+      return { allowed: false, reason: 'Auto-exclusao ativa. Voce nao pode depositar durante este periodo.' };
+    }
+    // Reset tracking periods if needed
+    const today = new Date().toISOString().slice(0, 10);
+    const month = new Date().toISOString().slice(0, 7);
+    const weekNum = `${new Date().getFullYear()}-W${String(Math.ceil((new Date().getDate()) / 7)).padStart(2, '0')}`;
+    let tracking = { ...s.responsibleGaming.depositTracking };
+    if (tracking.lastResetDay !== today) { tracking.todayTotal = 0; tracking.lastResetDay = today; }
+    if (tracking.lastResetWeek !== weekNum) { tracking.weekTotal = 0; tracking.lastResetWeek = weekNum; }
+    if (tracking.lastResetMonth !== month) { tracking.monthTotal = 0; tracking.lastResetMonth = month; }
+
+    const limits = s.responsibleGaming.depositLimits;
+    if (limits.daily !== null && tracking.todayTotal + amount > limits.daily) {
+      return { allowed: false, reason: `Limite diario de R$${limits.daily} atingido. Depositado hoje: R$${tracking.todayTotal.toFixed(2)}` };
+    }
+    if (limits.weekly !== null && tracking.weekTotal + amount > limits.weekly) {
+      return { allowed: false, reason: `Limite semanal de R$${limits.weekly} atingido.` };
+    }
+    if (limits.monthly !== null && tracking.monthTotal + amount > limits.monthly) {
+      return { allowed: false, reason: `Limite mensal de R$${limits.monthly} atingido.` };
+    }
+    return { allowed: true };
+  },
+
+  canPlaceBet: () => {
+    const s = get();
+    // Check self-exclusion
+    if (s.checkSelfExclusion()) {
+      return { allowed: false, reason: 'Auto-exclusao ativa. Apostas bloqueadas durante este periodo.' };
+    }
+    // Check cooldown
+    if (s.antiCollapse.isOnCooldown) {
+      if (s.antiCollapse.cooldownEndsAt && Date.now() < s.antiCollapse.cooldownEndsAt) {
+        const minLeft = Math.ceil((s.antiCollapse.cooldownEndsAt - Date.now()) / 60000);
+        return { allowed: false, reason: `Cooldown ativo. Aguarde ${minLeft} minutos.` };
+      }
+      // Cooldown expired
+      set((prev) => ({ antiCollapse: { ...prev.antiCollapse, isOnCooldown: false, cooldownEndsAt: null } }));
+    }
+    // Check frustrated state
+    if (s.user.state === 'frustrated') {
+      return { allowed: true, reason: 'Cuidado: voce pode estar em uma ma fase. Considere pausar.' };
+    }
+    return { allowed: true };
+  },
+
   // ─── Cashout Suggestion ────────────────────────────────────────────────────
 
   dismissCashoutSuggestion: () => set({ showCashoutSuggestion: false }),
 
   // ─── System 8: Wallet ─────────────────────────────────────────────────────
 
-  deposit: (amount) =>
-    set((s) => ({
-      user: {
-        ...s.user,
-        balance: s.user.balance + amount,
-      },
-      transactions: [
-        {
-          id: `tx_${Date.now()}`,
-          type: 'deposit' as const,
-          label: `Depósito de R$ ${amount.toFixed(2)}`,
-          amount,
-          currency: 'BRL' as const,
-          createdAt: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-        },
-        ...s.transactions,
-      ],
-    })),
+  deposit: (amount) => {
+    // Enforce responsible gaming limits
+    const check = get().canDeposit(amount);
+    if (!check.allowed) {
+      get().logCompliance({ action: 'deposit_blocked', detail: check.reason ?? 'Deposit blocked', amount });
+      get().pushToast(check.reason ?? 'Deposito bloqueado');
+      return;
+    }
+    set((s) => {
+      const tracking = { ...s.responsibleGaming.depositTracking };
+      tracking.todayTotal += amount;
+      tracking.weekTotal += amount;
+      tracking.monthTotal += amount;
+      return {
+        user: { ...s.user, balance: s.user.balance + amount },
+        transactions: [
+          {
+            id: `tx_${Date.now()}`,
+            type: 'deposit' as const,
+            label: `Depósito de R$ ${amount.toFixed(2)}`,
+            amount,
+            currency: 'BRL' as const,
+            createdAt: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+          },
+          ...s.transactions,
+        ],
+        responsibleGaming: { ...s.responsibleGaming, depositTracking: tracking },
+      };
+    });
+    get().logCompliance({ action: 'deposit_allowed', detail: `Deposit R$${amount.toFixed(2)} approved`, amount });
+  },
 
   withdraw: (amount) =>
     set((s) => {
@@ -1504,13 +2171,81 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     const s = get();
     const item = s.marketplaceItems.find((i) => i.id === itemId);
     if (!item || item.purchased || s.user.coins < item.price) return;
+
+    const commission = Math.round(item.price * MARKETPLACE_COMMISSION);
+    const sellerPayout = item.price - commission;
+
     set({
       user: { ...s.user, coins: s.user.coins - item.price },
       marketplaceItems: s.marketplaceItems.map((i) =>
-        i.id === itemId ? { ...i, purchased: true } : i,
+        i.id === itemId
+          ? { ...i, purchased: true, salesCount: i.salesCount + 1, sellerEarnings: i.sellerEarnings + sellerPayout }
+          : i,
       ),
+      transactions: [
+        {
+          id: `tx_${Date.now()}`,
+          type: 'coins_earned' as const,
+          label: `Compra: ${item.title}`,
+          amount: -item.price,
+          currency: 'coins' as const,
+          createdAt: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+        },
+        ...s.transactions,
+      ],
     });
   },
+
+  submitReview: (itemId, rating, comment) =>
+    set((s) => {
+      const item = s.marketplaceItems.find((i) => i.id === itemId);
+      if (!item || !item.purchased) return {};
+      // Prevent duplicate review
+      if (item.reviewList.some((r) => r.userId === s.user.id)) return {};
+
+      const newReview: MarketplaceReview = {
+        id: `rv_${Date.now()}`,
+        userId: s.user.id,
+        username: s.user.username,
+        rating,
+        comment,
+        createdAt: new Date().toISOString().slice(0, 10),
+      };
+
+      const updatedReviews = [newReview, ...item.reviewList];
+      const newAvg = updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length;
+
+      return {
+        marketplaceItems: s.marketplaceItems.map((i) =>
+          i.id === itemId
+            ? { ...i, reviewList: updatedReviews, reviews: updatedReviews.length, rating: Math.round(newAvg * 10) / 10 }
+            : i,
+        ),
+      };
+    }),
+
+  createListing: (input) =>
+    set((s) => ({
+      marketplaceItems: [
+        ...s.marketplaceItems,
+        {
+          id: `mk_${Date.now()}`,
+          type: input.type,
+          title: input.title,
+          description: input.description,
+          price: input.price,
+          seller: { id: s.user.id, username: s.user.username, tier: 'bronze' as TipsterTier },
+          rating: 0,
+          reviews: 0,
+          reviewList: [],
+          isBestseller: false,
+          purchased: false,
+          salesCount: 0,
+          sellerEarnings: 0,
+          createdAt: new Date().toISOString().slice(0, 10),
+        },
+      ],
+    })),
 
   playMiniGame: (gameId) => {
     const s = get();
@@ -1547,6 +2282,78 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       };
     }),
 
+  createStory: (slides) =>
+    set((s) => ({
+      stories: [
+        {
+          id: `st_${Date.now()}`,
+          user: { id: s.user.id, username: s.user.username, avatar: s.user.avatar },
+          slides,
+          createdAt: Date.now(),
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24h
+          viewed: true,
+        },
+        ...s.stories,
+      ],
+    })),
+
+  votePoll: (storyId, slideId, optionIndex) =>
+    set((s) => ({
+      stories: s.stories.map((st) =>
+        st.id !== storyId ? st : {
+          ...st,
+          slides: st.slides.map((sl) =>
+            sl.id !== slideId || !sl.pollOptions ? sl : {
+              ...sl,
+              pollOptions: sl.pollOptions.map((opt, i) =>
+                i === optionIndex ? { ...opt, votes: opt.votes + 1 } : opt,
+              ),
+            },
+          ),
+        },
+      ),
+    })),
+
+  reactStory: (storyId, reaction) =>
+    set((s) => ({
+      stories: s.stories.map((st) =>
+        st.id !== storyId ? st : {
+          ...st,
+          reactions: {
+            ...(st as any).reactions,
+            [reaction]: ((st as any).reactions?.[reaction] ?? 0) + 1,
+          },
+        },
+      ),
+    })),
+
+  // ─── Audio Rooms ──────────────────────────────────────────────────────────
+
+  joinAudioRoom: (roomId) =>
+    set((s) => ({
+      joinedRoomId: roomId,
+      isHandRaised: false,
+      audioRooms: s.audioRooms.map((r) =>
+        r.id !== roomId ? r : { ...r, listeners: r.listeners + 1 },
+      ),
+    })),
+
+  leaveAudioRoom: () =>
+    set((s) => {
+      if (!s.joinedRoomId) return {};
+      const roomId = s.joinedRoomId;
+      return {
+        joinedRoomId: null,
+        isHandRaised: false,
+        audioRooms: s.audioRooms.map((r) =>
+          r.id !== roomId ? r : { ...r, listeners: Math.max(0, r.listeners - 1) },
+        ),
+      };
+    }),
+
+  raiseHand: () =>
+    set((s) => ({ isHandRaised: !s.isHandRaised })),
+
   // ─── Events / Tournaments ────────────────────────────────────────────────
 
   joinTournament: (tournamentId) => {
@@ -1579,6 +2386,45 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       ),
     })),
 
+  // ─── Creator Economy ─────────────────────────────────────────────────────
+
+  requestCreatorPayout: (amount, pixKey) =>
+    set((s) => {
+      if (amount <= 0 || amount > s.creatorStats.availableBalance) return {};
+      // Convert coins to BRL (100 coins = R$1.00)
+      const brlAmount = amount / 100;
+      const payout: CreatorPayout = {
+        id: `po_${Date.now()}`,
+        amount: brlAmount,
+        status: 'pending',
+        requestedAt: new Date().toISOString().slice(0, 10),
+        completedAt: null,
+        pixKey,
+      };
+      return {
+        creatorStats: {
+          ...s.creatorStats,
+          availableBalance: s.creatorStats.availableBalance - amount,
+          pendingBalance: s.creatorStats.pendingBalance + amount,
+          payoutHistory: [payout, ...s.creatorStats.payoutHistory],
+        },
+      };
+    }),
+
+  addCreatorEarning: (source, amount) =>
+    set((s) => ({
+      creatorStats: {
+        ...s.creatorStats,
+        availableBalance: s.creatorStats.availableBalance + amount,
+        totalEarnings: s.creatorStats.totalEarnings + (amount / 100),
+        weeklyEarnings: s.creatorStats.weeklyEarnings + (amount / 100),
+        earningsBreakdown: {
+          ...s.creatorStats.earningsBreakdown,
+          [source]: s.creatorStats.earningsBreakdown[source] + amount,
+        },
+      },
+    })),
+
   // ─── Subscriptions ───────────────────────────────────────────────────────
 
   upgradeTier: (tier) =>
@@ -1591,8 +2437,72 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
           ...sub,
           isActive: sub.tier === tier,
         })),
+        userSubscription: {
+          ...s.userSubscription,
+          tier,
+          subscribedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+          autoRenew: true,
+        },
       };
     }),
+
+  startTrial: () =>
+    set((s) => {
+      if (s.userSubscription.trialEndsAt) return {}; // already trialed
+      const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      return {
+        currentSubscription: 'pro' as SubscriptionTier,
+        subscriptions: s.subscriptions.map((sub) => ({
+          ...sub,
+          isActive: sub.tier === 'pro',
+        })),
+        userSubscription: {
+          ...s.userSubscription,
+          tier: 'pro' as SubscriptionTier,
+          subscribedAt: new Date().toISOString(),
+          expiresAt: trialEnd,
+          trialEndsAt: trialEnd,
+          isTrialing: true,
+          autoRenew: false,
+        },
+      };
+    }),
+
+  cancelSubscription: () =>
+    set((s) => ({
+      userSubscription: {
+        ...s.userSubscription,
+        autoRenew: false,
+      },
+    })),
+
+  restorePurchase: (tier, expiresAt, productId, platform) =>
+    set((s) => ({
+      currentSubscription: tier,
+      subscriptions: s.subscriptions.map((sub) => ({
+        ...sub,
+        isActive: sub.tier === tier,
+      })),
+      userSubscription: {
+        ...s.userSubscription,
+        tier,
+        productId,
+        platform,
+        expiresAt,
+        subscribedAt: new Date().toISOString(),
+        autoRenew: true,
+        isTrialing: false,
+      },
+    })),
+
+  isFeatureLocked: (feature) => {
+    const s = get();
+    const requiredTier = TIER_FEATURES[feature];
+    if (!requiredTier) return false; // unknown feature = unlocked
+    const tierOrder: SubscriptionTier[] = ['free', 'pro', 'elite'];
+    return tierOrder.indexOf(s.currentSubscription) < tierOrder.indexOf(requiredTier);
+  },
 
   // ─── Referral & Daily Login ────────────────────────────────────────────
 

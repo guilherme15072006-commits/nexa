@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Animated,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,6 +7,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSequence,
+  withSpring,
+  FadeInDown,
+  LinearTransition,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Avatar, Card, LiveBadge, OddsBtn, Pill, SectionHeader, XPBar } from '../components/ui';
@@ -23,6 +31,8 @@ import {
 } from '../components/LiveComponents';
 import NexaLogo from '../components/NexaLogo';
 import NarrativeCardComponent from '../components/NarrativeCard';
+import { SkeletonList } from '../components/SkeletonLoader';
+import { SharedView, SharedText, sharedTags } from '../components/SharedTransition';
 import { colors, radius, spacing, typography } from '../theme';
 import {
   FeedPost,
@@ -75,19 +85,20 @@ function CheckinCard() {
   const claimed       = useNexaStore(s => s.checkinClaimed);
   const claimCheckin  = useNexaStore(s => s.claimCheckin);
 
-  const successOpacity = useRef(new Animated.Value(0)).current;
-  const cardOpacity    = useRef(new Animated.Value(1)).current;
+  const successOpacity = useSharedValue(0);
+  const cardOpacity    = useSharedValue(1);
   const [showXP, setShowXP] = useState(false);
+
+  const successStyle = useAnimatedStyle(() => ({ opacity: successOpacity.value }));
+  const cardStyle    = useAnimatedStyle(() => ({ opacity: cardOpacity.value }));
 
   function handleClaim() {
     claimCheckin();
     setShowXP(true);
     hapticSuccess();
     playCheckin();
-    Animated.sequence([
-      Animated.timing(cardOpacity,    { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(successOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-    ]).start();
+    cardOpacity.value = withTiming(0, { duration: 200 });
+    successOpacity.value = withTiming(1, { duration: 300 });
   }
 
   return (
@@ -96,17 +107,17 @@ function CheckinCard() {
         <FloatingXP amount={50} visible={showXP} onDone={() => setShowXP(false)} style={{ top: -8 }} />
 
         {/* Success overlay */}
-        <Animated.View
-          style={[styles.checkinSuccess, { opacity: successOpacity }]}
+        <Reanimated.View
+          style={[styles.checkinSuccess, successStyle]}
           pointerEvents={claimed ? 'auto' : 'none'}
         >
           <Text style={styles.checkinSuccessEmoji}>🔥</Text>
           <Text style={styles.checkinSuccessTitle}>Check-in feito!</Text>
           <Text style={styles.checkinSuccessReward}>+50 XP  ·  +100 🪙  ·  Dia {streak}</Text>
-        </Animated.View>
+        </Reanimated.View>
 
         {/* Default state */}
-        <Animated.View style={{ opacity: cardOpacity }}>
+        <Reanimated.View style={cardStyle}>
           <View style={styles.checkinRow}>
             <View style={styles.checkinLeft}>
               <Text style={styles.checkinEmoji}>🔥</Text>
@@ -127,7 +138,7 @@ function CheckinCard() {
               </Text>
             </View>
           </TapScale>
-        </Animated.View>
+        </Reanimated.View>
       </Card>
     </SmoothEntry>
   );
@@ -182,16 +193,22 @@ interface TipsterCardProps {
 }
 
 function TipsterCard({ tipster, onFollow }: TipsterCardProps) {
+  const navigation = useNavigation<any>();
   const tierColor = TIER_COLOR[tipster.tier];
 
-  return (
-    <View style={styles.tipsterCard}>
-      {/* Avatar + tier ring */}
-      <View style={[styles.tipsterAvatarRing, { borderColor: tierColor }]}>
-        <Avatar username={tipster.username} size={44} />
-      </View>
+  const handleTap = useCallback(() => {
+    hapticLight();
+    navigation.navigate('TipsterProfile', { tipsterId: tipster.id });
+  }, [navigation, tipster.id]);
 
-      <Text style={styles.tipsterName} numberOfLines={1}>{tipster.username}</Text>
+  return (
+    <TouchableOpacity style={styles.tipsterCard} onPress={handleTap} activeOpacity={0.85}>
+      {/* Avatar + tier ring — shared element */}
+      <SharedView tag={sharedTags.tipsterAvatar(tipster.id)} style={[styles.tipsterAvatarRing, { borderColor: tierColor }]}>
+        <Avatar username={tipster.username} size={44} />
+      </SharedView>
+
+      <SharedText tag={sharedTags.tipsterName(tipster.id)} style={styles.tipsterName} numberOfLines={1}>{tipster.username}</SharedText>
 
       <Pill
         label={TIER_LABEL[tipster.tier]}
@@ -219,7 +236,7 @@ function TipsterCard({ tipster, onFollow }: TipsterCardProps) {
           {tipster.isFollowing ? 'Seguindo' : 'Seguir'}
         </Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -327,17 +344,18 @@ function PostCard({ post }: PostCardProps) {
   const [copied, setCopied] = useState(false);
   const [showCopyXP, setShowCopyXP] = useState(false);
 
-  // Like scale animation
-  const likeScale = useRef(new Animated.Value(1)).current;
+  // Like scale animation (Reanimated 3 — UI thread)
+  const likeScale = useSharedValue(1);
+  const likeStyle = useAnimatedStyle(() => ({ transform: [{ scale: likeScale.value }] }));
 
   const handleLike = useCallback(() => {
     likePost(post.id);
     hapticLight();
-    Animated.sequence([
-      Animated.spring(likeScale, { toValue: 1.45, useNativeDriver: true, speed: 40, bounciness: 10 }),
-      Animated.spring(likeScale, { toValue: 1,    useNativeDriver: true, speed: 20 }),
-    ]).start();
-  }, [likePost, likeScale, post.id]);
+    likeScale.value = withSequence(
+      withSpring(1.45, { damping: 6, stiffness: 200 }),
+      withSpring(1, { damping: 12, stiffness: 100 }),
+    );
+  }, [likePost, post.id]);
 
   const handleCopy = useCallback(() => {
     if (copied) return;
@@ -394,9 +412,9 @@ function PostCard({ post }: PostCardProps) {
           accessibilityLabel={`${post.isLiked ? 'Descurtir' : 'Curtir'}, ${post.likes} curtidas`}
           activeOpacity={0.7}
         >
-          <Animated.Text style={[styles.actionIcon, { transform: [{ scale: likeScale }] }]}>
+          <Reanimated.Text style={[styles.actionIcon, likeStyle]}>
             {post.isLiked ? '❤️' : '🤍'}
-          </Animated.Text>
+          </Reanimated.Text>
           <Text style={[styles.actionCount, post.isLiked && styles.actionCountLiked]}>
             {fmtLikes(post.likes)}
           </Text>
@@ -437,6 +455,7 @@ export default function FeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const navigation     = useNavigation<any>();
+  const isLoading      = useNexaStore(s => s.isLoading);
   const user           = useNexaStore(s => s.user);
   const tipsters       = useNexaStore(s => s.tipsters);
   const feed           = useNexaStore(s => s.feed);
@@ -589,11 +608,18 @@ export default function FeedScreen() {
           />
         }
       >
+        {/* Loading skeleton */}
+        {isLoading && (
+          <View style={{ paddingHorizontal: spacing.xs }}>
+            <SkeletonList count={4} type="card" />
+          </View>
+        )}
+
         {/* Check-in */}
-        <CheckinCard />
+        {!isLoading && <CheckinCard />}
 
         {/* Mission near-win banner */}
-        <MissionBanner />
+        {!isLoading && <MissionBanner />}
 
         {/* Daily login calendar */}
         <SmoothEntry delay={200}>
@@ -646,9 +672,12 @@ export default function FeedScreen() {
                     />
                   </SmoothEntry>
                 )}
-                <SmoothEntry delay={i * 80}>
+                <Reanimated.View
+                  entering={FadeInDown.delay(i * 60).duration(300).springify()}
+                  layout={LinearTransition.springify().damping(16).stiffness(120)}
+                >
                   <PostCard post={post} />
-                </SmoothEntry>
+                </Reanimated.View>
               </React.Fragment>
             );
           })

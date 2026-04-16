@@ -1,0 +1,71 @@
+# NEXA E2E: Onboarding completo (5 steps Duolingo)
+# Testa fluxo inteiro: welcome → aposta → DNA → XP → features → feed
+appId: com.nexa
+---
+- launchApp:
+    clearState: true
+
+# Login como convidado
+- tapOn: "Entrar como convidado"
+- waitForAnimationToEnd
+
+# Step 1: Welcome
+- assertVisible: "Bem-vindo"
+- assertVisible: "NEXA"
+- assertVisible: "1 / 5"
+- assertVisible: "Apostas inteligentes"
+- assertVisible: "Ranking competitivo"
+- assertVisible: "Missoes diarias"
+- assertVisible: "Pular"
+- tapOn: "Vamos la"
+- waitForAnimationToEnd
+
+# Step 2: Aposta simulada
+- assertVisible: "2 / 5"
+- assertVisible: "Sua primeira aposta"
+- assertVisible: "Brasil"
+- assertVisible: "Argentina"
+- assertVisible: "COPA AMERICA"
+- assertVisible: "Toque para apostar"
+- assertVisible: "Casa"
+- assertVisible: "Empate"
+- assertVisible: "Fora"
+
+# Apostar em Casa
+- tapOn: "Casa"
+- waitForAnimationToEnd
+
+# Confirmacao de aposta
+- assertVisible: "Aposta registrada"
+
+# Auto-advance para step 3 (esperar 2s)
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Step 3: DNA apostador
+- assertVisible: "3 / 5"
+- assertVisible: "Seu DNA apostador"
+- assertVisible: "Apostador Favorito"
+- tapOn: "Continuar"
+- waitForAnimationToEnd
+
+# Step 4: XP celebration
+- assertVisible: "4 / 5"
+- assertVisible: "+100 XP"
+- assertVisible: "Nivel 1"
+- assertVisible: "100 / 500 XP"
+- tapOn: "Incrivel!"
+- waitForAnimationToEnd
+
+# Step 5: Progressive disclosure
+- assertVisible: "5 / 5"
+- assertVisible: "Pronto para competir"
+- assertVisible: "Feed personalizado"
+- assertVisible: "Ranking ao vivo"
+- assertVisible: "Missoes diarias"
+- tapOn: "Entrar na NEXA"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Deve chegar no feed
+- assertVisible: "Para voce|Para você|Feed"

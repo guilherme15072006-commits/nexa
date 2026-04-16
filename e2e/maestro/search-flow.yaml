@@ -1,0 +1,42 @@
+# NEXA E2E: Fluxo de busca
+# Testa: buscar tipster, ver resultados, busca vazia
+appId: com.nexa
+---
+- launchApp:
+    clearState: true
+
+# Login rapido
+- tapOn: "Entrar como convidado"
+- waitForAnimationToEnd
+- tapOn: "Pular"
+- waitForAnimationToEnd
+
+# Abrir busca
+- tapOn: "Explorar"
+- waitForAnimationToEnd
+
+# Deve mostrar trending
+- assertVisible: "Em Alta|Pessoas"
+
+# Buscar tipster
+- tapOn:
+    id: "search-input"
+    optional: true
+- inputText: "King"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Deve mostrar resultados ou sugestoes
+- assertVisible: "King|Pessoas|tipster"
+
+# Limpar busca
+- clearText
+- waitForAnimationToEnd
+
+# Busca que nao existe
+- inputText: "zzzzzzzzz"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Deve mostrar empty state
+- assertVisible: "resultado|Nenhum"

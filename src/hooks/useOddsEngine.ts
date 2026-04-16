@@ -22,8 +22,8 @@ import { supabaseService } from '../services/supabase';
 import { useNexaStore } from '../store/nexaStore';
 import type { Match } from '../store/nexaStore';
 
-// Intervalo entre atualizacoes (10 segundos)
-const POLL_INTERVAL = 10_000;
+// Intervalo entre atualizacoes (6 min — free tier = 500 req/mes)
+const POLL_INTERVAL = 360_000;
 
 // Variacao maxima na simulacao (quando nao tem API real)
 const MAX_VARIATION = 0.15;

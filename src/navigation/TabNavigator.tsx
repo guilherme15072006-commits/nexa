@@ -1,34 +1,49 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { Suspense, lazy } from 'react';
+import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, typography, spacing, radius } from '../theme';
 import { useNexaStore, type Tab as NexaTab } from '../store/nexaStore';
 import { hapticSelection } from '../services/haptics';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+
+// ─── Eager: Tab screens (always loaded) ─────────────────────────────────────
 import FeedScreen from '../screens/FeedScreen';
 import ApostasScreen from '../screens/ApostasScreen';
 import RankingScreen from '../screens/RankingScreen';
 import PerfilScreen from '../screens/PerfilScreen';
-import WalletScreen from '../screens/WalletScreen';
-import NotificationsScreen from '../screens/NotificationsScreen';
-import DashboardScreen from '../screens/DashboardScreen';
-import TipsterProfileScreen from '../screens/TipsterProfileScreen';
-import ClanDetailScreen from '../screens/ClanDetailScreen';
-import SearchScreen from '../screens/SearchScreen';
-import SettingsScreen from '../screens/SettingsScreen';
-import BetHistoryScreen from '../screens/BetHistoryScreen';
-import LivesScreen from '../screens/LivesScreen';
-import MarketplaceScreen from '../screens/MarketplaceScreen';
-import NexaPlayScreen from '../screens/NexaPlayScreen';
-import StoriesScreen from '../screens/StoriesScreen';
-import ExploreScreen from '../screens/ExploreScreen';
-import EventsScreen from '../screens/EventsScreen';
-import CreatorStudioScreen from '../screens/CreatorStudioScreen';
-import AudioRoomsScreen from '../screens/AudioRoomsScreen';
-import SubscriptionScreen from '../screens/SubscriptionScreen';
-import ReferralScreen from '../screens/ReferralScreen';
-import AdminDashboardScreen from '../screens/AdminDashboardScreen';
+
+// ─── Lazy: Modal/Stack screens (loaded on demand) ───────────────────────────
+const WalletScreen = lazy(() => import('../screens/WalletScreen'));
+const NotificationsScreen = lazy(() => import('../screens/NotificationsScreen'));
+const DashboardScreen = lazy(() => import('../screens/DashboardScreen'));
+const TipsterProfileScreen = lazy(() => import('../screens/TipsterProfileScreen'));
+const ClanDetailScreen = lazy(() => import('../screens/ClanDetailScreen'));
+const SearchScreen = lazy(() => import('../screens/SearchScreen'));
+const SettingsScreen = lazy(() => import('../screens/SettingsScreen'));
+const BetHistoryScreen = lazy(() => import('../screens/BetHistoryScreen'));
+const LivesScreen = lazy(() => import('../screens/LivesScreen'));
+const MarketplaceScreen = lazy(() => import('../screens/MarketplaceScreen'));
+const NexaPlayScreen = lazy(() => import('../screens/NexaPlayScreen'));
+const StoriesScreen = lazy(() => import('../screens/StoriesScreen'));
+const ExploreScreen = lazy(() => import('../screens/ExploreScreen'));
+const EventsScreen = lazy(() => import('../screens/EventsScreen'));
+const CreatorStudioScreen = lazy(() => import('../screens/CreatorStudioScreen'));
+const AudioRoomsScreen = lazy(() => import('../screens/AudioRoomsScreen'));
+const SubscriptionScreen = lazy(() => import('../screens/SubscriptionScreen'));
+const ReferralScreen = lazy(() => import('../screens/ReferralScreen'));
+const AdminDashboardScreen = lazy(() => import('../screens/AdminDashboardScreen'));
+const KYCScreen = lazy(() => import('../screens/KYCScreen'));
+const SeasonScreen = lazy(() => import('../screens/SeasonScreen'));
+
+// ─── Suspense fallback ──────────────────────────────────────────────────────
+function LazyFallback() {
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+      <ActivityIndicator size="large" color={colors.primary} />
+    </View>
+  );
+}
 
 const BottomTab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -40,7 +55,9 @@ function withErrorBoundary<P extends object>(
   return function BoundedScreen(props: P) {
     return (
       <ErrorBoundary fallbackMessage={`Erro em ${name}`}>
-        <WrappedComponent {...props} />
+        <Suspense fallback={<LazyFallback />}>
+          <WrappedComponent {...props} />
+        </Suspense>
       </ErrorBoundary>
     );
   };
@@ -128,6 +145,8 @@ export default function RootNavigator() {
       <Stack.Screen name="Subscription" component={withErrorBoundary(SubscriptionScreen, 'Assinatura')} />
       <Stack.Screen name="Referral" component={withErrorBoundary(ReferralScreen, 'Convite')} />
       <Stack.Screen name="AdminDashboard" component={withErrorBoundary(AdminDashboardScreen, 'Admin')} />
+      <Stack.Screen name="KYC" component={withErrorBoundary(KYCScreen, 'Verificação')} />
+      <Stack.Screen name="Season" component={withErrorBoundary(SeasonScreen, 'Temporada')} />
     </Stack.Navigator>
   );
 }

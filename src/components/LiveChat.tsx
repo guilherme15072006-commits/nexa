@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useCallback, useEffect, useRef, useMemo, useState } from 'react';
 import {
   Animated,
   ScrollView,
@@ -11,6 +11,7 @@ import {
 import { colors, radius, spacing, typography } from '../theme';
 import { PulsingDot } from './LiveComponents';
 import { useNexaStore } from '../store/nexaStore';
+import { hapticLight } from '../services/haptics';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -153,16 +154,47 @@ export default function LiveChat({ matchId, expanded, onToggle }: LiveChatProps)
           )}
         </ScrollView>
 
-        {/* Fake input bar */}
-        <View style={styles.fakeInput}>
-          <View style={styles.fakeInputField}>
-            <Text style={styles.fakeInputText}>Digite uma mensagem...</Text>
-          </View>
-          <View style={styles.fakeInputSend}>
-            <Text style={styles.fakeInputSendIcon}>↑</Text>
-          </View>
-        </View>
+        {/* Real input bar */}
+        <ChatInput matchId={matchId} />
       </Animated.View>
+    </View>
+  );
+}
+
+// ─── Chat Input ─────────────────────────────────────────────────────────────
+
+function ChatInput({ matchId }: { matchId: string }) {
+  const [text, setText] = useState('');
+  const sendChatMessage = useNexaStore((s) => s.sendChatMessage);
+
+  const handleSend = useCallback(() => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    hapticLight();
+    sendChatMessage(matchId, trimmed);
+    setText('');
+  }, [text, matchId, sendChatMessage]);
+
+  return (
+    <View style={styles.chatInputBar}>
+      <TextInput
+        style={styles.chatInputField}
+        value={text}
+        onChangeText={setText}
+        placeholder="Digite uma mensagem..."
+        placeholderTextColor={colors.textMuted}
+        onSubmitEditing={handleSend}
+        returnKeyType="send"
+        maxLength={200}
+      />
+      <TouchableOpacity
+        style={[styles.chatSendBtn, !text.trim() && styles.chatSendBtnDisabled]}
+        onPress={handleSend}
+        disabled={!text.trim()}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.chatSendIcon}>↑</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -290,7 +322,7 @@ const styles = StyleSheet.create({
   },
 
   // Fake input
-  fakeInput: {
+  chatInputBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
@@ -299,7 +331,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: colors.border,
   },
-  fakeInputField: {
+  chatInputField: {
     flex: 1,
     backgroundColor: colors.bgElevated,
     borderRadius: radius.full,
@@ -307,23 +339,24 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderWidth: 0.5,
     borderColor: colors.border,
-  },
-  fakeInputText: {
     ...typography.body,
     fontSize: 12,
-    color: colors.textMuted,
+    color: colors.textPrimary,
   },
-  fakeInputSend: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: colors.primary + '40',
+  chatSendBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fakeInputSendIcon: {
+  chatSendBtnDisabled: {
+    backgroundColor: colors.primary + '30',
+  },
+  chatSendIcon: {
     ...typography.monoBold,
-    fontSize: 13,
-    color: colors.primary,
+    fontSize: 14,
+    color: '#FFF',
   },
 });

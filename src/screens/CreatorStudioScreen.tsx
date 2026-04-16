@@ -1,8 +1,9 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,8 +11,8 @@ import { useNavigation } from '@react-navigation/native';
 import { TapScale, SmoothEntry } from '../components/LiveComponents';
 import { Card, SectionHeader, Pill } from '../components/ui';
 import { colors, radius, spacing, typography } from '../theme';
-import { useNexaStore, type TipsterTier } from '../store/nexaStore';
-import { hapticLight } from '../services/haptics';
+import { useNexaStore, type TipsterTier, type CreatorPayout } from '../store/nexaStore';
+import { hapticLight, hapticSuccess, hapticMedium } from '../services/haptics';
 
 // ─── Tier Config ─────────────────────────────────────────────────────────────
 
@@ -147,6 +148,90 @@ function TierLadder({ currentTier }: { currentTier: TipsterTier }) {
         );
       })}
     </View>
+  );
+}
+
+// ─── Payout Section ─────────────────────────────────────────────────────────
+
+function PayoutSection() {
+  const creatorStats = useNexaStore(s => s.creatorStats);
+  const requestCreatorPayout = useNexaStore(s => s.requestCreatorPayout);
+  const [payoutPixKey, setPayoutPixKey] = useState('');
+  const [showPayoutForm, setShowPayoutForm] = useState(false);
+
+  const available = creatorStats?.availableBalance ?? 0;
+  const pending = creatorStats?.pendingBalance ?? 0;
+  const brlAvailable = (available / 100).toFixed(2);
+  const minPayout = 500; // min 500 coins = R$5.00
+
+  const handlePayout = useCallback(() => {
+    if (available < minPayout || !payoutPixKey.trim()) return;
+    hapticSuccess();
+    requestCreatorPayout(available, payoutPixKey.trim());
+    setShowPayoutForm(false);
+    setPayoutPixKey('');
+  }, [available, payoutPixKey, requestCreatorPayout]);
+
+  return (
+    <Card>
+      <View style={styles.payoutBalanceRow}>
+        <View>
+          <Text style={styles.payoutBalanceLabel}>Disponivel para saque</Text>
+          <Text style={styles.payoutBalanceValue}>{available.toLocaleString()} coins</Text>
+          <Text style={styles.payoutBalanceBrl}>= R$ {brlAvailable}</Text>
+        </View>
+        {pending > 0 && (
+          <View style={styles.payoutPending}>
+            <Text style={styles.payoutPendingLabel}>Processando</Text>
+            <Text style={styles.payoutPendingValue}>{pending} coins</Text>
+          </View>
+        )}
+      </View>
+
+      {!showPayoutForm ? (
+        <TapScale onPress={() => { hapticMedium(); setShowPayoutForm(true); }} disabled={available < minPayout}>
+          <View style={[styles.payoutBtn, available < minPayout && styles.payoutBtnDisabled]}>
+            <Text style={styles.payoutBtnText}>
+              {available < minPayout ? `Minimo: ${minPayout} coins` : 'Solicitar saque'}
+            </Text>
+          </View>
+        </TapScale>
+      ) : (
+        <View style={styles.payoutForm}>
+          <TextInput
+            style={styles.payoutInput}
+            value={payoutPixKey}
+            onChangeText={setPayoutPixKey}
+            placeholder="Sua chave Pix"
+            placeholderTextColor={colors.textMuted}
+            autoCapitalize="none"
+          />
+          <View style={styles.payoutFormActions}>
+            <TapScale onPress={() => setShowPayoutForm(false)}>
+              <View style={styles.payoutCancel}><Text style={styles.payoutCancelText}>Cancelar</Text></View>
+            </TapScale>
+            <TapScale onPress={handlePayout}>
+              <View style={styles.payoutConfirm}><Text style={styles.payoutConfirmText}>Sacar R$ {brlAvailable}</Text></View>
+            </TapScale>
+          </View>
+        </View>
+      )}
+
+      {/* Payout history */}
+      {(creatorStats?.payoutHistory?.length ?? 0) > 0 && (
+        <View style={styles.payoutHistory}>
+          <Text style={styles.payoutHistoryTitle}>Historico de saques</Text>
+          {creatorStats!.payoutHistory.slice(0, 5).map((p: CreatorPayout) => (
+            <View key={p.id} style={styles.payoutHistoryRow}>
+              <View style={[styles.payoutStatusDot, { backgroundColor: p.status === 'completed' ? colors.green : p.status === 'pending' ? colors.gold : colors.red }]} />
+              <Text style={styles.payoutHistoryAmount}>R$ {p.amount.toFixed(2)}</Text>
+              <Text style={styles.payoutHistoryDate}>{p.requestedAt}</Text>
+              <Text style={styles.payoutHistoryStatus}>{p.status}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </Card>
   );
 }
 
@@ -316,8 +401,35 @@ export default function CreatorStudioScreen() {
           </Card>
         </SmoothEntry>
 
-        {/* Monetization Tips */}
+        {/* Earnings Breakdown */}
         <SmoothEntry delay={500}>
+          <SectionHeader title="De onde vem sua receita" />
+          <Card>
+            <View style={styles.breakdownGrid}>
+              {[
+                { label: 'Copias', value: creatorStats?.earningsBreakdown?.fromCopies ?? 0, color: colors.green },
+                { label: 'Marketplace', value: creatorStats?.earningsBreakdown?.fromMarketplace ?? 0, color: colors.primary },
+                { label: 'Afiliados', value: creatorStats?.earningsBreakdown?.fromAffiliates ?? 0, color: colors.gold },
+                { label: 'Tips', value: creatorStats?.earningsBreakdown?.fromTips ?? 0, color: colors.orange },
+              ].map((item) => (
+                <View key={item.label} style={styles.breakdownItem}>
+                  <View style={[styles.breakdownDot, { backgroundColor: item.color }]} />
+                  <Text style={styles.breakdownLabel}>{item.label}</Text>
+                  <Text style={styles.breakdownValue}>{item.value.toLocaleString()} coins</Text>
+                </View>
+              ))}
+            </View>
+          </Card>
+        </SmoothEntry>
+
+        {/* Payout Section */}
+        <SmoothEntry delay={600}>
+          <SectionHeader title="Sacar ganhos" />
+          <PayoutSection />
+        </SmoothEntry>
+
+        {/* Monetization Tips */}
+        <SmoothEntry delay={700}>
           <Card style={styles.tipCard}>
             <Text style={styles.tipIcon}>💡</Text>
             <Text style={styles.tipTitle}>Dica do Dia</Text>
@@ -608,4 +720,37 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: spacing.lg,
   },
+
+  // Earnings breakdown
+  breakdownGrid: { gap: spacing.sm },
+  breakdownItem: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: spacing.sm },
+  breakdownDot: { width: 10, height: 10, borderRadius: 5 },
+  breakdownLabel: { ...typography.body, fontSize: 13, color: colors.textSecondary, flex: 1 },
+  breakdownValue: { ...typography.monoBold, fontSize: 13, color: colors.textPrimary },
+
+  // Payout
+  payoutBalanceRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'flex-start' as const, marginBottom: spacing.md },
+  payoutBalanceLabel: { ...typography.body, fontSize: 12, color: colors.textMuted },
+  payoutBalanceValue: { ...typography.monoBold, fontSize: 20, color: colors.green, marginTop: 2 },
+  payoutBalanceBrl: { ...typography.mono, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  payoutPending: { alignItems: 'flex-end' as const },
+  payoutPendingLabel: { ...typography.body, fontSize: 11, color: colors.textMuted },
+  payoutPendingValue: { ...typography.mono, fontSize: 13, color: colors.gold },
+  payoutBtn: { backgroundColor: colors.green, borderRadius: radius.md, paddingVertical: spacing.sm + 2, alignItems: 'center' as const },
+  payoutBtnDisabled: { backgroundColor: colors.bgElevated, borderWidth: 0.5, borderColor: colors.border },
+  payoutBtnText: { ...typography.bodySemiBold, fontSize: 14, color: '#FFF' },
+  payoutForm: { gap: spacing.md },
+  payoutInput: { backgroundColor: colors.bgElevated, borderRadius: radius.md, borderWidth: 0.5, borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2, ...typography.body, fontSize: 14, color: colors.textPrimary },
+  payoutFormActions: { flexDirection: 'row' as const, gap: spacing.md },
+  payoutCancel: { flex: 1, backgroundColor: colors.bgElevated, borderRadius: radius.md, paddingVertical: spacing.sm + 2, alignItems: 'center' as const, borderWidth: 0.5, borderColor: colors.border },
+  payoutCancelText: { ...typography.bodySemiBold, fontSize: 13, color: colors.textMuted },
+  payoutConfirm: { flex: 1, backgroundColor: colors.green, borderRadius: radius.md, paddingVertical: spacing.sm + 2, alignItems: 'center' as const },
+  payoutConfirmText: { ...typography.bodySemiBold, fontSize: 13, color: '#FFF' },
+  payoutHistory: { marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 0.5, borderTopColor: colors.border, gap: spacing.sm },
+  payoutHistoryTitle: { ...typography.bodySemiBold, fontSize: 12, color: colors.textSecondary, marginBottom: spacing.xs },
+  payoutHistoryRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: spacing.sm },
+  payoutStatusDot: { width: 8, height: 8, borderRadius: 4 },
+  payoutHistoryAmount: { ...typography.monoBold, fontSize: 13, color: colors.textPrimary, flex: 1 },
+  payoutHistoryDate: { ...typography.mono, fontSize: 11, color: colors.textMuted },
+  payoutHistoryStatus: { ...typography.mono, fontSize: 10, color: colors.textMuted, textTransform: 'capitalize' as const },
 });

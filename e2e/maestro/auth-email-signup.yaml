@@ -1,0 +1,29 @@
+# NEXA E2E: Cadastro com email
+# Testa fluxo de criacao de conta com email/senha
+appId: com.nexa
+---
+- launchApp:
+    clearState: true
+
+# Abrir form
+- tapOn: "Entrar com email"
+- waitForAnimationToEnd
+
+# Clicar em "Nao tem conta? Criar"
+- tapOn: "Nao tem conta|Criar"
+- waitForAnimationToEnd
+
+# Preencher campos
+- tapOn: "Email"
+- inputText: "teste_e2e@nexa.app"
+
+- tapOn: "Senha"
+- inputText: "Teste123!"
+
+# Criar conta
+- tapOn: "Criar conta"
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Deve ir para onboarding ou feed (depende se Supabase esta real)
+- assertVisible: "Bem-vindo|Feed|Para voce|Para você|Preencha"

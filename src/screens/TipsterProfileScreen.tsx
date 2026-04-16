@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +12,7 @@ import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore, Tipster, TipsterTier } from '../store/nexaStore';
 import { SmoothEntry, TapScale } from '../components/LiveComponents';
 import { Card, StatBox } from '../components/ui';
+import { SharedView, SharedText, sharedTags } from '../components/SharedTransition';
 import { hapticLight, hapticMedium, hapticSuccess } from '../services/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -134,14 +134,14 @@ export default function TipsterProfileScreen() {
         {/* Avatar + Info */}
         <SmoothEntry delay={100}>
           <View style={styles.profileSection}>
-            <View style={[styles.avatarRing, { borderColor: tierColor }]}>
+            <SharedView tag={sharedTags.tipsterAvatar(tipster.id)} style={[styles.avatarRing, { borderColor: tierColor }]}>
               <View style={styles.avatarInner}>
                 <Text style={styles.avatarText}>
                   {tipster.username.charAt(0).toUpperCase()}
                 </Text>
               </View>
-            </View>
-            <Text style={styles.username}>{tipster.username}</Text>
+            </SharedView>
+            <SharedText tag={sharedTags.tipsterName(tipster.id)} style={styles.username}>{tipster.username}</SharedText>
             <View style={[styles.tierBadge, { backgroundColor: tierColor + '20' }]}>
               <Text style={[styles.tierText, { color: tierColor }]}>{tierLabel}</Text>
             </View>

@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,7 +12,9 @@ import { TapScale, SmoothEntry, GlowPulse } from '../components/LiveComponents';
 import { Card, Pill } from '../components/ui';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore, type SubscriptionTier } from '../store/nexaStore';
-import { hapticLight, hapticSuccess } from '../services/haptics';
+import { hapticLight, hapticSuccess, hapticError } from '../services/haptics';
+import { purchaseSubscription, restorePurchases, isTrialAvailable, getDaysRemaining, PRODUCT_IDS } from '../services/billing';
+import { trackSubscriptionFunnel, trackSubscriptionRevenue } from '../services/analytics';
 
 // ─── Tier Definitions ────────────────────────────────────────────────────────
 
@@ -194,20 +197,74 @@ function TierCard({
 export default function SubscriptionScreen() {
   const navigation = useNavigation();
   const currentSubscription = useNexaStore(s => s.currentSubscription);
-  const upgradeTier = useNexaStore(s => s.upgradeTier);
+  const userSubscription = useNexaStore(s => s.userSubscription);
+  const startTrial = useNexaStore(s => s.startTrial);
+  const cancelSubscription = useNexaStore(s => s.cancelSubscription);
+
+  const [purchasing, setPurchasing] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const trialAvailable = isTrialAvailable();
+  const daysRemaining = getDaysRemaining();
 
   const handleBack = useCallback(() => {
     hapticLight();
     navigation.goBack();
   }, [navigation]);
 
-  const handleSubscribe = useCallback(
-    (tier: SubscriptionTier) => {
-      hapticSuccess();
-      upgradeTier(tier);
-    },
-    [upgradeTier],
-  );
+  const handleSubscribe = useCallback(async (tier: SubscriptionTier) => {
+    hapticSuccess();
+    setPurchasing(true);
+    setMessage(null);
+    trackSubscriptionFunnel('purchase_initiated', 1, tier);
+    const productId = tier === 'elite' ? PRODUCT_IDS.elite : PRODUCT_IDS.pro;
+    const result = await purchaseSubscription(productId);
+    setPurchasing(false);
+    if (result.success) {
+      trackSubscriptionFunnel('purchased', 2, tier);
+      trackSubscriptionRevenue(tier === 'elite' ? 79.90 : 29.90, tier);
+    } else if (result.error) {
+      hapticError();
+      setMessage(result.error);
+    }
+  }, []);
+
+  const handleStartTrial = useCallback(async () => {
+    hapticSuccess();
+    setPurchasing(true);
+    setMessage(null);
+    trackSubscriptionFunnel('trial_started', 1, 'pro');
+    const result = await purchaseSubscription(PRODUCT_IDS.proTrial);
+    setPurchasing(false);
+    if (result.success) {
+      trackSubscriptionFunnel('trial_activated', 2, 'pro');
+    } else if (result.error) {
+      hapticError();
+      setMessage(result.error);
+    }
+  }, []);
+
+  const handleRestore = useCallback(async () => {
+    hapticLight();
+    setRestoring(true);
+    setMessage(null);
+    const result = await restorePurchases();
+    setRestoring(false);
+    if (result.success) {
+      setMessage('Assinatura restaurada com sucesso!');
+    } else {
+      setMessage(result.error ?? 'Nenhuma assinatura encontrada');
+    }
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    hapticLight();
+    cancelSubscription();
+    setShowCancel(false);
+    setMessage('Auto-renovacao desativada. Acesso continua ate o fim do periodo.');
+  }, [cancelSubscription]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -313,24 +370,97 @@ export default function SubscriptionScreen() {
           </Card>
         </SmoothEntry>
 
-        {/* Free Trial Banner */}
-        {currentSubscription === 'free' && (
+        {/* Active Subscription Info */}
+        {currentSubscription !== 'free' && (
           <SmoothEntry delay={500}>
-            <TapScale
-              onPress={() => handleSubscribe('pro')}
-              accessibilityLabel="Iniciar teste grátis do Pro"
-            >
+            <Card style={styles.activeSubCard}>
+              <View style={styles.activeSubHeader}>
+                <Text style={styles.activeSubTitle}>
+                  {userSubscription.isTrialing ? 'Trial Pro ativo' : `Plano ${currentSubscription.charAt(0).toUpperCase() + currentSubscription.slice(1)}`}
+                </Text>
+                {userSubscription.isTrialing && (
+                  <View style={styles.trialActiveBadge}>
+                    <Text style={styles.trialActiveBadgeText}>TRIAL</Text>
+                  </View>
+                )}
+              </View>
+              {daysRemaining > 0 && (
+                <Text style={styles.activeSubExpiry}>
+                  {userSubscription.isTrialing ? 'Trial expira' : 'Renova'} em {daysRemaining} dias
+                  {userSubscription.autoRenew ? '' : ' (nao renova)'}
+                </Text>
+              )}
+              {userSubscription.autoRenew && (
+                <TapScale onPress={() => { hapticLight(); setShowCancel(true); }}>
+                  <Text style={styles.cancelLink}>Cancelar renovacao automatica</Text>
+                </TapScale>
+              )}
+              {showCancel && (
+                <View style={styles.cancelConfirm}>
+                  <Text style={styles.cancelConfirmText}>
+                    Deseja desativar a renovacao? Voce continuara com acesso ate o fim do periodo.
+                  </Text>
+                  <View style={styles.cancelConfirmRow}>
+                    <TapScale onPress={handleCancel}>
+                      <View style={styles.cancelConfirmYes}>
+                        <Text style={styles.cancelConfirmYesText}>Desativar</Text>
+                      </View>
+                    </TapScale>
+                    <TapScale onPress={() => setShowCancel(false)}>
+                      <View style={styles.cancelConfirmNo}>
+                        <Text style={styles.cancelConfirmNoText}>Manter</Text>
+                      </View>
+                    </TapScale>
+                  </View>
+                </View>
+              )}
+            </Card>
+          </SmoothEntry>
+        )}
+
+        {/* Free Trial Banner */}
+        {currentSubscription === 'free' && trialAvailable && (
+          <SmoothEntry delay={500}>
+            <TapScale onPress={handleStartTrial} accessibilityLabel="Iniciar teste gratis do Pro">
               <View style={styles.trialBanner}>
-                <Text style={styles.trialTitle}>🎉 Teste grátis por 7 dias</Text>
+                <Text style={styles.trialTitle}>7 dias gratis de Pro</Text>
                 <Text style={styles.trialText}>
-                  Experimente o NEXA Pro sem compromisso. Cancele quando quiser.
+                  Apostas ilimitadas, Power-ups, Lives VIP e Creator Studio. Cancele quando quiser.
                 </Text>
                 <View style={styles.trialButton}>
-                  <Text style={styles.trialButtonText}>Começar teste grátis</Text>
+                  <Text style={styles.trialButtonText}>Comecar trial gratis</Text>
                 </View>
               </View>
             </TapScale>
           </SmoothEntry>
+        )}
+
+        {/* Message banner */}
+        {message && (
+          <View style={styles.messageBanner}>
+            <Text style={styles.messageText}>{message}</Text>
+          </View>
+        )}
+
+        {/* Restore + Footer */}
+        <SmoothEntry delay={600}>
+          <TapScale onPress={handleRestore} disabled={restoring}>
+            <View style={styles.restoreBtn}>
+              {restoring ? (
+                <ActivityIndicator size="small" color={colors.textMuted} />
+              ) : (
+                <Text style={styles.restoreText}>Restaurar compras</Text>
+              )}
+            </View>
+          </TapScale>
+        </SmoothEntry>
+
+        {/* Purchasing overlay */}
+        {purchasing && (
+          <View style={styles.purchasingOverlay}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.purchasingText}>Processando...</Text>
+          </View>
         )}
 
         <View style={{ height: spacing.xxl }} />
@@ -567,4 +697,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#FFFFFF',
   },
+
+  // Active sub
+  activeSubCard: { padding: spacing.lg, gap: spacing.sm },
+  activeSubHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: spacing.sm },
+  activeSubTitle: { ...typography.bodySemiBold, fontSize: 16, color: colors.textPrimary },
+  trialActiveBadge: { backgroundColor: colors.green + '20', borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 2 },
+  trialActiveBadgeText: { ...typography.monoBold, fontSize: 10, color: colors.green, letterSpacing: 1 },
+  activeSubExpiry: { ...typography.mono, fontSize: 12, color: colors.textSecondary },
+  cancelLink: { ...typography.body, fontSize: 13, color: colors.red, marginTop: spacing.xs },
+
+  // Cancel confirm
+  cancelConfirm: { backgroundColor: colors.bgElevated, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm, gap: spacing.sm },
+  cancelConfirmText: { ...typography.body, fontSize: 12, color: colors.textSecondary, lineHeight: 18 },
+  cancelConfirmRow: { flexDirection: 'row' as const, gap: spacing.md },
+  cancelConfirmYes: { flex: 1, backgroundColor: colors.red + '15', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' as const, borderWidth: 0.5, borderColor: colors.red + '30' },
+  cancelConfirmYesText: { ...typography.bodySemiBold, fontSize: 13, color: colors.red },
+  cancelConfirmNo: { flex: 1, backgroundColor: colors.bgCard, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' as const, borderWidth: 0.5, borderColor: colors.border },
+  cancelConfirmNoText: { ...typography.bodySemiBold, fontSize: 13, color: colors.textPrimary },
+
+  // Message
+  messageBanner: { backgroundColor: colors.bgElevated, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md },
+  messageText: { ...typography.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' as const },
+
+  // Restore
+  restoreBtn: { alignItems: 'center' as const, paddingVertical: spacing.lg },
+  restoreText: { ...typography.body, fontSize: 13, color: colors.textMuted, textDecorationLine: 'underline' as const },
+
+  // Purchasing overlay
+  purchasingOverlay: { alignItems: 'center' as const, paddingVertical: spacing.xl, gap: spacing.md },
+  purchasingText: { ...typography.body, fontSize: 14, color: colors.textSecondary },
 });

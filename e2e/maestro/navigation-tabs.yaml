@@ -1,0 +1,35 @@
+# NEXA E2E: Navegacao entre tabs
+# Testa que todas as tabs funcionam e mostram conteudo correto
+appId: com.nexa
+---
+- launchApp:
+    clearState: true
+
+# Login rapido
+- tapOn: "Entrar como convidado"
+- waitForAnimationToEnd
+- tapOn: "Pular"
+- waitForAnimationToEnd
+
+# Tab Feed (default)
+- assertVisible: "Para voce|Para você"
+
+# Tab Apostas
+- tapOn: "Apostas"
+- waitForAnimationToEnd
+- assertVisible: "Ao vivo|ao vivo|Hoje"
+
+# Tab Ranking
+- tapOn: "Ranking"
+- waitForAnimationToEnd
+- assertVisible: "Ranking"
+
+# Tab Perfil
+- tapOn: "Perfil"
+- waitForAnimationToEnd
+- assertVisible: "Nivel|Nível|Level"
+
+# Voltar para Feed
+- tapOn: "Feed"
+- waitForAnimationToEnd
+- assertVisible: "Para voce|Para você"

@@ -12,6 +12,7 @@ import { Card, SectionHeader, Avatar, Pill } from '../components/ui';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore, type AudioRoom } from '../store/nexaStore';
 import { hapticLight, hapticMedium } from '../services/haptics';
+import { UpsellBanner } from '../components/UpsellBanner';
 
 // ─── Tier Ring Color ─────────────────────────────────────────────────────────
 
@@ -27,9 +28,22 @@ function getTierColor(tier?: string): string {
 // ─── Live Room Card ──────────────────────────────────────────────────────────
 
 function LiveRoomCard({ room, index }: { room: AudioRoom; index: number }) {
+  const joinAudioRoom = useNexaStore(s => s.joinAudioRoom);
+  const joinedRoomId = useNexaStore(s => s.joinedRoomId);
+  const leaveAudioRoom = useNexaStore(s => s.leaveAudioRoom);
+  const raiseHand = useNexaStore(s => s.raiseHand);
+  const isHandRaised = useNexaStore(s => s.isHandRaised);
+  const isJoined = joinedRoomId === room.id;
+
   const handleJoin = useCallback(() => {
     hapticMedium();
-  }, []);
+    if (isJoined) {
+      leaveAudioRoom();
+    } else {
+      if (joinedRoomId) leaveAudioRoom(); // leave previous room first
+      joinAudioRoom(room.id);
+    }
+  }, [isJoined, joinedRoomId, room.id, joinAudioRoom, leaveAudioRoom]);
 
   return (
     <SmoothEntry delay={index * 80}>
@@ -83,9 +97,18 @@ function LiveRoomCard({ room, index }: { room: AudioRoom; index: number }) {
               {room.listeners} ouvindo
             </Text>
           </View>
-          <TapScale onPress={handleJoin} accessibilityLabel={`Ouvir ${room.title}`}>
-            <View style={styles.joinButton}>
-              <Text style={styles.joinButtonText}>🎧 Ouvir</Text>
+          {isJoined && (
+            <TapScale onPress={() => { hapticLight(); raiseHand(); }}>
+              <View style={[styles.handButton, isHandRaised && styles.handButtonActive]}>
+                <Text style={styles.handButtonText}>{isHandRaised ? '✋ Mao levantada' : '✋ Levantar mao'}</Text>
+              </View>
+            </TapScale>
+          )}
+          <TapScale onPress={handleJoin} accessibilityLabel={isJoined ? 'Sair da sala' : `Ouvir ${room.title}`}>
+            <View style={[styles.joinButton, isJoined && styles.leaveButton]}>
+              <Text style={[styles.joinButtonText, isJoined && styles.leaveButtonText]}>
+                {isJoined ? '🔴 Sair' : '🎧 Ouvir'}
+              </Text>
             </View>
           </TapScale>
         </View>
@@ -103,9 +126,11 @@ function ScheduledRoomCard({
   room: AudioRoom;
   index: number;
 }) {
+  const pushToast = useNexaStore(s => s.pushToast);
   const handleReminder = useCallback(() => {
     hapticLight();
-  }, []);
+    pushToast('Voce sera notificado quando a sala comecar');
+  }, [pushToast]);
 
   return (
     <SmoothEntry delay={index * 80 + 200}>
@@ -219,12 +244,11 @@ export default function AudioRoomsScreen() {
                   Compartilhe análises ao vivo com seus seguidores.
                 </Text>
               ) : (
-                <View style={styles.upgradeRow}>
-                  <Pill label="PRO / ELITE" color={colors.gold} />
-                  <Text style={styles.createCtaDesc}>
-                    Faça upgrade para criar rooms.
-                  </Text>
-                </View>
+                <UpsellBanner
+                  feature="audio_rooms"
+                  message="Pro desbloqueia criacao de Audio Rooms"
+                  compact
+                />
               )}
             </View>
           </TapScale>
@@ -447,5 +471,30 @@ const styles = StyleSheet.create({
   upgradeRow: {
     alignItems: 'center',
     gap: spacing.xs,
+  },
+  leaveButton: {
+    backgroundColor: colors.red + '20',
+    borderWidth: 0.5,
+    borderColor: colors.red + '40',
+  },
+  leaveButtonText: {
+    color: colors.red,
+  },
+  handButton: {
+    backgroundColor: colors.bgElevated,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+  },
+  handButtonActive: {
+    backgroundColor: colors.gold + '15',
+    borderColor: colors.gold + '40',
+  },
+  handButtonText: {
+    ...typography.bodySemiBold,
+    fontSize: 12,
+    color: colors.textPrimary,
   },
 });

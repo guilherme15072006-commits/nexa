@@ -1,0 +1,47 @@
+# NEXA E2E: KYC — validacao de erros
+# Testa que CPF invalido e menor de idade sao rejeitados
+appId: com.nexa
+---
+- launchApp:
+    clearState: true
+
+# Login + pular onboarding
+- tapOn: "Entrar como convidado"
+- waitForAnimationToEnd
+- tapOn: "Pular"
+- waitForAnimationToEnd
+
+# Navegar ate KYC (via Settings)
+- tapOn: "Perfil"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element: "Configuracoes|Configurações"
+    direction: DOWN
+    timeout: 5000
+- tapOn: "Configuracoes|Configurações"
+- waitForAnimationToEnd
+
+# Clicar no banner KYC pendente
+- tapOn: "Verificacao pendente"
+- waitForAnimationToEnd
+
+# Preencher nome incompleto (sem sobrenome)
+- tapOn: "Como no documento"
+- inputText: "Joao"
+
+# CPF invalido (todos iguais)
+- tapOn: "000.000.000-00"
+- inputText: "11111111111"
+
+# Menor de idade
+- tapOn: "DD/MM/AAAA"
+- inputText: "15072015"
+
+# Tentar submeter
+- tapOn: "Verificar identidade"
+- waitForAnimationToEnd
+
+# Deve mostrar erros
+- assertVisible: "nome e sobrenome|sobrenome"
+- assertVisible: "CPF invalido"
+- assertVisible: "18 anos"

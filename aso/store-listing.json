@@ -1,0 +1,97 @@
+{
+  "app_name": "NEXA — Apostas e Comunidade",
+  "developer": "NEXA Entertainment",
+  "package_name": "com.nexa",
+  "bundle_id": "com.nexa",
+  "default_locale": "pt-BR",
+
+  "play_store": {
+    "title": "NEXA — Apostas Esportivas & Comunidade",
+    "short_description": "Apostas, gamificacao e comunidade. Copy bet, ranking, temporadas e odds ao vivo.",
+    "full_description": "NEXA e a plataforma que transforma apostas esportivas em uma experiencia de evolucao.\n\nAPOSTAS INTELIGENTES\n- Odds ao vivo atualizando em tempo real\n- Copy bet: copie as apostas dos melhores tipsters com 1 toque\n- Analises detalhadas de mais de 50 ligas\n- Historico completo de apostas e ROI\n\nGAMIFICACAO PROFUNDA\n- Sistema de XP e niveis com recompensas\n- Missoes diarias, semanais e ocultas\n- Badges com 4 raridades (comum, raro, epico, lendario)\n- Battle Pass com 10 niveis por temporada\n- Ranking competitivo semanal entre jogadores e clas\n\nCOMUNIDADE ATIVA\n- Feed personalizado com picks e analises\n- Chat ao vivo em cada partida\n- Stories estilo Instagram com enquetes\n- Audio rooms estilo Twitter Spaces\n- Tipsters verificados com stats transparentes\n\nECONOMIA DO CRIADOR\n- Marketplace de estrategias e analises\n- Programa de afiliados com 3 tiers\n- Creator Studio com dashboard de ganhos\n- Payout via Pix para criadores\n\nCARTEIRA COMPLETA\n- Deposito via Pix instantaneo\n- Saque em ate 24 horas\n- Conversao XP para coins\n- Historico completo de transacoes\n\nJOGO RESPONSAVEL\n- Limites de deposito configuraveis\n- Auto-exclusao temporaria (24h, 7d, 30d)\n- Deteccao de comportamento de risco\n- Log de compliance para auditoria\n\nPlanos: Free (gratis), Pro (R$29,90/mes), Elite (R$79,90/mes)\n7 dias de trial gratis no Pro.\n\nBaixe agora e ganhe +100 XP de bonus!",
+
+    "category": "Sports",
+    "content_rating": "Mature 17+",
+    "contains_ads": false,
+    "in_app_purchases": true,
+
+    "keywords": [
+      "apostas esportivas",
+      "betting app",
+      "tipsters futebol",
+      "copy bet",
+      "palpites futebol",
+      "odds ao vivo",
+      "apostas gamificacao",
+      "ranking apostas",
+      "comunidade apostas",
+      "estrategias apostas",
+      "apostas online brasil",
+      "nexa apostas",
+      "apostas pix",
+      "tipsters verificados",
+      "battle pass apostas"
+    ]
+  },
+
+  "app_store": {
+    "title": "NEXA — Apostas & Comunidade",
+    "subtitle": "Apostas, gamificacao e inteligencia coletiva",
+    "promotional_text": "Novo: Temporadas com Battle Pass! Suba de nivel, ganhe badges exclusivos e compita no ranking semanal.",
+    "description": "NEXA e a plataforma que transforma apostas esportivas em uma experiencia de evolucao.\n\nAPOSTAS INTELIGENTES\n- Odds ao vivo atualizando em tempo real\n- Copy bet: copie os melhores tipsters com 1 toque\n- 50+ ligas cobertas\n\nGAMIFICACAO\n- XP, niveis, badges, missoes diarias\n- Battle Pass com 10 niveis\n- Ranking semanal competitivo\n\nCOMUNIDADE\n- Feed personalizado\n- Chat ao vivo por partida\n- Stories com enquetes\n- Audio rooms\n\nECONOMIA\n- Marketplace de estrategias\n- Creator Studio para tipsters\n- Deposito Pix instantaneo\n- Saque em 24h\n\nPlanos: Free, Pro (R$29,90/mes), Elite (R$79,90/mes)\n7 dias gratis no Pro.",
+
+    "keywords": "apostas,betting,tipsters,futebol,odds,gamificacao,ranking,copy bet,palpites,comunidade,estrategias,nexa",
+    "category": "Sports",
+    "secondary_category": "Entertainment",
+    "age_rating": "17+",
+    "privacy_url": "https://nexa.app/privacy",
+    "support_url": "https://nexa.app/support",
+    "marketing_url": "https://nexa.app"
+  },
+
+  "screenshots": {
+    "phone": {
+      "dimensions": "1284x2778",
+      "format": "PNG",
+      "count": 8,
+      "screens": [
+        { "id": 1, "screen": "OnboardingScreen", "caption": "Descubra seu DNA de apostador" },
+        { "id": 2, "screen": "FeedScreen", "caption": "Feed inteligente com picks da comunidade" },
+        { "id": 3, "screen": "ApostasScreen", "caption": "Odds ao vivo em 50+ ligas" },
+        { "id": 4, "screen": "RankingScreen", "caption": "Ranking competitivo semanal" },
+        { "id": 5, "screen": "SeasonScreen", "caption": "Battle Pass com recompensas exclusivas" },
+        { "id": 6, "screen": "WalletScreen", "caption": "Deposito via Pix instantaneo" },
+        { "id": 7, "screen": "MarketplaceScreen", "caption": "Marketplace de estrategias" },
+        { "id": 8, "screen": "CreatorStudioScreen", "caption": "Creator Studio — ganhe com suas analises" }
+      ]
+    },
+    "tablet": {
+      "dimensions": "2048x2732",
+      "format": "PNG",
+      "count": 4,
+      "screens": [
+        { "id": 1, "screen": "FeedScreen", "caption": "Feed personalizado" },
+        { "id": 2, "screen": "ApostasScreen", "caption": "Apostas ao vivo" },
+        { "id": 3, "screen": "RankingScreen", "caption": "Ranking e temporadas" },
+        { "id": 4, "screen": "DashboardScreen", "caption": "Dashboard de performance" }
+      ]
+    }
+  },
+
+  "video_preview": {
+    "duration_seconds": 30,
+    "resolution": "1080x1920",
+    "format": "MP4",
+    "storyboard": [
+      { "start": 0, "end": 5, "scene": "Splash + onboarding DNA reveal", "text": "Descubra seu perfil" },
+      { "start": 5, "end": 12, "scene": "Feed scroll + copy bet tap", "text": "Copie os melhores" },
+      { "start": 12, "end": 18, "scene": "ApostasScreen odds updating", "text": "Odds ao vivo" },
+      { "start": 18, "end": 24, "scene": "Ranking + season battle pass", "text": "Compita e evolua" },
+      { "start": 24, "end": 28, "scene": "Wallet Pix deposit", "text": "Pix instantaneo" },
+      { "start": 28, "end": 30, "scene": "CTA — logo + download", "text": "Baixe gratis" }
+    ],
+    "music": "Upbeat electronic, 120bpm, royalty-free",
+    "voiceover": false,
+    "captions": true
+  }
+}

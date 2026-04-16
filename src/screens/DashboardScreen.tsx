@@ -9,8 +9,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { SmoothEntry, TapScale } from '../components/LiveComponents';
 import { SectionHeader } from '../components/ui';
+import { SkeletonDashboard } from '../components/SkeletonLoader';
 import { hapticLight } from '../services/haptics';
 import { hapticSuccess } from '../services/haptics';
+import { shareStats as shareStatsService } from '../services/share';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore } from '../store/nexaStore';
 
@@ -148,6 +150,7 @@ function WinLossBar({ wins, losses }: { wins: number; losses: number }) {
 
 export default function DashboardScreen() {
   const navigation = useNavigation();
+  const isLoading = useNexaStore((s) => s.isLoading);
   const user = useNexaStore((s) => s.user);
   const stats = useNexaStore((s) => s.dashboardStats);
   const roiHistory = useNexaStore((s) => s.roiHistory);
@@ -176,6 +179,9 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Loading skeleton */}
+        {isLoading ? <SkeletonDashboard /> : <>
+
         {/* Stats Summary */}
         <SmoothEntry delay={0}>
           <View style={styles.statsGrid}>
@@ -336,7 +342,7 @@ export default function DashboardScreen() {
               </View>
               <Text style={styles.shareWatermark}>nexa.app</Text>
             </View>
-            <TapScale onPress={() => hapticSuccess()}>
+            <TapScale onPress={() => shareStatsService({ username: user.username, level: user.level, winRate: user.winRate, roi: user.roi, streak: user.streak, rank: user.rank })}>
               <View style={styles.shareBtn}>
                 <Text style={styles.shareBtnText}>Compartilhar stats</Text>
               </View>
@@ -345,6 +351,7 @@ export default function DashboardScreen() {
         </SmoothEntry>
 
         <View style={styles.bottomSpacer} />
+        </>}
       </ScrollView>
     </SafeAreaView>
   );

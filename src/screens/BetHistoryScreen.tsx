@@ -1,17 +1,22 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Reanimated, {
+  FadeInDown,
+  FadeOutRight,
+  LinearTransition,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore, PlacedBet } from '../store/nexaStore';
 import { SmoothEntry, TapScale } from '../components/LiveComponents';
 import { Card } from '../components/ui';
+import { SkeletonList } from '../components/SkeletonLoader';
 import { hapticLight } from '../services/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -63,6 +68,7 @@ const formatDate = (isoString: string) => {
 
 export default function BetHistoryScreen() {
   const navigation = useNavigation();
+  const isLoading = useNexaStore((s) => s.isLoading);
   const betHistory = useNexaStore((s) => s.betHistory);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
 
@@ -94,7 +100,11 @@ export default function BetHistoryScreen() {
 
   const renderBetItem = useCallback(
     ({ item, index }: { item: PlacedBet; index: number }) => (
-      <SmoothEntry delay={index * 50}>
+      <Reanimated.View
+        entering={FadeInDown.delay(index * 50).duration(300).springify()}
+        exiting={FadeOutRight.duration(200)}
+        layout={LinearTransition.springify().damping(16).stiffness(120)}
+      >
         <View style={styles.betCard}>
           {/* League Pill */}
           <View style={styles.leaguePill}>
@@ -153,7 +163,7 @@ export default function BetHistoryScreen() {
             <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
           </View>
         </View>
-      </SmoothEntry>
+      </Reanimated.View>
     ),
     [],
   );
@@ -267,15 +277,26 @@ export default function BetHistoryScreen() {
         </View>
       </SmoothEntry>
 
-      <FlatList
-        data={filteredBets}
-        keyExtractor={keyExtractor}
-        renderItem={renderBetItem}
-        ListHeaderComponent={ListHeader}
-        ListEmptyComponent={ListEmpty}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoading ? (
+        <View style={styles.listContent}>
+          <SkeletonList count={5} type="card" />
+        </View>
+      ) : (
+        <Reanimated.FlatList
+          data={filteredBets}
+          keyExtractor={keyExtractor}
+          renderItem={renderBetItem}
+          ListHeaderComponent={ListHeader}
+          ListEmptyComponent={ListEmpty}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          itemLayoutAnimation={LinearTransition.springify().damping(16).stiffness(120)}
+          removeClippedSubviews
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          initialNumToRender={8}
+        />
+      )}
     </SafeAreaView>
   );
 }

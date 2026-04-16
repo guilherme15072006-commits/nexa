@@ -1,0 +1,183 @@
+name: NEXA Release
+
+# Trigger on version tags: v1.0.0, v1.2.3-beta, etc.
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+  JAVA_VERSION: '17'
+
+jobs:
+  # ── Quality gate ─────────────────────────────────────────────
+  quality:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Jest tests
+        run: npm run test:ci
+
+  # ── Build signed AAB ─────────────────────────────────────────
+  build-release:
+    name: Build Release AAB
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - run: npm ci
+
+      # Decode signing keystore from base64 secret
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/nexa-release.keystore
+
+      # Gradle cache
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: gradle-release-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties', 'android/build.gradle', 'android/app/build.gradle') }}
+          restore-keys: gradle-release-
+
+      # Build signed AAB (Android App Bundle)
+      - name: Build release AAB
+        working-directory: android
+        env:
+          NEXA_UPLOAD_STORE_FILE: nexa-release.keystore
+          NEXA_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          NEXA_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          NEXA_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --no-daemon
+
+      # Also build APK for testing
+      - name: Build release APK
+        working-directory: android
+        env:
+          NEXA_UPLOAD_STORE_FILE: nexa-release.keystore
+          NEXA_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          NEXA_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          NEXA_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      # Upload artifacts
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexa-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 90
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexa-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 90
+
+  # ── Deploy to Google Play via Fastlane ───────────────────────
+  deploy-play-store:
+    name: Deploy to Google Play
+    runs-on: ubuntu-latest
+    needs: build-release
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'beta') && !contains(github.ref, 'alpha')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: nexa-release-aab
+          path: android/app/build/outputs/bundle/release/
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: android
+
+      - name: Install Fastlane
+        working-directory: android
+        run: bundle install
+
+      - name: Decode Play Store service account
+        run: |
+          echo "${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}" | base64 -d > android/fastlane/play-store-key.json
+
+      - name: Deploy to internal track
+        working-directory: android
+        run: bundle exec fastlane beta
+
+      - name: Cleanup
+        if: always()
+        run: rm -f android/fastlane/play-store-key.json
+
+  # ── Create GitHub Release ────────────────────────────────────
+  github-release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: nexa-release-apk
+          path: release/
+
+      - name: Download AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: nexa-release-aab
+          path: release/
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "NEXA v${{ steps.version.outputs.VERSION }}"
+          generate_release_notes: true
+          files: |
+            release/app-release.apk
+            release/app-release.aab

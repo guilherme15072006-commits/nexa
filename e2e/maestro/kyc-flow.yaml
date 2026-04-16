@@ -1,0 +1,59 @@
+# NEXA E2E: Fluxo KYC (verificacao de identidade)
+# Testa: Wallet → KYC redirect → preencher → sucesso → voltar
+appId: com.nexa
+---
+- launchApp:
+    clearState: true
+
+# Login rapido como convidado
+- tapOn: "Entrar como convidado"
+- waitForAnimationToEnd
+
+# Pular onboarding
+- tapOn: "Pular"
+- waitForAnimationToEnd
+
+# Ir para Perfil → Wallet
+- tapOn: "Perfil"
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element: "Carteira"
+    direction: DOWN
+    timeout: 5000
+- tapOn: "Carteira"
+- waitForAnimationToEnd
+
+# Tentar depositar (deve redirecionar para KYC)
+- scrollUntilVisible:
+    element: "Depositar"
+    direction: DOWN
+    timeout: 5000
+- tapOn: "Depositar"
+- waitForAnimationToEnd
+
+# Deve estar na tela KYC
+- assertVisible: "Verificacao de identidade"
+- assertVisible: "Nome completo"
+- assertVisible: "CPF"
+- assertVisible: "Data de nascimento"
+- assertVisible: "Verificar identidade"
+
+# Preencher nome
+- tapOn: "Como no documento"
+- inputText: "Joao Silva Teste"
+
+# Preencher CPF (valido: 529.982.247-25)
+- tapOn: "000.000.000-00"
+- inputText: "52998224725"
+
+# Preencher data nascimento
+- tapOn: "DD/MM/AAAA"
+- inputText: "15071990"
+
+# Submeter
+- tapOn: "Verificar identidade"
+- waitForAnimationToEnd
+
+# Sucesso
+- assertVisible: "Verificacao concluida|concluida"

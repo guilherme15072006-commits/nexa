@@ -14,13 +14,22 @@ export const ENV = {
   // Place google-services.json in android/app/
 
   // ── TheOddsAPI ──────────────────────────────────────────────
-  ODDS_API_KEY: 'YOUR_ODDS_API_KEY',
+  ODDS_API_KEY: 'b0cbafc7fa1b819cde43e08b05ba08ba',
   ODDS_API_BASE: 'https://api.the-odds-api.com/v4',
+
+  // ── Analytics (Amplitude) ────────────────────────────────────
+  AMPLITUDE_API_KEY: 'YOUR_AMPLITUDE_API_KEY',
+
+  // ── Payment Gateway (Asaas) ──────────────────────────────────
+  ASAAS_API_KEY: 'YOUR_ASAAS_API_KEY',
+  ASAAS_API_BASE: 'https://sandbox.asaas.com/api/v3',  // sandbox; prod: https://api.asaas.com/v3
+  ASAAS_WEBHOOK_TOKEN: 'YOUR_WEBHOOK_TOKEN',
 
   // ── Feature Flags ───────────────────────────────────────────
   USE_REAL_AUTH: true,       // Supabase Auth (URL polyfill instalado)
   USE_REAL_DATABASE: true,   // Supabase real data
-  USE_REAL_ODDS: false,      // true = TheOddsAPI, false = mock odds
+  USE_REAL_ODDS: true,       // true = TheOddsAPI, false = mock odds
+  USE_REAL_PAYMENTS: false,  // true = Asaas API, false = mock payments
 
   // ── App Config ──────────────────────────────────────────────
   APP_NAME: 'NEXA',

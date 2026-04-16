@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors, typography, spacing, radius } from '../theme';
-import { useNexaStore } from '../store/nexaStore';
+import { useNexaStore, AFFILIATE_TIERS, type AffiliateTier } from '../store/nexaStore';
 import { Card, SectionHeader } from '../components/ui';
 import { TapScale, SmoothEntry } from '../components/LiveComponents';
 import { hapticLight, hapticSuccess } from '../services/haptics';
@@ -26,10 +26,15 @@ export default function ReferralScreen() {
     Alert.alert('Copiado!', `Código ${referral.code} copiado para a área de transferência.`);
   }, [referral.code]);
 
-  const handleShareLink = useCallback(() => {
+  const handleShareLink = useCallback(async () => {
     hapticSuccess();
-    Alert.alert('Compartilhar', referral.link);
-  }, [referral.link]);
+    try {
+      const { shareReferral } = require('../services/share');
+      await shareReferral({ code: referral.code, username: 'voce' });
+    } catch {
+      Alert.alert('Compartilhar', referral.link);
+    }
+  }, [referral.code, referral.link]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -181,6 +186,53 @@ export default function ReferralScreen() {
                   {referral.invitesSent - referral.invitesAccepted} convite{referral.invitesSent - referral.invitesAccepted > 1 ? 's' : ''} pendente{referral.invitesSent - referral.invitesAccepted > 1 ? 's' : ''}
                 </Text>
               </View>
+            )}
+          </Card>
+        </SmoothEntry>
+
+        {/* Affiliate Program Tiers */}
+        <SmoothEntry delay={600}>
+          <SectionHeader title="Programa de Afiliados" />
+          <Card style={styles.affiliateCard}>
+            <View style={styles.affiliateCurrentRow}>
+              <Text style={styles.affiliateCurrentLabel}>Seu tier</Text>
+              <View style={[styles.affiliateBadge, { backgroundColor: AFFILIATE_TIERS[referral.affiliate.tier].color + '20' }]}>
+                <Text style={[styles.affiliateBadgeText, { color: AFFILIATE_TIERS[referral.affiliate.tier].color }]}>
+                  {AFFILIATE_TIERS[referral.affiliate.tier].label}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.affiliateCommission}>
+              Comissao: {Math.round(referral.affiliate.commissionRate * 100)}% do primeiro deposito + {referral.affiliate.bonusPerReferral} coins/referral
+            </Text>
+
+            {/* Tier ladder */}
+            <View style={styles.tierLadder}>
+              {(['starter', 'partner', 'ambassador'] as AffiliateTier[]).map((tier, i) => {
+                const config = AFFILIATE_TIERS[tier];
+                const isCurrent = tier === referral.affiliate.tier;
+                const isUnlocked = referral.affiliate.totalReferrals >= config.minReferrals;
+                return (
+                  <View key={tier} style={styles.tierLadderRow}>
+                    <View style={[styles.tierLadderDot, { backgroundColor: isUnlocked ? config.color : colors.bgElevated, borderColor: config.color }]} />
+                    {i < 2 && <View style={[styles.tierLadderLine, { backgroundColor: isUnlocked ? config.color : colors.border }]} />}
+                    <View style={styles.tierLadderInfo}>
+                      <Text style={[styles.tierLadderName, isCurrent && { color: config.color }]}>
+                        {config.label} {isCurrent ? '(atual)' : ''}
+                      </Text>
+                      <Text style={styles.tierLadderDesc}>
+                        {config.minReferrals}+ referrals — {Math.round(config.commissionRate * 100)}% comissao — {config.bonusPerReferral} coins/ref
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            {referral.affiliate.tier !== 'ambassador' && (
+              <Text style={styles.affiliateProgress}>
+                {referral.affiliate.nextTierAt - referral.affiliate.totalReferrals} referrals para o proximo tier
+              </Text>
             )}
           </Card>
         </SmoothEntry>
@@ -396,4 +448,20 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
   },
+
+  // Affiliate
+  affiliateCard: { padding: spacing.lg, gap: spacing.md },
+  affiliateCurrentRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const },
+  affiliateCurrentLabel: { ...typography.body, fontSize: 13, color: colors.textSecondary },
+  affiliateBadge: { borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  affiliateBadgeText: { ...typography.monoBold, fontSize: 12, letterSpacing: 1 },
+  affiliateCommission: { ...typography.body, fontSize: 12, color: colors.textMuted, lineHeight: 18 },
+  tierLadder: { gap: spacing.md, marginTop: spacing.sm },
+  tierLadderRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: spacing.md },
+  tierLadderDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, marginTop: 2 },
+  tierLadderLine: { position: 'absolute' as const, left: 5, top: 18, width: 2, height: 28 },
+  tierLadderInfo: { flex: 1 },
+  tierLadderName: { ...typography.bodySemiBold, fontSize: 14, color: colors.textPrimary },
+  tierLadderDesc: { ...typography.mono, fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  affiliateProgress: { ...typography.bodySemiBold, fontSize: 12, color: colors.primary, textAlign: 'center' as const },
 });

@@ -1,0 +1,59 @@
+default_platform(:android)
+
+platform :android do
+
+  # ── Beta: upload to internal testing track ──────────────────
+  desc "Deploy AAB to Google Play internal testing track"
+  lane :beta do
+    upload_to_play_store(
+      track: "internal",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: false,
+      release_status: "draft",
+    )
+    puts "Successfully uploaded to internal testing track"
+  end
+
+  # ── Promote: move from internal to production ───────────────
+  desc "Promote internal build to production"
+  lane :promote do
+    upload_to_play_store(
+      track: "internal",
+      track_promote_to: "production",
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      rollout: "0.1",  # 10% staged rollout
+    )
+    puts "Successfully promoted to production (10% rollout)"
+  end
+
+  # ── Full rollout ────────────────────────────────────────────
+  desc "Increase production rollout to 100%"
+  lane :rollout_full do
+    upload_to_play_store(
+      track: "production",
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      rollout: "1.0",
+    )
+    puts "Full rollout to production complete"
+  end
+
+  # ── Upload metadata + screenshots ───────────────────────────
+  desc "Upload store listing metadata and screenshots"
+  lane :metadata do
+    upload_to_play_store(
+      skip_upload_aab: true,
+      skip_upload_changelogs: true,
+    )
+    puts "Metadata and screenshots uploaded"
+  end
+
+end

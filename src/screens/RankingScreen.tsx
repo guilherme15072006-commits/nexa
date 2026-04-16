@@ -2,11 +2,9 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import {
-  Animated,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -15,7 +13,19 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSequence,
+  withSpring,
+  withRepeat,
+  FadeInDown,
+  FadeIn,
+} from 'react-native-reanimated';
+import { SkeletonRanking } from '../components/SkeletonLoader';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Avatar, Card, SectionHeader } from '../components/ui';
 import { RankChange, SmoothEntry, TapScale } from '../components/LiveComponents';
 import { colors, radius, spacing, typography, shadows } from '../theme';
@@ -72,29 +82,32 @@ function fmtROI(roi: number): string {
 // ─── PulsingGlow ──────────────────────────────────────────────────────────────
 
 function PulsingGlow({ color, size }: { color: string; size: number }) {
-  const pulse = useRef(new Animated.Value(1)).current;
+  const pulse = useSharedValue(1);
 
   useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.25, duration: 900, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
-      ]),
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1.25, { duration: 900 }),
+        withTiming(1, { duration: 900 }),
+      ),
+      -1,
+      false,
     );
-    anim.start();
-    return () => anim.stop();
-  }, [pulse]);
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
+  }));
 
   return (
-    <Animated.View
-      style={{
+    <Reanimated.View
+      style={[{
         position: 'absolute',
         width: size + 16,
         height: size + 16,
         borderRadius: (size + 16) / 2,
         backgroundColor: color + '25',
-        transform: [{ scale: pulse }],
-      }}
+      }, animStyle]}
     />
   );
 }
@@ -129,11 +142,11 @@ function CountdownTimer({ initialSeconds }: { initialSeconds: number }) {
 function PodiumCard({
   user,
   position,
-  scaleAnim,
+  index,
 }: {
   user: User;
   position: 0 | 1 | 2;
-  scaleAnim: Animated.Value;
+  index: number;
 }) {
   const color = PODIUM_COLORS[position];
   const avatarSize = PODIUM_SIZES[position];
@@ -141,10 +154,10 @@ function PodiumCard({
   const crown = CROWN_SIZES[position];
 
   return (
-    <Animated.View
+    <Reanimated.View
+      entering={FadeInDown.delay(index * 150).duration(400).springify()}
       style={[
         styles.podiumCard,
-        { transform: [{ scale: scaleAnim }] },
         position === 0 ? styles.podiumFirst : null,
       ]}
     >
@@ -166,7 +179,7 @@ function PodiumCard({
           <Text style={styles.podiumStatText}>WR {fmtWR(user.winRate)}</Text>
         </View>
       </View>
-    </Animated.View>
+    </Reanimated.View>
   );
 }
 
@@ -181,8 +194,10 @@ function UserPositionCard({
   leaderboard: User[];
   missions: { completed: boolean; xpReward: number }[];
 }) {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useSharedValue(1);
+  const glowAnim = useSharedValue(0);
+  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulseAnim.value }] }));
+  const glowStyle = useAnimatedStyle(() => ({ opacity: glowAnim.value }));
 
   // Find user above
   const userAbove = useMemo(() => {
@@ -209,38 +224,32 @@ function UserPositionCard({
   const canOvertake = pendingMissionXP >= xpGap && xpGap > 0;
 
   useEffect(() => {
-    if (!isNearWin) return;
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.03, duration: 600, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      ]),
+    if (!isNearWin) {
+      pulseAnim.value = 1;
+      glowAnim.value = 0;
+      return;
+    }
+    pulseAnim.value = withRepeat(
+      withSequence(withTiming(1.03, { duration: 600 }), withTiming(1, { duration: 600 })),
+      -1, false,
     );
-    const glow = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-        Animated.timing(glowAnim, { toValue: 0.4, duration: 800, useNativeDriver: true }),
-      ]),
+    glowAnim.value = withRepeat(
+      withSequence(withTiming(1, { duration: 800 }), withTiming(0.4, { duration: 800 })),
+      -1, false,
     );
-    anim.start();
-    glow.start();
-    return () => {
-      anim.stop();
-      glow.stop();
-    };
-  }, [isNearWin, pulseAnim, glowAnim]);
+  }, [isNearWin]);
 
   // XP progress bar to next rank
   const progress = userAbove ? Math.min(user.xp / (user.xp + xpGap), 1) : 1;
 
   return (
-    <Animated.View style={[{ transform: [{ scale: pulseAnim }] }]}>
+    <Reanimated.View style={pulseStyle}>
       <Card style={[styles.userPosCard, isNearWin ? styles.userPosCardNearWin : null]}>
         {isNearWin && (
-          <Animated.View
+          <Reanimated.View
             style={[
               styles.nearWinGlow,
-              { opacity: glowAnim },
+              glowStyle,
             ]}
           />
         )}
@@ -305,7 +314,7 @@ function UserPositionCard({
           </View>
         </View>
       </Card>
-    </Animated.View>
+    </Reanimated.View>
   );
 }
 
@@ -316,32 +325,26 @@ function LeaderboardRow({
   isFollowed,
   isNearby,
   onChallenge,
-  slideAnim,
+  index,
 }: {
   user: User;
   isFollowed: boolean;
   isNearby: boolean;
   onChallenge: () => void;
-  slideAnim: Animated.Value;
+  index: number;
 }) {
-  const scaleRef = useRef(new Animated.Value(1)).current;
-
   const handleChallenge = useCallback(() => {
     hapticMedium();
     playSocialAction();
-    Animated.sequence([
-      Animated.timing(scaleRef, { toValue: 0.95, duration: 80, useNativeDriver: true }),
-      Animated.spring(scaleRef, { toValue: 1, friction: 4, useNativeDriver: true }),
-    ]).start();
     onChallenge();
-  }, [onChallenge, scaleRef]);
+  }, [onChallenge]);
 
   return (
-    <Animated.View
+    <Reanimated.View
+      entering={FadeInDown.delay(index * 50).duration(300).springify()}
       style={[
         styles.lbRow,
         isFollowed ? styles.lbRowFollowed : null,
-        { opacity: slideAnim, transform: [{ translateX: Animated.multiply(Animated.subtract(1, slideAnim), 40) }] },
       ]}
     >
       <Text style={styles.lbRank}>#{user.rank}</Text>
@@ -366,7 +369,7 @@ function LeaderboardRow({
           </TapScale>
         )}
       </View>
-    </Animated.View>
+    </Reanimated.View>
   );
 }
 
@@ -374,15 +377,12 @@ function LeaderboardRow({
 
 function ClanRivalryCard({ clans }: { clans: Clan[] }) {
   const [extraXP, setExtraXP] = useState<Record<string, number>>({});
-  const barAnims = useRef(clans.slice(0, 3).map(() => new Animated.Value(0))).current;
+  const [barsReady, setBarsReady] = useState(false);
 
-  // Animate bars in
   useEffect(() => {
-    const anims = barAnims.map((anim, i) =>
-      Animated.timing(anim, { toValue: 1, duration: 600, delay: i * 150, useNativeDriver: false }),
-    );
-    Animated.stagger(100, anims).start();
-  }, [barAnims]);
+    const t = setTimeout(() => setBarsReady(true), 300);
+    return () => clearTimeout(t);
+  }, []);
 
   // Live XP ticking
   useEffect(() => {
@@ -422,17 +422,12 @@ function ClanRivalryCard({ clans }: { clans: Clan[] }) {
               </View>
             </View>
             <View style={styles.clanBarWrap}>
-              <Animated.View
+              <View
                 style={[
                   styles.clanBar,
                   {
                     backgroundColor: barColor,
-                    width: barAnims[i]
-                      ? barAnims[i].interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0%', `${pct * 100}%`],
-                        })
-                      : `${pct * 100}%`,
+                    width: barsReady ? `${pct * 100}%` : '0%',
                   },
                 ]}
               />
@@ -509,24 +504,26 @@ function LiveActivityTicker() {
   ];
 
   const [idx, setIdx] = useState(0);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const fade = useSharedValue(1);
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
 
   useEffect(() => {
     const iv = setInterval(() => {
-      Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-        setIdx((i) => (i + 1) % MSGS.length);
-        Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-      });
+      fade.value = withSequence(
+        withTiming(0, { duration: 200 }),
+        withTiming(1, { duration: 300 }),
+      );
+      setTimeout(() => setIdx((i) => (i + 1) % MSGS.length), 200);
     }, 4000);
     return () => clearInterval(iv);
-  }, [fadeAnim, MSGS.length]);
+  }, [MSGS.length]);
 
   return (
     <View style={styles.tickerContainer}>
       <View style={styles.tickerDot} />
-      <Animated.Text style={[styles.tickerText, { opacity: fadeAnim }]} numberOfLines={1}>
+      <Reanimated.Text style={[styles.tickerText, fadeStyle]} numberOfLines={1}>
         {MSGS[idx]}
-      </Animated.Text>
+      </Reanimated.Text>
     </View>
   );
 }
@@ -540,44 +537,47 @@ function ChallengeOverlay({
   target: User;
   onDismiss: () => void;
 }) {
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const scale = useSharedValue(0.8);
+  const opacity = useSharedValue(0);
+  const overlayStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const cardStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, { toValue: 1, friction: 5, useNativeDriver: true }),
-      Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start();
+    scale.value = withSpring(1, { damping: 8, stiffness: 120 });
+    opacity.value = withTiming(1, { duration: 200 });
 
     const t = setTimeout(() => {
-      Animated.timing(opacityAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start(onDismiss);
+      opacity.value = withTiming(0, { duration: 250 });
+      setTimeout(onDismiss, 260);
     }, 2000);
     return () => clearTimeout(t);
-  }, [scaleAnim, opacityAnim, onDismiss]);
+  }, [onDismiss]);
 
   return (
-    <Animated.View style={[styles.challengeOverlay, { opacity: opacityAnim }]}>
+    <Reanimated.View style={[styles.challengeOverlay, overlayStyle]}>
       <TouchableOpacity style={styles.challengeOverlayBg} activeOpacity={1} onPress={onDismiss} />
-      <Animated.View style={[styles.challengeCard, { transform: [{ scale: scaleAnim }] }]}>
+      <Reanimated.View style={[styles.challengeCard, cardStyle]}>
         <Text style={styles.challengeEmoji}>⚔️</Text>
         <Text style={styles.challengeTitle}>Desafio enviado!</Text>
         <Text style={styles.challengeDesc}>
           Você desafiou <Text style={styles.challengeTarget}>{target.username}</Text>
         </Text>
         <Text style={styles.challengeXP}>+15 XP ⚡</Text>
-      </Animated.View>
-    </Animated.View>
+      </Reanimated.View>
+    </Reanimated.View>
   );
 }
 
 // ─── RankingScreen ────────────────────────────────────────────────────────────
 
 export default function RankingScreen() {
+  const navigation = useNavigation();
   const [period, setPeriod] = useState<Period>('semanal');
   const [rankTab, setRankTab] = useState<RankTab>('jogadores');
   const [challengeTarget, setChallengeTarget] = useState<User | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const isLoading = useNexaStore((s) => s.isLoading);
   const user = useNexaStore((s) => s.user);
   const leaderboard = useNexaStore((s) => s.leaderboard);
   const clans = useNexaStore((s) => s.clans);
@@ -585,42 +585,13 @@ export default function RankingScreen() {
   const challengeUser = useNexaStore((s) => s.challengeUser);
   const currentSeason = useNexaStore((s) => s.currentSeason);
 
-  // Podium entrance animations
-  const podiumAnims = useRef([
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-  ]).current;
+  // Podium and row animations now use Reanimated entering props directly
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     hapticLight();
     setTimeout(() => setRefreshing(false), 800);
   }, []);
-
-  // Row slide-in animations
-  const rowAnims = useRef(
-    Array.from({ length: 20 }, () => new Animated.Value(0)),
-  ).current;
-
-  useEffect(() => {
-    // Stagger podium: center (1st) → left (2nd) → right (3rd)
-    const order = [1, 0, 2]; // show 2nd, then 1st, then 3rd
-    Animated.stagger(
-      150,
-      order.map((i) =>
-        Animated.spring(podiumAnims[i], { toValue: 1, friction: 5, useNativeDriver: true }),
-      ),
-    ).start();
-
-    // Stagger rows
-    const rowTimers = rowAnims.map((anim, i) =>
-      setTimeout(() => {
-        Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-      }, 500 + i * 60),
-    );
-    return () => rowTimers.forEach(clearTimeout);
-  }, [podiumAnims, rowAnims]);
 
   const top3 = useMemo(() => leaderboard.slice(0, 3), [leaderboard]);
   const rest = useMemo(() => leaderboard.slice(3), [leaderboard]);
@@ -664,6 +635,9 @@ export default function RankingScreen() {
           <CountdownTimer initialSeconds={MOCK_RESET_SECONDS} />
         </View>
 
+        {/* Loading skeleton */}
+        {isLoading ? <SkeletonRanking /> : <>
+
         {/* Season Banner */}
         {currentSeason && (
           <Card style={styles.seasonCard}>
@@ -686,6 +660,14 @@ export default function RankingScreen() {
                 </View>
               ))}
             </View>
+            <TouchableOpacity
+              style={styles.seasonCTA}
+              onPress={() => { hapticMedium(); navigation.navigate('Season' as never); }}
+              activeOpacity={0.8}
+              accessibilityLabel="Ver temporada completa"
+            >
+              <Text style={styles.seasonCTAText}>Ver temporada completa</Text>
+            </TouchableOpacity>
           </Card>
         )}
 
@@ -728,12 +710,12 @@ export default function RankingScreen() {
             {/* Podium — Top 3 */}
             <View style={styles.podiumContainer}>
               {/* Render in order: #2, #1, #3 for visual layout */}
-              {[1, 0, 2].map((pos) => (
+              {[1, 0, 2].map((pos, i) => (
                 <PodiumCard
                   key={top3[pos]?.id ?? pos}
                   user={top3[pos]}
                   position={pos as 0 | 1 | 2}
-                  scaleAnim={podiumAnims[pos]}
+                  index={i}
                 />
               ))}
             </View>
@@ -761,7 +743,7 @@ export default function RankingScreen() {
                 })}
                 isNearby={nearbyRanks.has(u.id)}
                 onChallenge={() => handleChallenge(u)}
-                slideAnim={rowAnims[i] ?? new Animated.Value(1)}
+                index={i}
               />
             ))}
           </>
@@ -790,6 +772,7 @@ export default function RankingScreen() {
 
         {/* Bottom spacing */}
         <View style={{ height: spacing.xxl }} />
+        </>}
       </ScrollView>
 
       {/* Challenge overlay */}
@@ -1460,5 +1443,19 @@ const styles = StyleSheet.create({
     ...typography.mono,
     fontSize: 10,
     color: colors.gold,
+  },
+  seasonCTA: {
+    backgroundColor: colors.primary + '15',
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    alignItems: 'center' as const,
+    marginTop: spacing.sm,
+    borderWidth: 0.5,
+    borderColor: colors.primary + '30',
+  },
+  seasonCTAText: {
+    ...typography.bodySemiBold,
+    fontSize: 13,
+    color: colors.primary,
   },
 });

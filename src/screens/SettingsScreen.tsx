@@ -9,10 +9,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { colors, radius, spacing, typography } from '../theme';
-import { useNexaStore, AppSettings } from '../store/nexaStore';
+import { colors, radius, spacing, typography, typeScale } from '../theme';
+import { useNexaStore, AppSettings, ExclusionPeriod } from '../store/nexaStore';
 import { SmoothEntry, TapScale } from '../components/LiveComponents';
 import { Card } from '../components/ui';
+import { IconShield } from '../components/Icons';
 import { hapticLight, hapticMedium } from '../services/haptics';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -66,12 +67,27 @@ export default function SettingsScreen() {
   const navigation = useNavigation();
   const settings = useNexaStore((s) => s.settings);
   const updateSettings = useNexaStore((s) => s.updateSettings);
+  const kycCompleted = useNexaStore((s) => s.user.kycCompleted);
+  const responsibleGaming = useNexaStore((s) => s.responsibleGaming);
+  const setDepositLimit = useNexaStore((s) => s.setDepositLimit);
+  const activateSelfExclusion = useNexaStore((s) => s.activateSelfExclusion);
 
   const [limitInput, setLimitInput] = useState(
     settings.responsibleGamblingLimit !== null
       ? String(settings.responsibleGamblingLimit)
       : '',
   );
+  const [dailyLimitInput, setDailyLimitInput] = useState(
+    responsibleGaming.depositLimits.daily !== null ? String(responsibleGaming.depositLimits.daily) : '',
+  );
+  const [weeklyLimitInput, setWeeklyLimitInput] = useState(
+    responsibleGaming.depositLimits.weekly !== null ? String(responsibleGaming.depositLimits.weekly) : '',
+  );
+  const [monthlyLimitInput, setMonthlyLimitInput] = useState(
+    responsibleGaming.depositLimits.monthly !== null ? String(responsibleGaming.depositLimits.monthly) : '',
+  );
+  const [showExclusionConfirm, setShowExclusionConfirm] = useState<ExclusionPeriod | null>(null);
+  const [showComplianceLog, setShowComplianceLog] = useState(false);
 
   const handleGoBack = useCallback(() => {
     hapticLight();
@@ -139,6 +155,22 @@ export default function SettingsScreen() {
     setLimitInput('');
   }, [updateSettings]);
 
+  const handleDepositLimit = useCallback((period: 'daily' | 'weekly' | 'monthly', input: string) => {
+    hapticMedium();
+    const val = input.trim();
+    if (!val || isNaN(Number(val)) || Number(val) <= 0) {
+      setDepositLimit(period, null);
+    } else {
+      setDepositLimit(period, Number(val));
+    }
+  }, [setDepositLimit]);
+
+  const handleSelfExclusion = useCallback((period: ExclusionPeriod) => {
+    hapticMedium();
+    activateSelfExclusion(period);
+    setShowExclusionConfirm(null);
+  }, [activateSelfExclusion]);
+
   const notifDisabled = !settings.notificationsEnabled;
 
   return (
@@ -159,6 +191,29 @@ export default function SettingsScreen() {
             <Text style={styles.headerTitle}>Configurações</Text>
             <View style={styles.backButton} />
           </View>
+        </SmoothEntry>
+
+        {/* KYC Status */}
+        <SmoothEntry delay={50}>
+          <TapScale onPress={() => { if (!kycCompleted) { hapticLight(); navigation.navigate('KYC' as never); } }}>
+            <View style={[
+              kycStyles.banner,
+              kycCompleted ? kycStyles.bannerDone : kycStyles.bannerPending,
+            ]}>
+              <IconShield size={20} color={kycCompleted ? colors.green : colors.orange} />
+              <View style={kycStyles.bannerText}>
+                <Text style={kycStyles.bannerTitle}>
+                  {kycCompleted ? 'Identidade verificada' : 'Verificacao pendente'}
+                </Text>
+                <Text style={kycStyles.bannerDesc}>
+                  {kycCompleted
+                    ? 'Sua conta esta aprovada para depositos e saques.'
+                    : 'Verifique sua identidade para depositar e sacar.'}
+                </Text>
+              </View>
+              {!kycCompleted && <Text style={kycStyles.bannerArrow}>{'>'}</Text>}
+            </View>
+          </TapScale>
         </SmoothEntry>
 
         {/* Aparência */}
@@ -287,13 +342,84 @@ export default function SettingsScreen() {
         <SmoothEntry delay={400}>
           <Card style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Jogo Responsavel</Text>
+
+            {/* Self-Exclusion Status */}
+            {responsibleGaming.selfExclusion.active && (
+              <View style={styles.exclusionActive}>
+                <Text style={styles.exclusionActiveTitle}>Auto-exclusao ativa</Text>
+                <Text style={styles.exclusionActiveDesc}>
+                  Periodo: {responsibleGaming.selfExclusion.period}{'\n'}
+                  Expira em: {responsibleGaming.selfExclusion.expiresAt
+                    ? new Date(responsibleGaming.selfExclusion.expiresAt).toLocaleString('pt-BR')
+                    : '—'}
+                </Text>
+                <Text style={styles.exclusionActiveWarn}>
+                  Depositos e apostas bloqueados durante este periodo.
+                </Text>
+              </View>
+            )}
+
+            {/* Deposit Limits */}
+            <Text style={styles.subsectionTitle}>Limites de deposito</Text>
+            {([
+              { key: 'daily' as const, label: 'Diario', input: dailyLimitInput, setInput: setDailyLimitInput, current: responsibleGaming.depositLimits.daily, tracked: responsibleGaming.depositTracking.todayTotal },
+              { key: 'weekly' as const, label: 'Semanal', input: weeklyLimitInput, setInput: setWeeklyLimitInput, current: responsibleGaming.depositLimits.weekly, tracked: responsibleGaming.depositTracking.weekTotal },
+              { key: 'monthly' as const, label: 'Mensal', input: monthlyLimitInput, setInput: setMonthlyLimitInput, current: responsibleGaming.depositLimits.monthly, tracked: responsibleGaming.depositTracking.monthTotal },
+            ]).map((item) => (
+              <View key={item.key} style={styles.limitSection}>
+                <View style={styles.limitHeader}>
+                  <Text style={styles.settingLabel}>Limite {item.label}</Text>
+                  <Text style={styles.settingDesc}>
+                    {item.current !== null
+                      ? `R$${item.tracked.toFixed(0)} / R$${item.current}`
+                      : 'Sem limite'}
+                  </Text>
+                </View>
+                {item.current !== null && (
+                  <View style={styles.limitProgress}>
+                    <View style={[styles.limitProgressFill, { width: `${Math.min(100, (item.tracked / item.current) * 100)}%` }]} />
+                  </View>
+                )}
+                <View style={styles.limitInputRow}>
+                  <Text style={styles.currencyPrefix}>R$</Text>
+                  <TextInput
+                    style={styles.limitInput}
+                    value={item.input}
+                    onChangeText={item.setInput}
+                    placeholder="0"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="numeric"
+                    returnKeyType="done"
+                    onSubmitEditing={() => handleDepositLimit(item.key, item.input)}
+                  />
+                  <TapScale onPress={() => handleDepositLimit(item.key, item.input)}>
+                    <View style={styles.limitButton}>
+                      <Text style={styles.limitButtonText}>Definir</Text>
+                    </View>
+                  </TapScale>
+                  {item.current !== null && (
+                    <TapScale onPress={() => { hapticLight(); setDepositLimit(item.key, null); item.setInput(''); }}>
+                      <View style={styles.limitClearButton}>
+                        <Text style={styles.limitClearText}>Limpar</Text>
+                      </View>
+                    </TapScale>
+                  )}
+                </View>
+              </View>
+            ))}
+
+            <View style={styles.divider} />
+
+            {/* Bet Limit (legacy) */}
             <View style={styles.limitSection}>
-              <Text style={styles.settingLabel}>Limite diario de apostas</Text>
-              <Text style={styles.settingDesc}>
-                {settings.responsibleGamblingLimit !== null
-                  ? `R$ ${settings.responsibleGamblingLimit.toFixed(2)}`
-                  : 'Sem limite'}
-              </Text>
+              <View style={styles.limitHeader}>
+                <Text style={styles.settingLabel}>Limite diario de apostas</Text>
+                <Text style={styles.settingDesc}>
+                  {settings.responsibleGamblingLimit !== null
+                    ? `R$ ${settings.responsibleGamblingLimit.toFixed(2)}`
+                    : 'Sem limite'}
+                </Text>
+              </View>
               <View style={styles.limitInputRow}>
                 <Text style={styles.currencyPrefix}>R$</Text>
                 <TextInput
@@ -320,6 +446,95 @@ export default function SettingsScreen() {
                 )}
               </View>
             </View>
+
+            <View style={styles.divider} />
+
+            {/* Self-Exclusion */}
+            <Text style={styles.subsectionTitle}>Auto-exclusao temporaria</Text>
+            <Text style={styles.exclusionDesc}>
+              Bloqueia depositos e apostas por um periodo. Esta acao nao pode ser cancelada antes do prazo.
+            </Text>
+            <View style={styles.exclusionRow}>
+              {(['24h', '7d', '30d'] as ExclusionPeriod[]).map((period) => (
+                <TapScale
+                  key={period}
+                  onPress={() => {
+                    hapticMedium();
+                    if (responsibleGaming.selfExclusion.active) return;
+                    setShowExclusionConfirm(period);
+                  }}
+                >
+                  <View style={[
+                    styles.exclusionBtn,
+                    responsibleGaming.selfExclusion.active && styles.exclusionBtnDisabled,
+                  ]}>
+                    <Text style={styles.exclusionBtnText}>{period}</Text>
+                  </View>
+                </TapScale>
+              ))}
+            </View>
+
+            {/* Exclusion confirmation modal */}
+            {showExclusionConfirm && (
+              <View style={styles.exclusionConfirm}>
+                <Text style={styles.exclusionConfirmTitle}>
+                  Confirmar auto-exclusao de {showExclusionConfirm}?
+                </Text>
+                <Text style={styles.exclusionConfirmDesc}>
+                  Voce nao podera depositar ou apostar durante este periodo. Esta acao e irreversivel.
+                </Text>
+                <View style={styles.exclusionConfirmRow}>
+                  <TapScale onPress={() => handleSelfExclusion(showExclusionConfirm)}>
+                    <View style={styles.exclusionConfirmYes}>
+                      <Text style={styles.exclusionConfirmYesText}>Confirmar</Text>
+                    </View>
+                  </TapScale>
+                  <TapScale onPress={() => { hapticLight(); setShowExclusionConfirm(null); }}>
+                    <View style={styles.exclusionConfirmNo}>
+                      <Text style={styles.exclusionConfirmNoText}>Cancelar</Text>
+                    </View>
+                  </TapScale>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.divider} />
+
+            {/* Compliance Log */}
+            <TouchableOpacity onPress={() => { hapticLight(); setShowComplianceLog(!showComplianceLog); }}>
+              <View style={styles.complianceHeader}>
+                <Text style={styles.subsectionTitle}>Log de auditoria</Text>
+                <Text style={styles.complianceCount}>
+                  {responsibleGaming.complianceLog.length} registros
+                </Text>
+              </View>
+            </TouchableOpacity>
+            {showComplianceLog && (
+              <View style={styles.complianceLog}>
+                {responsibleGaming.complianceLog.length === 0 ? (
+                  <Text style={styles.complianceEmpty}>Nenhum registro ainda.</Text>
+                ) : (
+                  responsibleGaming.complianceLog.slice(0, 20).map((entry) => (
+                    <View key={entry.id} style={styles.complianceEntry}>
+                      <View style={[
+                        styles.complianceDot,
+                        { backgroundColor: entry.action.includes('blocked') ? colors.red
+                          : entry.action.includes('exclusion') ? colors.orange
+                          : entry.action.includes('allowed') ? colors.green
+                          : colors.textMuted },
+                      ]} />
+                      <View style={styles.complianceEntryText}>
+                        <Text style={styles.complianceAction}>{entry.action.replace(/_/g, ' ')}</Text>
+                        <Text style={styles.complianceDetail} numberOfLines={2}>{entry.detail}</Text>
+                        <Text style={styles.complianceTime}>
+                          {new Date(entry.timestamp).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
           </Card>
         </SmoothEntry>
 
@@ -372,6 +587,44 @@ export default function SettingsScreen() {
     </SafeAreaView>
   );
 }
+
+// ─── KYC Banner Styles ───────────────────────────────────────────────────────
+
+const kycStyles = StyleSheet.create({
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  bannerDone: {
+    backgroundColor: colors.green + '08',
+    borderColor: colors.green + '20',
+  },
+  bannerPending: {
+    backgroundColor: colors.orange + '08',
+    borderColor: colors.orange + '20',
+  },
+  bannerText: {
+    flex: 1,
+    gap: 2,
+  },
+  bannerTitle: {
+    ...typeScale.label,
+    color: colors.textPrimary,
+  },
+  bannerDesc: {
+    ...typeScale.bodySm,
+    color: colors.textSecondary,
+  },
+  bannerArrow: {
+    ...typography.bodySemiBold,
+    fontSize: 16,
+    color: colors.textMuted,
+  },
+});
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
@@ -598,5 +851,194 @@ const styles = StyleSheet.create({
     ...typography.mono,
     color: colors.textMuted,
     fontSize: 12,
+  },
+
+  // Responsible Gaming
+  subsectionTitle: {
+    ...typography.bodySemiBold,
+    fontSize: 14,
+    color: colors.textPrimary,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  limitHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+  },
+  limitProgress: {
+    height: 4,
+    backgroundColor: colors.bgElevated,
+    borderRadius: radius.full,
+    overflow: 'hidden' as const,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  limitProgressFill: {
+    height: '100%' as const,
+    backgroundColor: colors.green,
+    borderRadius: radius.full,
+  },
+
+  // Self-exclusion
+  exclusionDesc: {
+    ...typography.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    lineHeight: 18,
+    marginBottom: spacing.md,
+  },
+  exclusionRow: {
+    flexDirection: 'row' as const,
+    gap: spacing.sm,
+  },
+  exclusionBtn: {
+    flex: 1,
+    backgroundColor: colors.red + '15',
+    borderRadius: radius.md,
+    borderWidth: 0.5,
+    borderColor: colors.red + '30',
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center' as const,
+  },
+  exclusionBtnDisabled: {
+    opacity: 0.3,
+  },
+  exclusionBtnText: {
+    ...typography.monoBold,
+    fontSize: 13,
+    color: colors.red,
+  },
+  exclusionActive: {
+    backgroundColor: colors.red + '10',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.red + '30',
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  exclusionActiveTitle: {
+    ...typography.bodySemiBold,
+    fontSize: 14,
+    color: colors.red,
+    marginBottom: spacing.xs,
+  },
+  exclusionActiveDesc: {
+    ...typography.mono,
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  exclusionActiveWarn: {
+    ...typography.bodySemiBold,
+    fontSize: 11,
+    color: colors.red,
+    marginTop: spacing.sm,
+  },
+  exclusionConfirm: {
+    backgroundColor: colors.bgElevated,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.red + '40',
+  },
+  exclusionConfirmTitle: {
+    ...typography.bodySemiBold,
+    fontSize: 15,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  exclusionConfirmDesc: {
+    ...typography.body,
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: spacing.lg,
+  },
+  exclusionConfirmRow: {
+    flexDirection: 'row' as const,
+    gap: spacing.md,
+  },
+  exclusionConfirmYes: {
+    flex: 1,
+    backgroundColor: colors.red,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center' as const,
+  },
+  exclusionConfirmYesText: {
+    ...typography.bodySemiBold,
+    fontSize: 13,
+    color: '#FFF',
+  },
+  exclusionConfirmNo: {
+    flex: 1,
+    backgroundColor: colors.bgCard,
+    borderRadius: radius.md,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center' as const,
+  },
+  exclusionConfirmNoText: {
+    ...typography.bodySemiBold,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+
+  // Compliance log
+  complianceHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+  },
+  complianceCount: {
+    ...typography.mono,
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  complianceLog: {
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  complianceEmpty: {
+    ...typography.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center' as const,
+    paddingVertical: spacing.md,
+  },
+  complianceEntry: {
+    flexDirection: 'row' as const,
+    gap: spacing.sm,
+    alignItems: 'flex-start' as const,
+  },
+  complianceDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  complianceEntryText: {
+    flex: 1,
+  },
+  complianceAction: {
+    ...typography.bodySemiBold,
+    fontSize: 12,
+    color: colors.textPrimary,
+    textTransform: 'capitalize' as const,
+  },
+  complianceDetail: {
+    ...typography.body,
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 16,
+  },
+  complianceTime: {
+    ...typography.mono,
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 2,
   },
 });

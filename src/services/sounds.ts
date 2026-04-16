@@ -72,3 +72,18 @@ export function playStreakFire() {
 export function playCheckin() {
   play('checkin');
 }
+
+/** Confetti celebration — ascending arpeggio */
+export function playCelebration() {
+  play('celebration');
+}
+
+/** Short pop — micro celebration, confetti burst */
+export function playCelebrationPop() {
+  play('celebration_pop');
+}
+
+/** Onboarding complete — triumphant fanfare */
+export function playOnboardingComplete() {
+  play('onboarding_complete');
+}

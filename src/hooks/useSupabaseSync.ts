@@ -40,13 +40,18 @@ function dbMatchToApp(db: DBMatch): Match {
 
 export function useSupabaseSync() {
   useEffect(() => {
-    // Se nao esta usando banco real, nao faz nada
-    if (!ENV.USE_REAL_DATABASE) return;
+    // Se nao esta usando banco real, desliga loading e sai
+    if (!ENV.USE_REAL_DATABASE) {
+      // Simula carregamento breve para UX consistente
+      const timer = setTimeout(() => useNexaStore.getState().setLoading(false), 600);
+      return () => clearTimeout(timer);
+    }
 
     let unsubMatches: (() => void) | null = null;
     let unsubFeed: (() => void) | null = null;
 
     async function loadInitialData() {
+      useNexaStore.getState().setLoading(true);
       try {
         // Buscar jogos
         const dbMatches = await supabaseService.getMatches();
@@ -72,6 +77,8 @@ export function useSupabaseSync() {
         if (typeof __DEV__ !== 'undefined' && __DEV__) {
           console.warn('[SupabaseSync] Falha ao carregar dados:', error);
         }
+      } finally {
+        useNexaStore.getState().setLoading(false);
       }
     }
 

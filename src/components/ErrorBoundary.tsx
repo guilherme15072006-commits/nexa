@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, typography, spacing, radius } from '../theme';
+import { recordError } from '../services/firebaseAnalytics';
 
 interface Props {
   children: ReactNode;
@@ -21,6 +22,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.warn('ErrorBoundary caught:', error, info);
+    recordError(error, `ErrorBoundary: ${info.componentStack?.slice(0, 200)}`);
   }
 
   handleRetry = () => this.setState({ hasError: false, error: null });

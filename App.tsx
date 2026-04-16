@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Image, StatusBar, Text, View } from 'react-native';
+import { Animated, Image, InteractionManager, Platform, StatusBar, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useNexaStore } from './src/store/nexaStore';
+import { analytics } from './src/services/analytics';
 import { useLiveEngine } from './src/hooks/useLiveEngine';
 import { LevelUpOverlay, StreakCelebration } from './src/components/Celebrations';
 import { colors } from './src/theme';
@@ -12,11 +13,12 @@ import TabNavigator from './src/navigation/TabNavigator';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import NexaLogo from './src/components/NexaLogo';
 import { Assets } from './src/assets';
-import { auth, AuthUser } from './src/services/firebase';
-import { supabaseAuth } from './src/services/supabaseAuth';
+import { supabaseAuth, AuthUser } from './src/services/supabaseAuth';
 import { ENV } from './src/config/env';
 import { useSupabaseSync } from './src/hooks/useSupabaseSync';
 import { useOddsEngine } from './src/hooks/useOddsEngine';
+import { setupPushNotifications, teardownPushNotifications } from './src/services/pushNotifications';
+import { initFirebaseServices, setFirebaseUser } from './src/services/firebaseAnalytics';
 import LoginScreen from './src/screens/LoginScreen';
 
 function AppContent() {
@@ -30,8 +32,25 @@ function AppContent() {
   // Carrega dados reais do Supabase (se USE_REAL_DATABASE = true)
   useSupabaseSync();
 
-  // Motor de odds ao vivo (atualiza a cada 10s)
+  // Motor de odds ao vivo (atualiza a cada 360s)
   useOddsEngine();
+
+  // Analytics: init + sync user properties
+  useEffect(() => {
+    const state = useNexaStore.getState();
+    analytics.init(state.user.id, `device_${Platform.OS}_${Date.now()}`);
+    analytics.identifyFromState(state as any);
+    return () => analytics.endSession();
+  }, []);
+
+  // Defer heavy services to after first render (startup perf)
+  useEffect(() => {
+    const handle = InteractionManager.runAfterInteractions(() => {
+      initFirebaseServices().catch(() => {});
+      setupPushNotifications().catch(() => {});
+    });
+    return () => { handle.cancel(); teardownPushNotifications(); };
+  }, []);
 
   const handleDismissLevel = useCallback(() => dismissLevelUp(), [dismissLevelUp]);
   const handleDismissStreak = useCallback(() => dismissStreak(), [dismissStreak]);
@@ -42,7 +61,12 @@ function AppContent() {
 
   return (
     <View style={{ flex: 1 }}>
-      <NavigationContainer>
+      <NavigationContainer
+        onStateChange={(state) => {
+          const route = state?.routes[state.index];
+          if (route?.name) analytics.trackScreen(route.name);
+        }}
+      >
         <TabNavigator />
       </NavigationContainer>
 
@@ -69,24 +93,24 @@ function SplashScreen() {
   const glowOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Phase 1: Glow appears
+    // Phase 1: Glow appears (fast)
     Animated.parallel([
-      Animated.timing(glowOpacity, { toValue: 0.4, duration: 400, useNativeDriver: true }),
-      Animated.timing(glowScale, { toValue: 1.5, duration: 800, useNativeDriver: true }),
+      Animated.timing(glowOpacity, { toValue: 0.4, duration: 250, useNativeDriver: true }),
+      Animated.timing(glowScale, { toValue: 1.5, duration: 500, useNativeDriver: true }),
     ]).start();
 
-    // Phase 2: Logo scales in
+    // Phase 2: Logo scales in (overlap)
     const t1 = setTimeout(() => {
       Animated.parallel([
-        Animated.spring(logoScale, { toValue: 1, friction: 5, tension: 40, useNativeDriver: true }),
-        Animated.timing(logoOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.spring(logoScale, { toValue: 1, friction: 6, tension: 60, useNativeDriver: true }),
+        Animated.timing(logoOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start();
-    }, 200);
+    }, 100);
 
     // Phase 3: Text fades in
     const t2 = setTimeout(() => {
-      Animated.timing(textOpacity, { toValue: 1, duration: 400, useNativeDriver: true }).start();
-    }, 800);
+      Animated.timing(textOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    }, 500);
 
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [logoScale, logoOpacity, textOpacity, glowScale, glowOpacity]);
@@ -150,22 +174,25 @@ function SplashScreen() {
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [authLoading, setAuthLoading] = useState(ENV.USE_REAL_AUTH);
+  const [authLoading, setAuthLoading] = useState<boolean>(ENV.USE_REAL_AUTH);
 
   useEffect(() => {
-    const t = setTimeout(() => setShowSplash(false), 2000);
+    const t = setTimeout(() => setShowSplash(false), 1200);
     return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
     if (!ENV.USE_REAL_AUTH) {
-      setAuthUser({ uid: 'mock', email: null, displayName: 'voce', photoURL: null, provider: 'mock' });
+      setAuthUser({ uid: 'guest_local', email: null, displayName: 'Convidado', photoURL: null, provider: 'guest' });
       setAuthLoading(false);
       return;
     }
     const unsubscribe = supabaseAuth.onAuthStateChanged((user) => {
       setAuthUser(user as AuthUser | null);
       setAuthLoading(false);
+      if (user) {
+        setFirebaseUser(user.uid, { provider: user.provider });
+      }
     });
     return unsubscribe;
   }, []);

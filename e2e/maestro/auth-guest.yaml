@@ -1,0 +1,28 @@
+# NEXA E2E: Login como convidado
+# Testa fluxo completo: login guest → onboarding → feed
+appId: com.nexa
+---
+- launchApp:
+    clearState: true
+
+# Tela de login
+- assertVisible: "Bem-vindo ao NEXA"
+- assertVisible: "Entrar com email"
+- assertVisible: "Entrar com Google"
+- assertVisible: "Entrar como convidado"
+
+# Entrar como convidado
+- tapOn: "Entrar como convidado"
+- waitForAnimationToEnd
+
+# Deve ir para onboarding
+- assertVisible: "Bem-vindo"
+- assertVisible: "Pular"
+
+# Pular onboarding
+- tapOn: "Pular"
+- waitForAnimationToEnd
+
+# Deve chegar no feed
+- assertVisible: "Para voce|Para você"
+- assertVisible: "Feed"

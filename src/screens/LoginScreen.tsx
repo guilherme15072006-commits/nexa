@@ -9,9 +9,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius } from '../theme';
-import { auth, AuthUser } from '../services/firebase';
+import { supabaseAuth, AuthUser } from '../services/supabaseAuth';
 import { ENV } from '../config/env';
-import { supabaseAuth } from '../services/supabaseAuth';
 import { hapticLight, hapticMedium, hapticSuccess } from '../services/haptics';
 import { TapScale, SmoothEntry } from '../components/LiveComponents';
 import NexaLogo from '../components/NexaLogo';
@@ -89,7 +88,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     hapticMedium();
 
     try {
-      const user = await auth.signInWithGoogle();
+      const user = await supabaseAuth.signInWithGoogle();
       hapticSuccess();
       onLoginSuccess(user);
     } catch (err: any) {
@@ -106,7 +105,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     hapticLight();
 
     try {
-      const user = await auth.signInWithGoogle(); // Falls through to mock
+      const user = await supabaseAuth.signInAsGuest();
       hapticSuccess();
       onLoginSuccess(user);
     } catch (err: any) {

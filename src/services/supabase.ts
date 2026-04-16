@@ -153,6 +153,86 @@ export const supabaseService = {
     return () => { db.removeChannel(channel); };
   },
 
+  /** Save payment record */
+  savePayment: async (payment: {
+    user_id: string;
+    external_id: string;
+    method: 'pix' | 'credit_card';
+    amount: number;
+    status: string;
+    pix_copy_paste?: string;
+    card_last4?: string;
+    card_brand?: string;
+    expires_at?: string;
+  }): Promise<string | null> => {
+    const db = getClient();
+    if (!db) return null;
+    const { data } = await db.from('payments').insert(payment).select('id').single();
+    return data?.id ?? null;
+  },
+
+  /** Update payment status */
+  updatePaymentStatus: async (externalId: string, status: string): Promise<void> => {
+    const db = getClient();
+    if (!db) return;
+    const updates: Record<string, any> = { status };
+    if (status === 'confirmed' || status === 'received') {
+      updates.confirmed_at = new Date().toISOString();
+    }
+    await db.from('payments').update(updates).eq('external_id', externalId);
+  },
+
+  /** Save withdraw request */
+  saveWithdrawal: async (withdrawal: {
+    user_id: string;
+    external_id: string;
+    amount: number;
+    pix_key: string;
+    pix_key_type: string;
+    estimated_at: string;
+  }): Promise<string | null> => {
+    const db = getClient();
+    if (!db) return null;
+    const { data } = await db.from('withdrawals').insert(withdrawal).select('id').single();
+    return data?.id ?? null;
+  },
+
+  /** Update withdrawal status */
+  updateWithdrawalStatus: async (externalId: string, status: string): Promise<void> => {
+    const db = getClient();
+    if (!db) return;
+    const updates: Record<string, any> = { status };
+    if (status === 'completed') {
+      updates.completed_at = new Date().toISOString();
+    }
+    await db.from('withdrawals').update(updates).eq('external_id', externalId);
+  },
+
+  /** Get user payment history */
+  getPaymentHistory: async (userId: string, limit = 20): Promise<any[]> => {
+    const db = getClient();
+    if (!db) return [];
+    const { data } = await db.from('payments').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit);
+    return data ?? [];
+  },
+
+  /** Save or update FCM push token for this device */
+  saveFcmToken: async (userId: string, token: string, platform: 'android' | 'ios'): Promise<void> => {
+    const db = getClient();
+    if (!db) return;
+    await db.from('device_tokens').upsert(
+      { user_id: userId, token, platform, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,token' },
+    );
+  },
+
+  /** Remove FCM token on logout */
+  deleteFcmToken: async (userId: string, token: string): Promise<void> => {
+    const db = getClient();
+    if (!db) return;
+    await db.from('device_tokens').delete().eq('user_id', userId).eq('token', token);
+  },
+
   /** Subscribe to feed */
   subscribeToFeed: (callback: (post: any) => void): (() => void) => {
     const db = getClient();

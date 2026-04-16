@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -9,10 +9,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import Reanimated, { FadeInDown } from 'react-native-reanimated';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore, SearchResult } from '../store/nexaStore';
 import { SmoothEntry, TapScale } from '../components/LiveComponents';
 import { Card } from '../components/ui';
+import { SkeletonList } from '../components/SkeletonLoader';
+import { SharedView, SharedText, sharedTags } from '../components/SharedTransition';
 import { hapticLight } from '../services/haptics';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -32,6 +35,7 @@ export default function SearchScreen() {
   const navigation = useNavigation<any>();
   const inputRef = useRef<TextInput>(null);
 
+  const isLoading = useNexaStore((s) => s.isLoading);
   const searchQuery = useNexaStore((s) => s.searchQuery);
   const searchResults = useNexaStore((s) => s.searchResults);
   const trendingSearches = useNexaStore((s) => s.trendingSearches);
@@ -144,15 +148,16 @@ export default function SearchScreen() {
         </View>
       </SmoothEntry>
 
-      <FlatList
-        data={[1]} // single item to render all content
-        keyExtractor={() => 'content'}
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        renderItem={() => (
+      >
           <View>
+            {/* Loading skeleton */}
+            {isLoading && <SkeletonList count={4} type="card" />}
+
             {/* Trending Searches (show when no query) */}
-            {!hasQuery && (
+            {!isLoading && !hasQuery && (
               <SmoothEntry delay={100}>
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Em Alta</Text>
@@ -181,9 +186,12 @@ export default function SearchScreen() {
                         <Text style={styles.sectionTitle}>
                           {RESULT_TYPE_LABELS[type]}
                         </Text>
-                        {items.map((result) => (
-                          <TapScale
+                        {items.map((result, ri) => (
+                          <Reanimated.View
                             key={result.id}
+                            entering={FadeInDown.delay(ri * 50).duration(250).springify()}
+                          >
+                          <TapScale
                             onPress={() => handleResultPress(result)}
                           >
                             <View style={styles.resultRow}>
@@ -199,6 +207,7 @@ export default function SearchScreen() {
                               <Text style={styles.chevron}>{'>'}</Text>
                             </View>
                           </TapScale>
+                          </Reanimated.View>
                         ))}
                       </View>
                     </SmoothEntry>
@@ -231,13 +240,13 @@ export default function SearchScreen() {
                       onPress={() => handleSuggestedPress(tipster.id)}
                     >
                       <View style={styles.resultRow}>
-                        <View style={styles.suggestedAvatar}>
+                        <SharedView tag={sharedTags.tipsterAvatar(tipster.id)} style={styles.suggestedAvatar}>
                           <Text style={styles.suggestedAvatarText}>
                             {tipster.username.charAt(0)}
                           </Text>
-                        </View>
+                        </SharedView>
                         <View style={styles.resultInfo}>
-                          <Text style={styles.resultTitle}>{tipster.username}</Text>
+                          <SharedText tag={sharedTags.tipsterName(tipster.id)} style={styles.resultTitle}>{tipster.username}</SharedText>
                           <Text style={styles.resultSubtitle}>
                             {(tipster.winRate * 100).toFixed(0)}% WR
                             {' · '}
@@ -268,8 +277,7 @@ export default function SearchScreen() {
               </SmoothEntry>
             )}
           </View>
-        )}
-      />
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -250,6 +250,140 @@ create policy "Chat visivel" on public.chat_messages for select using (true);
 create policy "Enviar msg" on public.chat_messages for insert with check (auth.uid()::text = user_id::text);
 create policy "Users insert" on public.users for insert with check (auth.uid()::text = firebase_uid);
 
+-- ── Creator Payouts ───────────────────────────────────────
+create table if not exists public.creator_payouts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.users(id) on delete cascade,
+  amount_brl numeric(10,2) not null,
+  amount_coins int not null,
+  status text not null default 'pending' check (status in ('pending','processing','completed','failed')),
+  pix_key text not null,
+  requested_at timestamptz default now(),
+  completed_at timestamptz
+);
+
+alter table public.creator_payouts enable row level security;
+create policy "Payouts proprios" on public.creator_payouts for select using (auth.uid()::text = user_id::text);
+create policy "Solicitar payout" on public.creator_payouts for insert with check (auth.uid()::text = user_id::text);
+
+create index if not exists idx_creator_payouts_user on public.creator_payouts(user_id, requested_at desc);
+
+-- ── Marketplace Items ─────────────────────────────────────
+create table if not exists public.marketplace_items (
+  id uuid primary key default gen_random_uuid(),
+  seller_id uuid references public.users(id),
+  type text not null check (type in ('strategy','analysis','vip_tips')),
+  title text not null,
+  description text,
+  price int not null,
+  rating numeric(2,1) default 0,
+  reviews_count int default 0,
+  sales_count int default 0,
+  seller_earnings int default 0,
+  is_bestseller boolean default false,
+  created_at timestamptz default now()
+);
+
+alter table public.marketplace_items enable row level security;
+create policy "Items visiveis" on public.marketplace_items for select using (true);
+create policy "Criar item" on public.marketplace_items for insert with check (auth.uid()::text = seller_id::text);
+
+-- ── Marketplace Reviews ───────────────────────────────────
+create table if not exists public.marketplace_reviews (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid references public.marketplace_items(id) on delete cascade,
+  user_id uuid references public.users(id),
+  rating int not null check (rating between 1 and 5),
+  comment text,
+  created_at timestamptz default now(),
+  unique(item_id, user_id)
+);
+
+alter table public.marketplace_reviews enable row level security;
+create policy "Reviews visiveis" on public.marketplace_reviews for select using (true);
+create policy "Criar review" on public.marketplace_reviews for insert with check (auth.uid()::text = user_id::text);
+
+-- ── Marketplace Purchases ─────────────────────────────────
+create table if not exists public.marketplace_purchases (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid references public.marketplace_items(id),
+  buyer_id uuid references public.users(id),
+  seller_id uuid references public.users(id),
+  price int not null,
+  commission int not null,
+  seller_payout int not null,
+  created_at timestamptz default now(),
+  unique(item_id, buyer_id)
+);
+
+alter table public.marketplace_purchases enable row level security;
+create policy "Compras proprias" on public.marketplace_purchases for select using (auth.uid()::text = buyer_id::text or auth.uid()::text = seller_id::text);
+create policy "Registrar compra" on public.marketplace_purchases for insert with check (auth.uid()::text = buyer_id::text);
+
+create index if not exists idx_marketplace_items_seller on public.marketplace_items(seller_id);
+create index if not exists idx_marketplace_reviews_item on public.marketplace_reviews(item_id);
+create index if not exists idx_marketplace_purchases_buyer on public.marketplace_purchases(buyer_id);
+
+-- ── Payments (deposits via Pix/card) ─────────────────────
+create table if not exists public.payments (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.users(id) on delete cascade,
+  external_id text,
+  method text not null check (method in ('pix', 'credit_card')),
+  amount numeric(10,2) not null,
+  status text not null default 'pending' check (status in ('pending','confirmed','received','failed','refunded','expired')),
+  pix_copy_paste text,
+  pix_qr_code text,
+  card_last4 text,
+  card_brand text,
+  expires_at timestamptz,
+  created_at timestamptz default now(),
+  confirmed_at timestamptz
+);
+
+alter table public.payments enable row level security;
+create policy "Pagamentos proprios" on public.payments for select using (auth.uid()::text = user_id::text);
+create policy "Criar pagamento" on public.payments for insert with check (auth.uid()::text = user_id::text);
+
+-- ── Withdrawals (saques via Pix) ─────────────────────────
+create table if not exists public.withdrawals (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.users(id) on delete cascade,
+  external_id text,
+  amount numeric(10,2) not null,
+  status text not null default 'pending' check (status in ('pending','processing','completed','failed')),
+  pix_key text not null,
+  pix_key_type text not null check (pix_key_type in ('cpf','email','phone','random')),
+  estimated_at timestamptz,
+  created_at timestamptz default now(),
+  completed_at timestamptz
+);
+
+alter table public.withdrawals enable row level security;
+create policy "Saques proprios" on public.withdrawals for select using (auth.uid()::text = user_id::text);
+create policy "Solicitar saque" on public.withdrawals for insert with check (auth.uid()::text = user_id::text);
+
+create index if not exists idx_payments_user on public.payments(user_id, created_at desc);
+create index if not exists idx_payments_status on public.payments(status) where status = 'pending';
+create index if not exists idx_withdrawals_user on public.withdrawals(user_id, created_at desc);
+create index if not exists idx_withdrawals_status on public.withdrawals(status) where status = 'pending';
+
+-- ── Device Tokens (FCM push) ──────────────────────────────
+create table if not exists public.device_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.users(id) on delete cascade,
+  token text not null,
+  platform text not null check (platform in ('android', 'ios')),
+  updated_at timestamptz default now(),
+  unique(user_id, token)
+);
+
+alter table public.device_tokens enable row level security;
+create policy "Tokens proprios select" on public.device_tokens for select using (auth.uid()::text = user_id::text);
+create policy "Tokens proprios insert" on public.device_tokens for insert with check (auth.uid()::text = user_id::text);
+create policy "Tokens proprios update" on public.device_tokens for update using (auth.uid()::text = user_id::text);
+create policy "Tokens proprios delete" on public.device_tokens for delete using (auth.uid()::text = user_id::text);
+
 -- ── Realtime ───────────────────────────────────────────────
 alter publication supabase_realtime add table public.matches;
 alter publication supabase_realtime add table public.feed_posts;

@@ -124,15 +124,128 @@ export function SkeletonMatchCard({ delay = 0 }: SkeletonMatchCardProps) {
   );
 }
 
+// ─── SkeletonDashboard ───────────────────────────────────────────────────────
+
+export function SkeletonDashboard({ delay = 0 }: { delay?: number }) {
+  return (
+    <View style={styles.dashSection}>
+      {/* Stats grid 2x2 */}
+      <View style={styles.statsGrid}>
+        {[0, 1, 2, 3].map(i => (
+          <View key={i} style={styles.statBox}>
+            <SkeletonPulse width={40} height={20} delay={delay + i * 80} />
+            <SkeletonPulse width={64} height={10} delay={delay + i * 80} />
+          </View>
+        ))}
+      </View>
+      {/* Chart placeholder */}
+      <View style={styles.card}>
+        <SkeletonPulse width={100} height={14} delay={delay + 100} />
+        <SkeletonPulse width="100%" height={120} borderRadius={radius.md} delay={delay + 200} />
+      </View>
+      {/* List rows */}
+      {[0, 1, 2].map(i => (
+        <View key={i} style={styles.row}>
+          <SkeletonPulse width={32} height={32} borderRadius={16} delay={delay + 300 + i * 100} />
+          <View style={styles.headerLines}>
+            <SkeletonPulse width={100} height={12} delay={delay + 300 + i * 100} />
+            <SkeletonPulse width={60} height={10} delay={delay + 300 + i * 100} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ─── SkeletonRanking ─────────────────────────────────────────────────────────
+
+export function SkeletonRanking({ delay = 0 }: { delay?: number }) {
+  return (
+    <View style={styles.rankSection}>
+      {/* Podium */}
+      <View style={styles.podiumRow}>
+        {[0, 1, 2].map(i => (
+          <View key={i} style={styles.podiumItem}>
+            <SkeletonPulse width={i === 1 ? 56 : 44} height={i === 1 ? 56 : 44} borderRadius={28} delay={delay + i * 120} />
+            <SkeletonPulse width={48} height={10} delay={delay + i * 120 + 60} />
+            <SkeletonPulse width={32} height={8} delay={delay + i * 120 + 60} />
+          </View>
+        ))}
+      </View>
+      {/* Rows */}
+      {[0, 1, 2, 3, 4].map(i => (
+        <View key={i} style={styles.rankRow}>
+          <SkeletonPulse width={20} height={14} delay={delay + 400 + i * 80} />
+          <SkeletonPulse width={36} height={36} borderRadius={18} delay={delay + 400 + i * 80} />
+          <View style={{ flex: 1, gap: spacing.xs }}>
+            <SkeletonPulse width={90} height={12} delay={delay + 400 + i * 80} />
+            <SkeletonPulse width={50} height={8} delay={delay + 400 + i * 80} />
+          </View>
+          <SkeletonPulse width={48} height={20} borderRadius={radius.sm} delay={delay + 400 + i * 80} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ─── SkeletonNotification ────────────────────────────────────────────────────
+
+export function SkeletonNotification({ delay = 0 }: { delay?: number }) {
+  return (
+    <View style={styles.notifRow}>
+      <SkeletonPulse width={40} height={40} borderRadius={12} delay={delay} />
+      <View style={{ flex: 1, gap: spacing.xs }}>
+        <SkeletonPulse width="80%" height={12} delay={delay} />
+        <SkeletonPulse width="50%" height={10} delay={delay} />
+      </View>
+      <SkeletonPulse width={6} height={6} borderRadius={3} delay={delay} />
+    </View>
+  );
+}
+
+// ─── SkeletonWallet ──────────────────────────────────────────────────────────
+
+export function SkeletonWallet({ delay = 0 }: { delay?: number }) {
+  return (
+    <View style={styles.dashSection}>
+      {/* Balance card */}
+      <View style={[styles.card, { alignItems: 'center' as const, paddingVertical: spacing.xl }]}>
+        <SkeletonPulse width={120} height={28} delay={delay} />
+        <SkeletonPulse width={80} height={12} delay={delay + 100} />
+      </View>
+      {/* Action buttons */}
+      <View style={styles.oddsRow}>
+        <SkeletonPulse width={0} height={44} borderRadius={radius.md} delay={delay + 200} style={styles.oddsFlex} />
+        <SkeletonPulse width={0} height={44} borderRadius={radius.md} delay={delay + 200} style={styles.oddsFlex} />
+      </View>
+      {/* Transactions */}
+      {[0, 1, 2, 3].map(i => (
+        <View key={i} style={styles.row}>
+          <SkeletonPulse width={36} height={36} borderRadius={10} delay={delay + 300 + i * 100} />
+          <View style={{ flex: 1, gap: spacing.xs }}>
+            <SkeletonPulse width={100} height={12} delay={delay + 300 + i * 100} />
+            <SkeletonPulse width={60} height={10} delay={delay + 300 + i * 100} />
+          </View>
+          <SkeletonPulse width={50} height={14} delay={delay + 300 + i * 100} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 // ─── SkeletonList ────────────────────────────────────────────────────────────
 
 interface SkeletonListProps {
   count?: number;
-  type?: 'card' | 'match';
+  type?: 'card' | 'match' | 'notification';
 }
 
 export function SkeletonList({ count = 3, type = 'card' }: SkeletonListProps) {
-  const Component = type === 'match' ? SkeletonMatchCard : SkeletonCard;
+  const Component = type === 'match'
+    ? SkeletonMatchCard
+    : type === 'notification'
+      ? SkeletonNotification
+      : SkeletonCard;
 
   return (
     <View>
@@ -181,5 +294,62 @@ const styles = StyleSheet.create({
   },
   oddsFlex: {
     flex: 1,
+  },
+  // Dashboard
+  dashSection: {
+    gap: spacing.md,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  statBox: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: colors.bgCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  // Ranking
+  rankSection: {
+    gap: spacing.md,
+  },
+  podiumRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    gap: spacing.xl,
+    paddingVertical: spacing.lg,
+  },
+  podiumItem: {
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  rankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bgCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  // Notifications
+  notifRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bgCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
 });

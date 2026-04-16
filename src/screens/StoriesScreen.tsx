@@ -128,9 +128,10 @@ interface SlideContentProps {
   slide: StorySlide;
   story: Story;
   onBet: () => void;
+  onVotePoll?: (optionIndex: number) => void;
 }
 
-function SlideContent({ slide, story, onBet }: SlideContentProps) {
+function SlideContent({ slide, story, onBet, onVotePoll }: SlideContentProps) {
   const totalVotes = slide.pollOptions
     ? slide.pollOptions.reduce((sum, o) => sum + o.votes, 0)
     : 0;
@@ -153,13 +154,18 @@ function SlideContent({ slide, story, onBet }: SlideContentProps) {
       {slide.type === 'poll' && slide.pollOptions && (
         <View style={styles.pollContainer}>
           {slide.pollOptions.map((option, i) => (
-            <PollBar
+            <TouchableOpacity
               key={option.label}
-              label={option.label}
-              votes={option.votes}
-              totalVotes={totalVotes}
-              index={i}
-            />
+              activeOpacity={0.7}
+              onPress={() => onVotePoll?.(i)}
+            >
+              <PollBar
+                label={option.label}
+                votes={option.votes}
+                totalVotes={totalVotes}
+                index={i}
+              />
+            </TouchableOpacity>
           ))}
           <Text style={styles.pollTotal}>{totalVotes.toLocaleString()} votos</Text>
         </View>
@@ -192,6 +198,8 @@ function StoryViewer({ stories, initialIndex, onClose }: StoryViewerProps) {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const viewStory = useNexaStore((s) => s.viewStory);
+  const votePoll = useNexaStore((s) => s.votePoll);
+  const reactStory = useNexaStore((s) => s.reactStory);
   const trackEvent = useNexaStore((s) => s.trackEvent);
   const navigation = useNavigation<any>();
 
@@ -313,7 +321,15 @@ function StoryViewer({ stories, initialIndex, onClose }: StoryViewerProps) {
         style={StyleSheet.absoluteFill}
       >
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
-          <SlideContent slide={currentSlide} story={currentStory} onBet={handleBet} />
+          <SlideContent
+            slide={currentSlide}
+            story={currentStory}
+            onBet={handleBet}
+            onVotePoll={(optionIndex) => {
+              votePoll(currentStory.id, currentSlide.id, optionIndex);
+              trackEvent('poll_voted', { storyId: currentStory.id, option: optionIndex });
+            }}
+          />
         </Animated.View>
       </TouchableOpacity>
 
@@ -346,16 +362,16 @@ function StoryViewer({ stories, initialIndex, onClose }: StoryViewerProps) {
       {/* Bottom: reactions */}
       <SafeAreaView edges={['bottom']} style={styles.viewerBottom}>
         <View style={styles.reactionRow}>
-          <TouchableOpacity style={styles.reactionBtn} onPress={() => { hapticLight(); trackEvent('story_reaction', { type: 'fire' }); }}>
+          <TouchableOpacity style={styles.reactionBtn} onPress={() => { hapticLight(); reactStory(currentStory.id, 'fire'); trackEvent('story_reaction', { type: 'fire' }); }}>
             <Text style={styles.reactionEmoji}>🔥</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.reactionBtn} onPress={() => { hapticLight(); trackEvent('story_reaction', { type: 'clap' }); }}>
+          <TouchableOpacity style={styles.reactionBtn} onPress={() => { hapticLight(); reactStory(currentStory.id, 'clap'); trackEvent('story_reaction', { type: 'clap' }); }}>
             <Text style={styles.reactionEmoji}>👏</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.reactionBtn} onPress={() => { hapticLight(); trackEvent('story_reaction', { type: 'money' }); }}>
+          <TouchableOpacity style={styles.reactionBtn} onPress={() => { hapticLight(); reactStory(currentStory.id, 'money'); trackEvent('story_reaction', { type: 'money' }); }}>
             <Text style={styles.reactionEmoji}>💰</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.reactionBtn} onPress={() => { hapticLight(); trackEvent('story_reaction', { type: 'think' }); }}>
+          <TouchableOpacity style={styles.reactionBtn} onPress={() => { hapticLight(); reactStory(currentStory.id, 'think'); trackEvent('story_reaction', { type: 'think' }); }}>
             <Text style={styles.reactionEmoji}>🤔</Text>
           </TouchableOpacity>
         </View>

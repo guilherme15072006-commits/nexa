@@ -1,14 +1,19 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Reanimated, {
+  FadeInDown,
+  FadeOutLeft,
+  LinearTransition,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { SmoothEntry, TapScale } from '../components/LiveComponents';
+import { SkeletonList } from '../components/SkeletonLoader';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore, AppNotification, NotificationType } from '../store/nexaStore';
 import { hapticLight, hapticMedium } from '../services/haptics';
@@ -52,7 +57,11 @@ function NotificationRow({
   onPress: () => void;
 }) {
   return (
-    <SmoothEntry delay={index * 40}>
+    <Reanimated.View
+      entering={FadeInDown.delay(index * 40).duration(300).springify()}
+      exiting={FadeOutLeft.duration(200)}
+      layout={LinearTransition.springify().damping(16).stiffness(120)}
+    >
       <TapScale onPress={onPress}>
         <View
           style={[
@@ -83,7 +92,7 @@ function NotificationRow({
           </View>
         </View>
       </TapScale>
-    </SmoothEntry>
+    </Reanimated.View>
   );
 }
 
@@ -91,6 +100,7 @@ function NotificationRow({
 
 export default function NotificationsScreen() {
   const navigation = useNavigation();
+  const isLoading = useNexaStore((s) => s.isLoading);
   const notifications = useNexaStore((s) => s.notifications);
   const unreadCount = useNexaStore((s) => s.unreadCount);
   const markNotificationRead = useNexaStore((s) => s.markNotificationRead);
@@ -201,14 +211,25 @@ export default function NotificationsScreen() {
       </SmoothEntry>
 
       {/* Notification List */}
-      <FlatList
-        data={filteredNotifications}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ListEmptyComponent={renderEmpty}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoading ? (
+        <View style={styles.listContent}>
+          <SkeletonList count={6} type="notification" />
+        </View>
+      ) : (
+        <Reanimated.FlatList
+          data={filteredNotifications}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ListEmptyComponent={renderEmpty}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          itemLayoutAnimation={LinearTransition.springify().damping(16).stiffness(120)}
+          removeClippedSubviews
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          initialNumToRender={10}
+        />
+      )}
     </SafeAreaView>
   );
 }

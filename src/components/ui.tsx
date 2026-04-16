@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
+import { playCelebration } from '../services/sounds';
 import {
   View,
   Text,
@@ -108,6 +109,7 @@ export function OddsBtn({ label, odds, selected, onPress, accessibilityLabel, mo
   return (
     <TouchableOpacity
       onPress={onPress}
+      style={styles.oddsBtnTouchable}
       accessibilityLabel={accessibilityLabel ?? `${label} ${odds}`}
       activeOpacity={0.75}
     >
@@ -263,29 +265,36 @@ const styles = StyleSheet.create({
   } as TextStyle,
 
   // OddsBtn
+  oddsBtnTouchable: {
+    flex: 1,
+  } as ViewStyle,
   oddsBtn: {
     flex: 1,
     backgroundColor: colors.bgElevated,
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.sm,
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'center',
+    gap: 4,
+    minHeight: 72,
   } as ViewStyle,
   oddsBtnSelected: {
-    backgroundColor: colors.primary + '22',
+    backgroundColor: colors.primary + '18',
     borderColor: colors.primary,
+    borderWidth: 1.5,
   } as ViewStyle,
   oddsBtnLabel: {
     ...typography.body,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSecondary,
+    letterSpacing: 0.3,
   } as TextStyle,
   oddsBtnOdds: {
     ...typography.monoBold,
-    fontSize: 15,
+    fontSize: 18,
     color: colors.textPrimary,
   } as TextStyle,
   oddsBtnOddsSelected: {
@@ -494,6 +503,7 @@ export function CelebrationBurst({ active }: { active: boolean }) {
 
   useEffect(() => {
     if (!active) return;
+    playCelebration();
     const anims = particles.map((p) => {
       p.x.setValue(0); p.y.setValue(0); p.opacity.setValue(1); p.scale.setValue(0.5);
       const dist = 50 + Math.random() * 40;

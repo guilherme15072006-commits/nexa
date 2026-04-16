@@ -13,10 +13,22 @@ import {
   Text,
   TouchableOpacity,
   View,
+  // Keep old Animated for betslip panel (uses panelY with spring)
+
 } from 'react-native';
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSequence,
+  withSpring,
+  withRepeat,
+  FadeInDown,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Avatar, Card, LiveBadge, Pill } from '../components/ui';
+import { SkeletonList } from '../components/SkeletonLoader';
 import {
   AvatarStack,
   BetDistribution,
@@ -131,22 +143,19 @@ function isUrgent(scheduledTime: string): boolean {
 // ─── PulsingDot ───────────────────────────────────────────────────────────────
 
 function PulsingDot() {
-  const pulse = useRef(new Animated.Value(1)).current;
+  const pulse = useSharedValue(1);
+  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
   useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.6, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1,   duration: 700, useNativeDriver: true }),
-      ]),
+    pulse.value = withRepeat(
+      withSequence(withTiming(1.6, { duration: 700 }), withTiming(1, { duration: 700 })),
+      -1, false,
     );
-    anim.start();
-    return () => anim.stop();
-  }, [pulse]);
+  }, []);
 
   return (
     <View style={styles.pulsingWrap}>
-      <Animated.View style={[styles.pulsingRing, { transform: [{ scale: pulse }] }]} />
+      <Reanimated.View style={[styles.pulsingRing, pulseStyle]} />
       <View style={styles.pulsingDot} />
     </View>
   );
@@ -164,18 +173,19 @@ interface BetOddsBtnProps {
 }
 
 function BetOddsBtn({ label, odds, selected, movement, onPress, accessibilityLabel }: BetOddsBtnProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const scale = useSharedValue(1);
+  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   function handlePress() {
-    Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.93, duration: 80, useNativeDriver: true }),
-      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 30, bounciness: 8 }),
-    ]).start();
+    scale.value = withSequence(
+      withTiming(0.93, { duration: 80 }),
+      withSpring(1, { damping: 10, stiffness: 150 }),
+    );
     onPress();
   }
 
   return (
-    <Animated.View style={{ flex: 1, transform: [{ scale: scaleAnim }] }}>
+    <Reanimated.View style={[{ flex: 1 }, scaleStyle]}>
       <TouchableOpacity
         style={[styles.betOddsBtn, selected && styles.betOddsBtnSelected]}
         onPress={handlePress}
@@ -194,7 +204,7 @@ function BetOddsBtn({ label, odds, selected, movement, onPress, accessibilityLab
           )}
         </View>
       </TouchableOpacity>
-    </Animated.View>
+    </Reanimated.View>
   );
 }
 
@@ -209,19 +219,21 @@ interface MatchCardProps {
 }
 
 function MatchCard({ match, selectedSide, isConfirmed, tipsterSuggestion, onSelectOdd }: MatchCardProps) {
-  const confirmedAlpha = useRef(new Animated.Value(0)).current;
+  const confirmedAlpha = useSharedValue(0);
+  const confirmedStyle = useAnimatedStyle(() => ({ opacity: confirmedAlpha.value }));
   const prevConfirmed  = useRef(false);
 
   useEffect(() => {
     if (isConfirmed && !prevConfirmed.current) {
       prevConfirmed.current = true;
-      Animated.sequence([
-        Animated.timing(confirmedAlpha, { toValue: 1, duration: 180, useNativeDriver: true }),
-        Animated.delay(700),
-        Animated.timing(confirmedAlpha, { toValue: 0, duration: 350, useNativeDriver: true }),
-      ]).start(() => { prevConfirmed.current = false; });
+      confirmedAlpha.value = withSequence(
+        withTiming(1, { duration: 180 }),
+        withTiming(1, { duration: 700 }),
+        withTiming(0, { duration: 350 }),
+      );
+      setTimeout(() => { prevConfirmed.current = false; }, 1300);
     }
-  }, [isConfirmed, confirmedAlpha]);
+  }, [isConfirmed]);
 
   const isLive   = match.status === 'live';
   const activity = getActivityBadge(match);
@@ -234,11 +246,11 @@ function MatchCard({ match, selectedSide, isConfirmed, tipsterSuggestion, onSele
   return (
     <View>
       {/* Confirmed flash overlay */}
-      <Animated.View style={[styles.confirmedOverlay, { opacity: confirmedAlpha }]} pointerEvents="none">
+      <Reanimated.View style={[styles.confirmedOverlay, confirmedStyle]} pointerEvents="none">
         <Text style={styles.confirmedIcon}>✓</Text>
         <Text style={styles.confirmedText}>Aposta registrada</Text>
         <Text style={styles.confirmedXP}>+20 XP</Text>
-      </Animated.View>
+      </Reanimated.View>
 
       <Card style={[styles.matchCard, isLive ? styles.matchCardLive : null]}>
         {/* Top row: league + activity badge + time/live */}
@@ -762,6 +774,7 @@ export default function ApostasScreen() {
   const [socialMsgIdx, setSocialMsgIdx] = useState(0);
   const [refreshing,   setRefreshing]   = useState(false);
 
+  const isLoading  = useNexaStore(s => s.isLoading);
   const matches    = useNexaStore(s => s.matches);
   const tipsters   = useNexaStore(s => s.tipsters);
   const user       = useNexaStore(s => s.user);
@@ -936,6 +949,9 @@ export default function ApostasScreen() {
   }
 
   function renderTabContent() {
+    if (isLoading) {
+      return <SkeletonList count={3} type="match" />;
+    }
     switch (activeTab) {
       case 'ao-vivo':
         return (

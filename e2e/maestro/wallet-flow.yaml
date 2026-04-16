@@ -1,0 +1,28 @@
+# NEXA E2E: Fluxo Wallet
+# Testa: navegar ate carteira, ver saldo, tentar depositar
+appId: com.nexa
+---
+- launchApp:
+    clearState: true
+
+# Login rapido
+- tapOn: "Entrar como convidado"
+- waitForAnimationToEnd
+- tapOn: "Pular"
+- waitForAnimationToEnd
+
+# Ir para Perfil
+- tapOn: "Perfil"
+- waitForAnimationToEnd
+
+# Abrir Wallet
+- scrollUntilVisible:
+    element: "Carteira"
+    direction: DOWN
+    timeout: 5000
+- tapOn: "Carteira"
+- waitForAnimationToEnd
+
+# Verificar elementos da carteira
+- assertVisible: "Saldo|saldo|R$"
+- assertVisible: "Historico|Histórico"

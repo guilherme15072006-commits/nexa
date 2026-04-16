@@ -1,9 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  FlatList,
+  ActivityIndicator,
+  Clipboard,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -11,10 +13,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { SmoothEntry, TapScale } from '../components/LiveComponents';
 import { Card } from '../components/ui';
+import { SkeletonWallet } from '../components/SkeletonLoader';
+import { EmptyState, EMPTY_PRESETS } from '../components/EmptyState';
 import { colors, radius, spacing, typography } from '../theme';
 import { useNexaStore, Transaction } from '../store/nexaStore';
-import { hapticLight, hapticMedium, hapticSuccess } from '../services/haptics';
+import { trackDepositFunnel, trackDeposit } from '../services/analytics';
+import { hapticLight, hapticMedium, hapticSuccess, hapticError } from '../services/haptics';
 import { playXPGain } from '../services/sounds';
+import { createPixDeposit, requestWithdraw, checkPaymentStatus, type PixPayment, type WithdrawRequest } from '../services/payment';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -31,12 +37,14 @@ const TX_ICON: Record<Transaction['type'], string> = {
   coins_earned: '🪙',
 };
 
-type FlowState = 'idle' | 'deposit_select' | 'deposit_confirm' | 'withdraw_select' | 'withdraw_confirm';
+type FlowState = 'idle' | 'deposit_select' | 'deposit_processing' | 'deposit_pix' | 'deposit_success'
+  | 'withdraw_select' | 'withdraw_pixkey' | 'withdraw_processing' | 'withdraw_success';
 
 // ─── WalletScreen ─────────────────────────────────────────────────────────────
 
 export default function WalletScreen() {
   const navigation = useNavigation();
+  const isLoading = useNexaStore((s) => s.isLoading);
   const user = useNexaStore((s) => s.user);
   const transactions = useNexaStore((s) => s.transactions);
   const deposit = useNexaStore((s) => s.deposit);
@@ -46,27 +54,115 @@ export default function WalletScreen() {
   const [flow, setFlow] = useState<FlowState>('idle');
   const [selectedAmount, setSelectedAmount] = useState(0);
   const [xpInput, setXpInput] = useState(100);
+  const [pixPayment, setPixPayment] = useState<PixPayment | null>(null);
+  const [withdrawResult, setWithdrawResult] = useState<WithdrawRequest | null>(null);
+  const [pixKeyInput, setPixKeyInput] = useState('');
+  const [pixKeyType, setPixKeyType] = useState<'cpf' | 'email' | 'phone' | 'random'>('cpf');
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const maxConvertable = useMemo(
     () => Math.floor(user.xp / 100) * 100,
     [user.xp],
   );
 
-  const handleDeposit = useCallback(() => {
-    hapticSuccess();
-    playXPGain();
-    deposit(selectedAmount);
-    setFlow('idle');
-    setSelectedAmount(0);
-  }, [selectedAmount, deposit]);
+  const handleDeposit = useCallback(async () => {
+    if (!user.kycCompleted) {
+      hapticLight();
+      navigation.navigate('KYC' as never);
+      return;
+    }
+    trackDepositFunnel('amount_selected', 1, selectedAmount);
+    setPaymentError(null);
+    setFlow('deposit_processing');
 
-  const handleWithdraw = useCallback(() => {
-    if (user.balance < selectedAmount) return;
+    try {
+      const payment = await createPixDeposit({
+        amount: selectedAmount,
+        userId: user.id,
+        userName: user.username,
+        userCpf: user.kycData?.cpf ?? '',
+        userEmail: '',
+      });
+      setPixPayment(payment);
+      hapticSuccess();
+      setFlow('deposit_pix');
+      trackDepositFunnel('pix_generated', 2, selectedAmount);
+    } catch (err: any) {
+      hapticError();
+      setPaymentError(err?.message ?? 'Erro ao criar deposito');
+      setFlow('deposit_select');
+      trackDepositFunnel('failed', -1, selectedAmount);
+    }
+  }, [selectedAmount, user, navigation]);
+
+  const handleConfirmPix = useCallback(async () => {
+    if (!pixPayment) return;
+    setFlow('deposit_processing');
+
+    try {
+      const status = await checkPaymentStatus(pixPayment.externalId);
+      if (status === 'confirmed' || status === 'received') {
+        deposit(pixPayment.amount);
+        hapticSuccess();
+        playXPGain();
+        setFlow('deposit_success');
+        trackDepositFunnel('confirmed', 4, pixPayment.amount);
+        trackDeposit(pixPayment.amount);
+      } else if (status === 'pending') {
+        hapticLight();
+        setPaymentError('Pagamento ainda nao confirmado. Tente novamente em alguns segundos.');
+        setFlow('deposit_pix');
+      } else {
+        hapticError();
+        setPaymentError('Pagamento falhou ou expirou.');
+        setFlow('deposit_select');
+      }
+    } catch {
+      setFlow('deposit_pix');
+    }
+  }, [pixPayment, deposit]);
+
+  const handleCopyPixCode = useCallback(() => {
+    if (!pixPayment) return;
+    Clipboard.setString(pixPayment.pixCopyPaste);
     hapticSuccess();
-    withdraw(selectedAmount);
-    setFlow('idle');
-    setSelectedAmount(0);
-  }, [selectedAmount, user.balance, withdraw]);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    trackDepositFunnel('pix_copied', 3, pixPayment.amount);
+  }, [pixPayment]);
+
+  const handleWithdraw = useCallback(async () => {
+    if (!user.kycCompleted) {
+      hapticLight();
+      navigation.navigate('KYC' as never);
+      return;
+    }
+    if (user.balance < selectedAmount) return;
+    if (!pixKeyInput.trim()) {
+      setPaymentError('Informe sua chave Pix');
+      return;
+    }
+    setPaymentError(null);
+    setFlow('withdraw_processing');
+
+    try {
+      const result = await requestWithdraw({
+        amount: selectedAmount,
+        userId: user.id,
+        pixKey: pixKeyInput.trim(),
+        pixKeyType,
+      });
+      setWithdrawResult(result);
+      withdraw(selectedAmount);
+      hapticSuccess();
+      setFlow('withdraw_success');
+    } catch (err: any) {
+      hapticError();
+      setPaymentError(err?.message ?? 'Erro ao solicitar saque');
+      setFlow('withdraw_pixkey');
+    }
+  }, [selectedAmount, user, pixKeyInput, pixKeyType, withdraw, navigation]);
 
   const handleConvert = useCallback(() => {
     if (maxConvertable <= 0) return;
@@ -126,6 +222,9 @@ export default function WalletScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Loading skeleton */}
+        {isLoading ? <SkeletonWallet /> : <>
+
         {/* Balance Card */}
         <SmoothEntry delay={0}>
           <View style={styles.balanceCard}>
@@ -173,36 +272,25 @@ export default function WalletScreen() {
         </SmoothEntry>
 
         {/* Deposit Flow */}
-        {(flow === 'deposit_select' || flow === 'deposit_confirm') && (
+        {flow.startsWith('deposit') && flow !== 'idle' && (
           <SmoothEntry delay={0}>
             <View style={styles.flowCard}>
-              <Text style={styles.flowTitle}>
-                {flow === 'deposit_select' ? 'Escolha o valor' : 'Confirmar depósito'}
-              </Text>
+              {/* Error banner */}
+              {paymentError && (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorText}>{paymentError}</Text>
+                </View>
+              )}
 
+              {/* Step 1: Select amount */}
               {flow === 'deposit_select' && (
                 <>
+                  <Text style={styles.flowTitle}>Escolha o valor</Text>
                   <View style={styles.amountGrid}>
                     {DEPOSIT_AMOUNTS.map((amt) => (
-                      <TapScale
-                        key={amt}
-                        onPress={() => {
-                          hapticLight();
-                          setSelectedAmount(amt);
-                        }}
-                      >
-                        <View
-                          style={[
-                            styles.amountChip,
-                            selectedAmount === amt && styles.amountChipActive,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.amountChipText,
-                              selectedAmount === amt && styles.amountChipTextActive,
-                            ]}
-                          >
+                      <TapScale key={amt} onPress={() => { hapticLight(); setSelectedAmount(amt); }}>
+                        <View style={[styles.amountChip, selectedAmount === amt && styles.amountChipActive]}>
+                          <Text style={[styles.amountChipText, selectedAmount === amt && styles.amountChipTextActive]}>
                             R$ {amt}
                           </Text>
                         </View>
@@ -210,105 +298,105 @@ export default function WalletScreen() {
                     ))}
                   </View>
                   <View style={styles.flowActions}>
-                    <TapScale
-                      onPress={() => {
-                        hapticLight();
-                        setFlow('idle');
-                      }}
-                    >
+                    <TapScale onPress={() => { hapticLight(); setFlow('idle'); setPaymentError(null); }}>
                       <View style={styles.cancelBtn}>
                         <Text style={styles.cancelBtnText}>Cancelar</Text>
                       </View>
                     </TapScale>
-                    <TapScale
-                      disabled={selectedAmount === 0}
-                      onPress={() => {
-                        hapticMedium();
-                        setFlow('deposit_confirm');
-                      }}
-                    >
-                      <View
-                        style={[
-                          styles.confirmBtn,
-                          selectedAmount === 0 && styles.btnDisabled,
-                        ]}
-                      >
-                        <Text style={styles.confirmBtnText}>Continuar</Text>
+                    <TapScale disabled={selectedAmount === 0} onPress={handleDeposit}>
+                      <View style={[styles.confirmBtn, selectedAmount === 0 && styles.btnDisabled]}>
+                        <Text style={styles.confirmBtnText}>Gerar Pix</Text>
                       </View>
                     </TapScale>
                   </View>
                 </>
               )}
 
-              {flow === 'deposit_confirm' && (
+              {/* Step 2: Processing */}
+              {flow === 'deposit_processing' && (
+                <View style={styles.processingContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={styles.processingText}>Gerando pagamento...</Text>
+                </View>
+              )}
+
+              {/* Step 3: Pix QR + copy-paste */}
+              {flow === 'deposit_pix' && pixPayment && (
                 <>
-                  <View style={styles.pixPlaceholder}>
-                    <Text style={styles.pixIcon}>📱</Text>
-                    <Text style={styles.pixLabel}>QR Code Pix</Text>
+                  <Text style={styles.flowTitle}>Pague via Pix</Text>
+                  <View style={styles.pixSection}>
                     <View style={styles.qrBox}>
-                      <Text style={styles.qrPlaceholder}>[ QR Code ]</Text>
+                      <Text style={styles.qrPlaceholder}>[ QR Code Pix ]</Text>
                     </View>
-                    <Text style={styles.pixAmount}>R$ {selectedAmount.toFixed(2)}</Text>
+                    <Text style={styles.pixAmount}>R$ {pixPayment.amount.toFixed(2)}</Text>
+
+                    {/* Copy-paste code */}
+                    <Text style={styles.pixCopyLabel}>Ou copie o codigo Pix:</Text>
+                    <TouchableOpacity style={styles.pixCopyBox} onPress={handleCopyPixCode} activeOpacity={0.7}>
+                      <Text style={styles.pixCopyCode} numberOfLines={2}>{pixPayment.pixCopyPaste}</Text>
+                      <View style={[styles.pixCopyBtn, copied && styles.pixCopyBtnCopied]}>
+                        <Text style={styles.pixCopyBtnText}>{copied ? 'Copiado!' : 'Copiar'}</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <Text style={styles.pixExpiry}>
+                      Expira em 30 minutos
+                    </Text>
                   </View>
                   <View style={styles.flowActions}>
-                    <TapScale
-                      onPress={() => {
-                        hapticLight();
-                        setFlow('deposit_select');
-                      }}
-                    >
+                    <TapScale onPress={() => { hapticLight(); setFlow('idle'); setPixPayment(null); setPaymentError(null); }}>
                       <View style={styles.cancelBtn}>
-                        <Text style={styles.cancelBtnText}>Voltar</Text>
+                        <Text style={styles.cancelBtnText}>Cancelar</Text>
                       </View>
                     </TapScale>
-                    <TapScale onPress={handleDeposit}>
+                    <TapScale onPress={handleConfirmPix}>
                       <View style={styles.confirmBtn}>
-                        <Text style={styles.confirmBtnText}>Confirmar Pix</Text>
+                        <Text style={styles.confirmBtnText}>Ja paguei</Text>
                       </View>
                     </TapScale>
                   </View>
                 </>
+              )}
+
+              {/* Step 4: Success */}
+              {flow === 'deposit_success' && (
+                <View style={styles.successContainer}>
+                  <Text style={styles.successIcon}>✅</Text>
+                  <Text style={styles.successTitle}>Deposito confirmado!</Text>
+                  <Text style={styles.successAmount}>R$ {pixPayment?.amount.toFixed(2)}</Text>
+                  <Text style={styles.successSubtitle}>Saldo atualizado na sua carteira.</Text>
+                  <TapScale onPress={() => { setFlow('idle'); setPixPayment(null); setSelectedAmount(0); setPaymentError(null); }}>
+                    <View style={styles.confirmBtn}>
+                      <Text style={styles.confirmBtnText}>Fechar</Text>
+                    </View>
+                  </TapScale>
+                </View>
               )}
             </View>
           </SmoothEntry>
         )}
 
         {/* Withdraw Flow */}
-        {(flow === 'withdraw_select' || flow === 'withdraw_confirm') && (
+        {flow.startsWith('withdraw') && flow !== 'idle' && (
           <SmoothEntry delay={0}>
             <View style={styles.flowCard}>
-              <Text style={styles.flowTitle}>
-                {flow === 'withdraw_select' ? 'Valor do saque' : 'Confirmar saque'}
-              </Text>
+              {paymentError && (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorText}>{paymentError}</Text>
+                </View>
+              )}
 
+              {/* Step 1: Select amount */}
               {flow === 'withdraw_select' && (
                 <>
+                  <Text style={styles.flowTitle}>Valor do saque</Text>
                   <View style={styles.amountGrid}>
                     {WITHDRAW_AMOUNTS.map((amt) => {
                       const disabled = user.balance < amt;
                       return (
-                        <TapScale
-                          key={amt}
-                          disabled={disabled}
-                          onPress={() => {
-                            hapticLight();
-                            setSelectedAmount(amt);
-                          }}
-                        >
-                          <View
-                            style={[
-                              styles.amountChip,
-                              selectedAmount === amt && styles.amountChipActive,
-                              disabled && styles.amountChipDisabled,
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.amountChipText,
-                                selectedAmount === amt && styles.amountChipTextActive,
-                                disabled && styles.amountChipTextDisabled,
-                              ]}
-                            >
+                        <TapScale key={amt} disabled={disabled} onPress={() => { hapticLight(); setSelectedAmount(amt); }}>
+                          <View style={[styles.amountChip, selectedAmount === amt && styles.amountChipActive, disabled && styles.amountChipDisabled]}>
+                            <Text style={[styles.amountChipText, selectedAmount === amt && styles.amountChipTextActive, disabled && styles.amountChipTextDisabled]}>
                               R$ {amt}
                             </Text>
                           </View>
@@ -317,30 +405,13 @@ export default function WalletScreen() {
                     })}
                   </View>
                   <View style={styles.flowActions}>
-                    <TapScale
-                      onPress={() => {
-                        hapticLight();
-                        setFlow('idle');
-                      }}
-                    >
+                    <TapScale onPress={() => { hapticLight(); setFlow('idle'); setPaymentError(null); }}>
                       <View style={styles.cancelBtn}>
                         <Text style={styles.cancelBtnText}>Cancelar</Text>
                       </View>
                     </TapScale>
-                    <TapScale
-                      disabled={selectedAmount === 0}
-                      onPress={() => {
-                        hapticMedium();
-                        setFlow('withdraw_confirm');
-                      }}
-                    >
-                      <View
-                        style={[
-                          styles.confirmBtn,
-                          styles.withdrawConfirmBtn,
-                          selectedAmount === 0 && styles.btnDisabled,
-                        ]}
-                      >
+                    <TapScale disabled={selectedAmount === 0} onPress={() => { hapticMedium(); setFlow('withdraw_pixkey'); }}>
+                      <View style={[styles.confirmBtn, styles.withdrawConfirmBtn, selectedAmount === 0 && styles.btnDisabled]}>
                         <Text style={styles.confirmBtnText}>Continuar</Text>
                       </View>
                     </TapScale>
@@ -348,24 +419,37 @@ export default function WalletScreen() {
                 </>
               )}
 
-              {flow === 'withdraw_confirm' && (
+              {/* Step 2: Pix key input */}
+              {flow === 'withdraw_pixkey' && (
                 <>
-                  <View style={styles.withdrawSummary}>
-                    <Text style={styles.withdrawSummaryLabel}>Valor do saque</Text>
-                    <Text style={styles.withdrawSummaryValue}>
-                      R$ {selectedAmount.toFixed(2)}
-                    </Text>
-                    <Text style={styles.withdrawSummaryNote}>
-                      Transferência via Pix em até 1 hora
-                    </Text>
+                  <Text style={styles.flowTitle}>Chave Pix para saque</Text>
+                  <Text style={styles.withdrawSummaryNote}>R$ {selectedAmount.toFixed(2)} serao transferidos para sua chave Pix</Text>
+
+                  {/* Pix key type selector */}
+                  <View style={styles.pixKeyTypeRow}>
+                    {(['cpf', 'email', 'phone', 'random'] as const).map((type) => (
+                      <TapScale key={type} onPress={() => { hapticLight(); setPixKeyType(type); }}>
+                        <View style={[styles.pixKeyTypeBtn, pixKeyType === type && styles.pixKeyTypeBtnActive]}>
+                          <Text style={[styles.pixKeyTypeText, pixKeyType === type && styles.pixKeyTypeTextActive]}>
+                            {type === 'cpf' ? 'CPF' : type === 'email' ? 'Email' : type === 'phone' ? 'Celular' : 'Aleatoria'}
+                          </Text>
+                        </View>
+                      </TapScale>
+                    ))}
                   </View>
+
+                  <TextInput
+                    style={styles.pixKeyInput}
+                    value={pixKeyInput}
+                    onChangeText={setPixKeyInput}
+                    placeholder={pixKeyType === 'cpf' ? '000.000.000-00' : pixKeyType === 'email' ? 'email@exemplo.com' : pixKeyType === 'phone' ? '(11) 99999-9999' : 'Chave aleatoria'}
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType={pixKeyType === 'email' ? 'email-address' : pixKeyType === 'phone' ? 'phone-pad' : 'default'}
+                    autoCapitalize="none"
+                  />
+
                   <View style={styles.flowActions}>
-                    <TapScale
-                      onPress={() => {
-                        hapticLight();
-                        setFlow('withdraw_select');
-                      }}
-                    >
+                    <TapScale onPress={() => { hapticLight(); setFlow('withdraw_select'); setPaymentError(null); }}>
                       <View style={styles.cancelBtn}>
                         <Text style={styles.cancelBtnText}>Voltar</Text>
                       </View>
@@ -377,6 +461,32 @@ export default function WalletScreen() {
                     </TapScale>
                   </View>
                 </>
+              )}
+
+              {/* Step 3: Processing */}
+              {flow === 'withdraw_processing' && (
+                <View style={styles.processingContainer}>
+                  <ActivityIndicator size="large" color={colors.orange} />
+                  <Text style={styles.processingText}>Processando saque...</Text>
+                </View>
+              )}
+
+              {/* Step 4: Success */}
+              {flow === 'withdraw_success' && withdrawResult && (
+                <View style={styles.successContainer}>
+                  <Text style={styles.successIcon}>💸</Text>
+                  <Text style={styles.successTitle}>Saque solicitado!</Text>
+                  <Text style={styles.successAmount}>R$ {withdrawResult.amount.toFixed(2)}</Text>
+                  <Text style={styles.successSubtitle}>
+                    Transferencia via Pix para {withdrawResult.pixKey}{'\n'}
+                    Previsao: ate 24 horas
+                  </Text>
+                  <TapScale onPress={() => { setFlow('idle'); setWithdrawResult(null); setSelectedAmount(0); setPixKeyInput(''); setPaymentError(null); }}>
+                    <View style={[styles.confirmBtn, styles.withdrawConfirmBtn]}>
+                      <Text style={styles.confirmBtnText}>Fechar</Text>
+                    </View>
+                  </TapScale>
+                </View>
               )}
             </View>
           </SmoothEntry>
@@ -455,13 +565,18 @@ export default function WalletScreen() {
           </View>
         </SmoothEntry>
 
-        {transactions.map((tx, index) => (
-          <React.Fragment key={tx.id}>
-            {renderTransaction({ item: tx, index })}
-          </React.Fragment>
-        ))}
+        {transactions.length === 0 ? (
+          <EmptyState {...EMPTY_PRESETS.walletTransactions} />
+        ) : (
+          transactions.map((tx, index) => (
+            <React.Fragment key={tx.id}>
+              {renderTransaction({ item: tx, index })}
+            </React.Fragment>
+          ))
+        )}
 
         <View style={styles.bottomSpacer} />
+        </>}
       </ScrollView>
     </SafeAreaView>
   );
@@ -846,5 +961,150 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: spacing.xxl,
+  },
+
+  // Error banner
+  errorBanner: {
+    backgroundColor: colors.red + '15',
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    borderWidth: 0.5,
+    borderColor: colors.red + '30',
+  },
+  errorText: {
+    ...typography.body,
+    fontSize: 12,
+    color: colors.red,
+    textAlign: 'center' as const,
+  },
+
+  // Processing
+  processingContainer: {
+    alignItems: 'center' as const,
+    paddingVertical: spacing.xxl,
+    gap: spacing.md,
+  },
+  processingText: {
+    ...typography.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+
+  // Pix section
+  pixSection: {
+    alignItems: 'center' as const,
+    gap: spacing.md,
+  },
+  pixCopyLabel: {
+    ...typography.bodySemiBold,
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+  },
+  pixCopyBox: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.bgElevated,
+    borderRadius: radius.md,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    padding: spacing.sm,
+    gap: spacing.sm,
+    width: '100%' as const,
+  },
+  pixCopyCode: {
+    ...typography.mono,
+    fontSize: 10,
+    color: colors.textMuted,
+    flex: 1,
+  },
+  pixCopyBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+  },
+  pixCopyBtnCopied: {
+    backgroundColor: colors.green,
+  },
+  pixCopyBtnText: {
+    ...typography.bodySemiBold,
+    fontSize: 11,
+    color: '#FFF',
+  },
+  pixExpiry: {
+    ...typography.mono,
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+
+  // Success
+  successContainer: {
+    alignItems: 'center' as const,
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
+  },
+  successIcon: {
+    fontSize: 48,
+    marginBottom: spacing.sm,
+  },
+  successTitle: {
+    ...typography.display,
+    fontSize: 20,
+    color: colors.textPrimary,
+  },
+  successAmount: {
+    ...typography.monoBold,
+    fontSize: 24,
+    color: colors.green,
+  },
+  successSubtitle: {
+    ...typography.body,
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    marginBottom: spacing.md,
+  },
+
+  // Pix key input
+  pixKeyTypeRow: {
+    flexDirection: 'row' as const,
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  pixKeyTypeBtn: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    alignItems: 'center' as const,
+  },
+  pixKeyTypeBtnActive: {
+    backgroundColor: colors.primary + '15',
+    borderColor: colors.primary + '40',
+  },
+  pixKeyTypeText: {
+    ...typography.bodySemiBold,
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  pixKeyTypeTextActive: {
+    color: colors.primary,
+  },
+  pixKeyInput: {
+    backgroundColor: colors.bgElevated,
+    borderRadius: radius.md,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    marginTop: spacing.md,
+    ...typography.body,
+    fontSize: 14,
+    color: colors.textPrimary,
   },
 });

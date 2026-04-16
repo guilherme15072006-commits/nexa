@@ -17,6 +17,11 @@ end
 target 'nexa' do
   config = use_native_modules!
 
+  # Firebase
+  pod 'FirebaseCore'
+  pod 'FirebaseAnalytics'
+  pod 'FirebaseCrashlytics'
+
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.
