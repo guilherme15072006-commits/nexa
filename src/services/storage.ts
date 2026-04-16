@@ -93,3 +93,4 @@ export const cache = {
     if (mmkv) mmkv.clearAll();
   },
 };
+// test
