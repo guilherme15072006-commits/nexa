@@ -702,6 +702,15 @@ interface NexaStore {
   lastActiveAt: number;
   daysSinceLastVisit: number;
   streakAtRisk: boolean;
+  comebackBonusAvailable: boolean;
+  comebackMultiplier: number;
+
+  // Social moderation
+  blockedUsers: string[];
+  mutedUsers: string[];
+
+  // Bookmarks
+  savedPosts: string[];
 
   // System 6: Seasons
   currentSeason: Season;
@@ -878,6 +887,22 @@ interface NexaStore {
   search: (query: string) => void;
   clearSearch: () => void;
   updateSettings: (partial: Partial<AppSettings>) => void;
+
+  // Reactivation (Agent 21)
+  detectInactivity: () => void;
+  claimComebackBonus: () => void;
+
+  // Social moderation (Agent 5)
+  blockUser: (userId: string) => void;
+  unblockUser: (userId: string) => void;
+  muteUser: (userId: string) => void;
+  unmuteUser: (userId: string) => void;
+  isBlocked: (userId: string) => boolean;
+
+  // Bookmarks (Agent 2)
+  savePost: (postId: string) => void;
+  unsavePost: (postId: string) => void;
+  shareBetToFeed: (bet: { matchId: string; side: string; odds: number; matchLabel: string }) => void;
 }
 
 // ─── Initial state ────────────────────────────────────────────────────────────
@@ -980,6 +1005,15 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   lastActiveAt: Date.now(),
   daysSinceLastVisit: 0,
   streakAtRisk: false,
+  comebackBonusAvailable: false,
+  comebackMultiplier: 1,
+
+  // Social moderation
+  blockedUsers: [],
+  mutedUsers: [],
+
+  // Bookmarks
+  savedPosts: [],
 
   // System 6: Seasons
   currentSeason: {
@@ -2163,6 +2197,90 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   updateSettings: (partial) =>
     set((s) => ({
       settings: { ...s.settings, ...partial },
+    })),
+
+  // ─── Reactivation (Agent 21) ────────────────────────────────────────────
+
+  detectInactivity: () =>
+    set((s) => {
+      const hoursSinceActive = (Date.now() - s.lastActiveAt) / (60 * 60 * 1000);
+      const daysSince = Math.floor(hoursSinceActive / 24);
+      let comebackBonus = false;
+      let multiplier = 1;
+
+      if (daysSince >= 7) { comebackBonus = true; multiplier = 2.0; }       // 7d → 2x XP weekend
+      else if (daysSince >= 2) { comebackBonus = true; multiplier = 1.5; }  // 48h → 1.5x
+      else if (daysSince >= 1) { comebackBonus = true; multiplier = 1.2; }  // 24h → 1.2x + mission
+
+      return {
+        daysSinceLastVisit: daysSince,
+        streakAtRisk: hoursSinceActive >= 12 && s.user.streak > 0,
+        comebackBonusAvailable: comebackBonus,
+        comebackMultiplier: multiplier,
+        lastActiveAt: Date.now(),
+      };
+    }),
+
+  claimComebackBonus: () =>
+    set((s) => {
+      if (!s.comebackBonusAvailable) return {};
+      const bonusXP = s.daysSinceLastVisit >= 7 ? 500 : s.daysSinceLastVisit >= 2 ? 300 : 100;
+      return {
+        comebackBonusAvailable: false,
+        comebackMultiplier: 1,
+        user: { ...s.user, xp: s.user.xp + bonusXP, coins: s.user.coins + 200 },
+      };
+    }),
+
+  // ─── Social Moderation (Agent 5) ──────────────────────────────────────────
+
+  blockUser: (userId) =>
+    set((s) => ({
+      blockedUsers: s.blockedUsers.includes(userId) ? s.blockedUsers : [...s.blockedUsers, userId],
+    })),
+
+  unblockUser: (userId) =>
+    set((s) => ({
+      blockedUsers: s.blockedUsers.filter(id => id !== userId),
+    })),
+
+  muteUser: (userId) =>
+    set((s) => ({
+      mutedUsers: s.mutedUsers.includes(userId) ? s.mutedUsers : [...s.mutedUsers, userId],
+    })),
+
+  unmuteUser: (userId) =>
+    set((s) => ({
+      mutedUsers: s.mutedUsers.filter(id => id !== userId),
+    })),
+
+  isBlocked: (userId) => get().blockedUsers.includes(userId),
+
+  // ─── Bookmarks (Agent 2) ──────────────────────────────────────────────────
+
+  savePost: (postId) =>
+    set((s) => ({
+      savedPosts: s.savedPosts.includes(postId) ? s.savedPosts : [...s.savedPosts, postId],
+    })),
+
+  unsavePost: (postId) =>
+    set((s) => ({
+      savedPosts: s.savedPosts.filter(id => id !== postId),
+    })),
+
+  shareBetToFeed: (bet) =>
+    set((s) => ({
+      feed: [{
+        id: `share_${Date.now()}`,
+        user: { id: s.user.id, username: s.user.username, avatar: s.user.avatar, tier: 'bronze' as TipsterTier },
+        type: 'pick' as PostType,
+        content: `Apostei ${bet.side} em ${bet.matchLabel} @ ${bet.odds.toFixed(2)}`,
+        likes: 0,
+        comments: 0,
+        copies: 0,
+        isLiked: false,
+        createdAt: new Date().toISOString(),
+      } as unknown as FeedPost, ...s.feed],
     })),
 
   // ─── Lives, Marketplace, Mini-Games ──────────────────────────────────────

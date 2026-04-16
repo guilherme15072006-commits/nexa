@@ -35,6 +35,7 @@ const ReferralScreen = lazy(() => import('../screens/ReferralScreen'));
 const AdminDashboardScreen = lazy(() => import('../screens/AdminDashboardScreen'));
 const KYCScreen = lazy(() => import('../screens/KYCScreen'));
 const SeasonScreen = lazy(() => import('../screens/SeasonScreen'));
+const LiveArenaScreen = lazy(() => import('../screens/LiveArenaScreen'));
 
 // ─── Suspense fallback ──────────────────────────────────────────────────────
 function LazyFallback() {
@@ -147,6 +148,7 @@ export default function RootNavigator() {
       <Stack.Screen name="AdminDashboard" component={withErrorBoundary(AdminDashboardScreen, 'Admin')} />
       <Stack.Screen name="KYC" component={withErrorBoundary(KYCScreen, 'Verificação')} />
       <Stack.Screen name="Season" component={withErrorBoundary(SeasonScreen, 'Temporada')} />
+      <Stack.Screen name="LiveArena" component={withErrorBoundary(LiveArenaScreen, 'Live Arena')} />
     </Stack.Navigator>
   );
 }

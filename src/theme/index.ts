@@ -183,5 +183,61 @@ export const glass = {
   },
 } as const;
 
-const theme = { colors, typography, spacing, radius, shadows, anim, glass };
+// ── Gradients (Linear/Vercel pattern) ─────────────────────────
+// Use with react-native-linear-gradient or as reference colors
+
+export const gradients = {
+  primary:   ['#1A0A4A', '#7C5CFC', '#C084FC'] as const,
+  gold:      ['#8B6914', '#F5C842', '#FFE88A'] as const,
+  fire:      ['#4A0000', '#FF4D6A', '#FF8C42'] as const,
+  success:   ['#003D2E', '#00C896', '#7DFFC4'] as const,
+  dark:      ['#0D0B14', '#16131F', '#1E1A2E'] as const,
+  accent:    ['#7C5CFC', '#FF4D6A'] as const,
+} as const;
+
+// ── Opacity tokens (Figma variables pattern) ──────────────────
+
+export const opacity = {
+  ghost:     0.06,
+  whisper:   0.10,
+  subtle:    0.20,
+  muted:     0.40,
+  medium:    0.60,
+  prominent: 0.80,
+  opaque:    1.00,
+} as const;
+
+// ── Z-Index system (stacking order) ──────────────────────────
+
+export const zIndex = {
+  base:      0,
+  card:      10,
+  sticky:    100,
+  overlay:   400,
+  drawer:    600,
+  modal:     800,
+  toast:     900,
+  tooltip:   1000,
+} as const;
+
+// ── Easing curves (Linear app pattern) ───────────────────────
+
+export const easing = {
+  entrance:    [0.0, 0.0, 0.2, 1.0] as const,   // ease-out: elements appearing
+  exit:        [0.4, 0.0, 1.0, 1.0] as const,   // ease-in: elements leaving
+  interactive: [0.4, 0.0, 0.2, 1.0] as const,   // ease-in-out: user-driven
+  bounce:      [0.175, 0.885, 0.32, 1.275] as const, // overshoot: celebrations
+  smooth:      [0.25, 0.1, 0.25, 1.0] as const,  // standard: most animations
+} as const;
+
+// ── Breakpoints (responsive design) ──────────────────────────
+
+export const breakpoints = {
+  sm: 480,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
+} as const;
+
+const theme = { colors, typography, spacing, radius, shadows, anim, glass, gradients, opacity, zIndex, easing, breakpoints };
 export default theme;

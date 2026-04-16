@@ -28,6 +28,7 @@ import Reanimated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Avatar, Card, LiveBadge, Pill } from '../components/ui';
+import { OddsFlashBg, UrgencyPulse } from '../components/MicroInteractions';
 import { SkeletonList } from '../components/SkeletonLoader';
 import {
   AvatarStack,
@@ -186,24 +187,26 @@ function BetOddsBtn({ label, odds, selected, movement, onPress, accessibilityLab
 
   return (
     <Reanimated.View style={[{ flex: 1 }, scaleStyle]}>
-      <TouchableOpacity
-        style={[styles.betOddsBtn, selected && styles.betOddsBtnSelected]}
-        onPress={handlePress}
-        activeOpacity={0.8}
-        accessibilityLabel={accessibilityLabel}
-      >
-        <Text style={styles.betOddsBtnLabel}>{label}</Text>
-        <View style={styles.betOddsBtnValueRow}>
-          <Text style={[styles.betOddsBtnOdds, selected && styles.betOddsBtnOddsSelected]}>
-            {odds.toFixed(2)}
-          </Text>
-          {movement !== undefined && movement !== 0 && (
-            <Text style={movement === -1 ? styles.movementDown : styles.movementUp}>
-              {movement === -1 ? '▼' : '▲'}
+      <OddsFlashBg movement={movement ?? 0}>
+        <TouchableOpacity
+          style={[styles.betOddsBtn, selected && styles.betOddsBtnSelected]}
+          onPress={handlePress}
+          activeOpacity={0.8}
+          accessibilityLabel={accessibilityLabel}
+        >
+          <Text style={styles.betOddsBtnLabel}>{label}</Text>
+          <View style={styles.betOddsBtnValueRow}>
+            <Text style={[styles.betOddsBtnOdds, selected && styles.betOddsBtnOddsSelected]}>
+              {odds.toFixed(2)}
             </Text>
-          )}
-        </View>
-      </TouchableOpacity>
+            {movement !== undefined && movement !== 0 && (
+              <Text style={movement === -1 ? styles.movementDown : styles.movementUp}>
+                {movement === -1 ? '▼' : '▲'}
+              </Text>
+            )}
+          </View>
+        </TouchableOpacity>
+      </OddsFlashBg>
     </Reanimated.View>
   );
 }

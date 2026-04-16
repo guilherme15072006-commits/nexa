@@ -15,6 +15,7 @@ import { useNexaStore, type SubscriptionTier } from '../store/nexaStore';
 import { hapticLight, hapticSuccess, hapticError } from '../services/haptics';
 import { purchaseSubscription, restorePurchases, isTrialAvailable, getDaysRemaining, PRODUCT_IDS } from '../services/billing';
 import { trackSubscriptionFunnel, trackSubscriptionRevenue } from '../services/analytics';
+import { TrustBadgeRow } from '../components/MicroInteractions';
 
 // ─── Tier Definitions ────────────────────────────────────────────────────────
 
@@ -454,6 +455,8 @@ export default function SubscriptionScreen() {
             </View>
           </TapScale>
         </SmoothEntry>
+
+        <TrustBadgeRow />
 
         {/* Purchasing overlay */}
         {purchasing && (

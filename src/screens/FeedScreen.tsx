@@ -34,6 +34,7 @@ import NarrativeCardComponent from '../components/NarrativeCard';
 import { SkeletonList } from '../components/SkeletonLoader';
 import { SharedView, SharedText, sharedTags } from '../components/SharedTransition';
 import { colors, radius, spacing, typography } from '../theme';
+import { ParticleBurst, StreakFire, FloatingText } from '../components/MicroInteractions';
 import {
   FeedPost,
   FeedPostMatch,
@@ -92,26 +93,31 @@ function CheckinCard() {
   const successStyle = useAnimatedStyle(() => ({ opacity: successOpacity.value }));
   const cardStyle    = useAnimatedStyle(() => ({ opacity: cardOpacity.value }));
 
+  const [showBurst, setShowBurst] = useState(false);
+
   function handleClaim() {
     claimCheckin();
     setShowXP(true);
+    setShowBurst(true);
     hapticSuccess();
     playCheckin();
     cardOpacity.value = withTiming(0, { duration: 200 });
     successOpacity.value = withTiming(1, { duration: 300 });
+    setTimeout(() => setShowBurst(false), 1200);
   }
 
   return (
     <SmoothEntry delay={100}>
       <Card style={styles.checkinCard}>
         <FloatingXP amount={50} visible={showXP} onDone={() => setShowXP(false)} style={{ top: -8 }} />
+        <ParticleBurst active={showBurst} />
 
         {/* Success overlay */}
         <Reanimated.View
           style={[styles.checkinSuccess, successStyle]}
           pointerEvents={claimed ? 'auto' : 'none'}
         >
-          <Text style={styles.checkinSuccessEmoji}>🔥</Text>
+          <StreakFire streak={streak} active={claimed} />
           <Text style={styles.checkinSuccessTitle}>Check-in feito!</Text>
           <Text style={styles.checkinSuccessReward}>+50 XP  ·  +100 🪙  ·  Dia {streak}</Text>
         </Reanimated.View>

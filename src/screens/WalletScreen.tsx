@@ -21,6 +21,7 @@ import { trackDepositFunnel, trackDeposit } from '../services/analytics';
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from '../services/haptics';
 import { playXPGain } from '../services/sounds';
 import { createPixDeposit, requestWithdraw, checkPaymentStatus, type PixPayment, type WithdrawRequest } from '../services/payment';
+import { TrustBadgeRow, SuccessCheckmark } from '../components/MicroInteractions';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -342,6 +343,7 @@ export default function WalletScreen() {
                     <Text style={styles.pixExpiry}>
                       Expira em 30 minutos
                     </Text>
+                    <TrustBadgeRow />
                   </View>
                   <View style={styles.flowActions}>
                     <TapScale onPress={() => { hapticLight(); setFlow('idle'); setPixPayment(null); setPaymentError(null); }}>
@@ -361,7 +363,7 @@ export default function WalletScreen() {
               {/* Step 4: Success */}
               {flow === 'deposit_success' && (
                 <View style={styles.successContainer}>
-                  <Text style={styles.successIcon}>✅</Text>
+                  <SuccessCheckmark active />
                   <Text style={styles.successTitle}>Deposito confirmado!</Text>
                   <Text style={styles.successAmount}>R$ {pixPayment?.amount.toFixed(2)}</Text>
                   <Text style={styles.successSubtitle}>Saldo atualizado na sua carteira.</Text>
