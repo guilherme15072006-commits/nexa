@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx react-native *)",
+      "Bash(./gradlew.bat app:installDebug -PreactNativeDevServerPort=8081)",
+      "WebSearch",
+      "Read(//c/Users/Leonardo/Desktop/site/**)",
+      "Read(//c/Users/Leonardo/Área de Trabalho/**)",
+      "Read(//c/Users/Leonardo/OneDrive/Área de Trabalho/**)",
+      "Read(//c/Users/Leonardo/OneDrive/Desktop/**)",
+      "Bash(claude mcp *)",
+      "Bash(npx tsc *)",
+      "Bash(wc -l /c/Users/Leonardo/nexa/src/screens/*.tsx /c/Users/Leonardo/nexa/src/components/*.tsx)",
+      "Bash(grep *)",
+      "Bash(ls *)",
+      "Bash(wc *)",
+      "Bash(netstat -ano)",
+      "Bash(sed -i '1i\\\\```tsx' \"/c/Users/Leonardo/Desktop/site/nexa/App/App.md\")",
+      "Bash(sed -i '1i\\\\```json' \"/c/Users/Leonardo/Desktop/site/nexa/App/package.md\")",
+      "Bash(sed -i '1i\\\\```sql' \"/c/Users/Leonardo/Desktop/site/nexa/App/schema.md\")",
+      "Bash(sed -i '1i\\\\```ts' \"/c/Users/Leonardo/Desktop/site/nexa/App/config/env.md\")",
+      "Bash(sed -i '1i\\\\```ts' \"/c/Users/Leonardo/Desktop/site/nexa/App/hooks/useOddsEngine.md\")",
+      "Bash(sed -i '1i\\\\```ts' \"/c/Users/Leonardo/Desktop/site/nexa/App/services/oddsApi.md\")",
+      "Bash(sed -i '1i\\\\```tsx' \"/c/Users/Leonardo/Desktop/site/nexa/App/screens/KYCScreen.md\")",
+      "Bash(sed -i '1i\\\\```tsx' \"/c/Users/Leonardo/Desktop/site/nexa/App/screens/WalletScreen.md\")",
+      "Bash(sed -i '1i\\\\```ts' \"/c/Users/Leonardo/Desktop/site/nexa/App/store/nexaStore.md\")",
+      "Bash(sed -i '1i\\\\```tsx' \"/c/Users/Leonardo/Desktop/site/nexa/App/navigation/TabNavigator.md\")",
+      "Bash(sed -i '1i\\\\```tsx' \"/c/Users/Leonardo/Desktop/site/nexa/App/screens/FeedScreen.md\")",
+      "Bash(sed -i '1i\\\\```tsx' \"/c/Users/Leonardo/Desktop/site/nexa/App/screens/RankingScreen.md\")",
+      "Bash(sed -i '1i\\\\```tsx' \"/c/Users/Leonardo/Desktop/site/nexa/App/screens/ApostasScreen.md\")",
+      "Bash(node *)",
+      "Bash(npm install *)"
+    ]
+  }
+}

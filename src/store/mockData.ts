@@ -2051,6 +2051,8 @@ const mkUser = (
   dna: { style: '', strengths: [], riskProfile: 'moderate' },
   state: 'motivated',
   hasCompletedOnboarding: true,
+  kycCompleted: false,
+  kycData: null,
 });
 
 export const MOCK_LEADERBOARD: User[] = [

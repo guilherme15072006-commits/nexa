@@ -29,6 +29,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors, radius, spacing, typography } from '../theme';
 import { TapScale, SmoothEntry, PulsingDot } from '../components/LiveComponents';
+
+let VideoPlayer: any = null;
+try { VideoPlayer = require('react-native-video').default; } catch {}
 import { Card, Avatar, Pill } from '../components/ui';
 import { hapticLight, hapticMedium, hapticSuccess } from '../services/haptics';
 import { liveArena, type LiveBetMarket, type LiveChatMessage, type MomentumState, type ArenaTab } from '../services/live';
@@ -53,9 +56,21 @@ function StreamHeader() {
     <View style={styles.streamHeader}>
       {/* Video placeholder */}
       <View style={styles.videoContainer}>
-        <View style={styles.videoPlaceholder}>
-          <Text style={styles.videoPlaceholderText}>LIVE</Text>
-        </View>
+        {VideoPlayer && stream.streamUrl ? (
+          <VideoPlayer
+            source={{ uri: stream.streamUrl }}
+            style={styles.videoPlayer}
+            resizeMode="cover"
+            paused={false}
+            repeat={false}
+            controls={false}
+            muted={false}
+          />
+        ) : (
+          <View style={styles.videoPlaceholder}>
+            <Text style={styles.videoPlaceholderText}>LIVE</Text>
+          </View>
+        )}
 
         {/* Overlay: viewer count + live badge */}
         <View style={styles.videoOverlay}>
@@ -345,6 +360,7 @@ const styles = StyleSheet.create({
   // Stream
   streamHeader: {},
   videoContainer: { aspectRatio: 16 / 9, backgroundColor: '#000', position: 'relative' },
+  videoPlayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   videoPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   videoPlaceholderText: { ...typography.monoBold, fontSize: 24, color: colors.textMuted, letterSpacing: 4 },
   videoOverlay: { position: 'absolute', top: spacing.sm, left: spacing.sm, right: spacing.sm, flexDirection: 'row', justifyContent: 'space-between' },

@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Clipboard,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,6 +21,10 @@ import { hapticLight, hapticMedium, hapticSuccess, hapticError } from '../servic
 import { playXPGain } from '../services/sounds';
 import { createPixDeposit, requestWithdraw, checkPaymentStatus, type PixPayment, type WithdrawRequest } from '../services/payment';
 import { TrustBadgeRow, SuccessCheckmark } from '../components/MicroInteractions';
+import ClipboardNew from '@react-native-clipboard/clipboard';
+
+let QRCodeComponent: any = null;
+try { QRCodeComponent = require('react-native-qrcode-svg').default; } catch {}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -126,7 +129,7 @@ export default function WalletScreen() {
 
   const handleCopyPixCode = useCallback(() => {
     if (!pixPayment) return;
-    Clipboard.setString(pixPayment.pixCopyPaste);
+    ClipboardNew.setString(pixPayment.pixCopyPaste);
     hapticSuccess();
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -327,7 +330,11 @@ export default function WalletScreen() {
                   <Text style={styles.flowTitle}>Pague via Pix</Text>
                   <View style={styles.pixSection}>
                     <View style={styles.qrBox}>
-                      <Text style={styles.qrPlaceholder}>[ QR Code Pix ]</Text>
+                      {QRCodeComponent && pixPayment.pixCopyPaste ? (
+                        <QRCodeComponent value={pixPayment.pixCopyPaste} size={160} color="#F0EDF8" backgroundColor="#16131F" />
+                      ) : (
+                        <Text style={styles.qrPlaceholder}>[ QR Code Pix ]</Text>
+                      )}
                     </View>
                     <Text style={styles.pixAmount}>R$ {pixPayment.amount.toFixed(2)}</Text>
 

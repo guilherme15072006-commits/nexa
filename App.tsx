@@ -19,7 +19,13 @@ import { useSupabaseSync } from './src/hooks/useSupabaseSync';
 import { useOddsEngine } from './src/hooks/useOddsEngine';
 import { setupPushNotifications, teardownPushNotifications } from './src/services/pushNotifications';
 import { initFirebaseServices, setFirebaseUser } from './src/services/firebaseAnalytics';
+import { initErrorTracking } from './src/services/errorTracking';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './src/services/queryClient';
 import LoginScreen from './src/screens/LoginScreen';
+
+let ToastMessage: any = null;
+try { ToastMessage = require('react-native-toast-message').default; } catch {}
 
 function AppContent() {
   const hasCompletedOnboarding = useNexaStore(s => s.user.hasCompletedOnboarding);
@@ -171,6 +177,9 @@ function SplashScreen() {
   );
 }
 
+// Initialize error tracking (Sentry)
+initErrorTracking();
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -214,13 +223,16 @@ export default function App() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ErrorBoundary>
-        <SafeAreaProvider>
-          <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
-          <AppContent />
-        </SafeAreaProvider>
-      </ErrorBoundary>
-    </GestureHandlerRootView>
+    <QueryClientProvider client={queryClient}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ErrorBoundary>
+          <SafeAreaProvider>
+            <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
+            <AppContent />
+            {ToastMessage && <ToastMessage />}
+          </SafeAreaProvider>
+        </ErrorBoundary>
+      </GestureHandlerRootView>
+    </QueryClientProvider>
   );
 }
