@@ -10,15 +10,15 @@ A NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado par
 
 ## Status do projeto
 
-**Versão:** `0.2.0` · **Estágio:** Protótipo funcional de front-end (UI/UX completa, dados mockados)
+**Versão:** `0.2.0` · **Estágio:** App funcional ponta a ponta — UI/UX completa + dados reais no Supabase (Postgres)
 
-> Verificado nesta análise: `tsc --noEmit` passa **limpo** e os **86 testes passam**.
+> Verificado nesta análise: `tsc --noEmit` passa **limpo** e os **87 testes passam**.
 
 | Camada | Estado | Observação |
 |---|---|---|
 | App React Native (UI/UX) | ✅ Funcional | 5 telas + navegação + design system completo |
-| Estado global (Zustand) | ✅ Funcional | Store sem mocks de leitura — tudo vem do Supabase |
-| **Dados reais (Supabase)** | 🟢 Fases 1–4* | Leituras 100% no Postgres. Escritas: **check-in e like já persistem** (RPC); follow/aposta/missões pendentes |
+| Estado global (Zustand) | ✅ Funcional | Store sem mocks — leituras e escritas no Supabase |
+| **Dados reais (Supabase)** | ✅ Fases 1–4 | Leituras 100% no Postgres. Escritas persistidas: **check-in, like, follow, missões e apostas** |
 | Mecânicas de retenção | ✅ Funcional | Check-in, missões, copy bet, quase-ganho, pressão social |
 | Analytics (Amplitude) | ✅ Integrado | Usado pelo store; modo log se sem API key |
 | Linear (bug/feature/jogo responsável) | ✅ Integrado | Usado pelo store; modo no-op se sem API key |
@@ -36,11 +36,16 @@ A NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado par
 
 Toda a experiência de **front-end** está implementada e o app é navegável de ponta a ponta.
 
-> **Migração de dados (em andamento):** os mocks estão sendo substituídos por dados reais do **Supabase** (Postgres), carregados no mount via `App.tsx → hydrate()` (camada em `src/services/supabase.ts`).
+> **Migração de dados (concluída):** os mocks foram substituídos por dados reais do **Supabase** (Postgres), carregados no mount via `App.tsx → hydrate()` (camada em `src/services/supabase.ts`).
 > - **Fase 1 ✅** — `matches` e `feed_posts`.
 > - **Fase 2 ✅** — `tipsters`, `missions`, `clans` (lista do ranking) e `leaderboard` (derivado de `users`).
 > - **Fase 3 ✅** — usuário logado real, carregado por **id fixo** (`SUPABASE_DEMO_USER_ID`) de uma linha em `users`. Auth (login) foi **adiado**.
-> - **Fase 4 🟡 (em andamento)** — escritas persistidas via RPCs `SECURITY DEFINER`: **check-in** (`app_demo_checkin`) e **like** (`app_demo_toggle_like`) já gravam no banco; o `isLiked` é hidratado de `post_likes` ao abrir o feed. Pendentes: follow, apostas e progresso de missões.
+> - **Fase 4 ✅** — escritas persistidas via RPCs `SECURITY DEFINER` (com guarda que restringe ao usuário demo):
+>   - **check-in** (`app_demo_checkin`) → atualiza xp/coins/streak/`last_checkin_date`;
+>   - **like** (`app_demo_toggle_like`) → `post_likes` + `feed_posts.likes` (e `isLiked` é hidratado ao abrir o feed);
+>   - **follow** (`app_demo_follow_toggle`) → tabela `follows` + `tipsters.followers`;
+>   - **missões** (`app_demo_award_progress` → reusa `fn_award_mission_progress`) → progresso real em `user_missions`;
+>   - **apostas** (`app_demo_place_bet` → reusa `fn_place_bet`) → insere em `bets`, debita saldo e valida **KYC, mercado aberto e limites de jogo responsável**.
 
 ### Onboarding (`OnboardingScreen`)
 - 5 passos animados (boas-vindas → aposta simulada → missão desbloqueada → tipsters → entrada).
@@ -85,7 +90,8 @@ Toda a experiência de **front-end** está implementada e o app é navegável de
 
 ## O que ainda não está pronto
 
-- **Migração de dados:** leituras 100% no Supabase (Fases 1–3). **Escritas (Fase 4, em andamento):** check-in e like já persistem via RPC; **pendentes** follow, apostas (`bets`/`bet_slips`) e progresso de missões (`user_missions`) — esses ainda só alteram o estado local. **Auth/login adiado:** usuário por id fixo (`SUPABASE_DEMO_USER_ID`).
+- **Auth/login adiado:** o usuário é fixo (`SUPABASE_DEMO_USER_ID`) e as RPCs de escrita têm guarda que só aceita esse id — ao implementar login real, trocar a guarda por `auth.uid()`.
+- **Apostas (demo):** sem campo de valor na betslip, cada seleção usa um stake fixo (`DEMO_BET_STAKE = R$5`). O saldo é debitado de verdade em `users.balance`.
 - **Legado:** `src/services/api.ts` (client REST para `api.nexa.bet`) continua tipado mas **não é usado** — o backend ativo passou a ser o Supabase.
 - **Backend:** os Workers (`workers/index.ts`) têm o roteador e as rotas, mas retornam arrays vazios / placeholders. KV, D1, R2 e Durable Objects estão comentados no `wrangler.toml`.
 - **Builds nativas:** não existem as pastas `android/` e `ios/`, então `run-android`/`run-ios` e o job de APK no CI falharão até que os projetos nativos sejam gerados.
@@ -161,7 +167,7 @@ cp .env.example .env   # preencha as chaves que for usar (opcional em dev)
 | `npm run ios` | `react-native run-ios` | Roda no iOS *(requer pasta `ios/`)* |
 | `npm run android` | `react-native run-android` | Roda no Android *(requer pasta `android/`)* |
 | `npm run typecheck` | `tsc --noEmit` | Checagem de tipos |
-| `npm test` | `jest` | Roda os testes (86 testes) |
+| `npm test` | `jest` | Roda os testes (87 testes) |
 | `npm run workers:dev` | `wrangler dev` | Backend Workers local |
 | `npm run workers:deploy` | `wrangler deploy` | Deploy do backend |
 | `npm run site:dev` | `npx serve site` | Serve a landing page local |
@@ -292,7 +298,7 @@ npm test
 - `__tests__/store.test.ts` — valida todas as actions do Zustand (XP, check-in, like, copy bet, follow, betslip, onboarding, odds…).
 - `__tests__/structure.test.ts` — valida a estrutura de pastas, resolução de imports e regressões de bugs conhecidos.
 
-Estado atual verificado: **86 testes passando**, typecheck limpo.
+Estado atual verificado: **87 testes passando**, typecheck limpo.
 
 ---
 

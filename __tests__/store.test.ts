@@ -42,6 +42,9 @@ jest.mock('../src/services/supabase', () => ({
   fetchCurrentUser: jest.fn().mockResolvedValue(null),
   rpcCheckin: jest.fn().mockResolvedValue({ streak: 8, newXp: 2390, newCoins: 1920, already: false }),
   rpcToggleLike: jest.fn().mockResolvedValue({ liked: true, likes: 1 }),
+  rpcToggleFollow: jest.fn().mockResolvedValue({ following: true, followers: 100 }),
+  rpcAwardMissionProgress: jest.fn().mockResolvedValue(0),
+  rpcPlaceBet: jest.fn().mockResolvedValue({ betId: 'bet1', newBalance: 445 }),
 }));
 
 import { useNexaStore, Match, FeedPost, Tipster } from '../src/store/nexaStore';
@@ -82,8 +85,8 @@ const TEST_FEED: FeedPost[] = [
 ];
 
 const TEST_TIPSTERS: Tipster[] = [
-  { id: 't1', username: 'GabrielP', avatar: 'GP', winRate: 78, roi: 22.4, followers: 4820, streak: 12, tier: 'elite', isFollowing: false },
-  { id: 't2', username: 'MarFutebol', avatar: 'MF', winRate: 71, roi: 15.8, followers: 2310, streak: 7, tier: 'gold', isFollowing: false },
+  { id: 't1', userId: 'uu1', username: 'GabrielP', avatar: 'GP', winRate: 78, roi: 22.4, followers: 4820, streak: 12, tier: 'elite', isFollowing: false },
+  { id: 't2', userId: 'uu2', username: 'MarFutebol', avatar: 'MF', winRate: 71, roi: 15.8, followers: 2310, streak: 7, tier: 'gold', isFollowing: false },
 ];
 
 describe('nexaStore', () => {
@@ -164,13 +167,16 @@ describe('nexaStore', () => {
     expect(supa.rpcCheckin).toHaveBeenCalled();
   });
 
-  test('followTipster alterna isFollowing', () => {
+  test('followTipster alterna isFollowing e persiste', () => {
     const tipster = useNexaStore.getState().tipsters[0];
     const wasFol = tipster.isFollowing;
 
     useNexaStore.getState().followTipster(tipster.id);
     const after = useNexaStore.getState().tipsters.find(t => t.id === tipster.id)!;
     expect(after.isFollowing).toBe(!wasFol);
+    // atualiza a lista de "seguindo" do usuario e persiste no backend
+    expect(useNexaStore.getState().user.following.includes(tipster.userId)).toBe(!wasFol);
+    expect(supa.rpcToggleFollow).toHaveBeenCalledWith(tipster.userId);
   });
 
   test('selectOdd registra selecao e popula betslip', () => {
@@ -193,6 +199,13 @@ describe('nexaStore', () => {
     expect(state.betslip.length).toBe(0);
     expect(state.betslipVisible).toBe(false);
     expect(state.user.xp).toBe(xpBefore + 20);
+  });
+
+  test('placeBet persiste cada selecao via rpcPlaceBet', () => {
+    const match = useNexaStore.getState().matches[0];
+    useNexaStore.getState().selectOdd(match.id, 'home');
+    useNexaStore.getState().placeBet();
+    expect(supa.rpcPlaceBet).toHaveBeenCalledWith(match.id, 'home', expect.any(Number));
   });
 
   test('completeOnboarding seta isOnboarded', () => {

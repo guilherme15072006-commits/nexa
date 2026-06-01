@@ -225,6 +225,7 @@ export async function fetchFeed(): Promise<FeedPost[]> {
 
 interface TipsterRow {
   id: string;
+  user_id: string | null;
   username: string;
   avatar_url: string | null;
   win_rate: number | string;
@@ -282,6 +283,7 @@ function asPercent(v: number | string | null | undefined): number {
 export function mapTipster(row: TipsterRow): Tipster {
   return {
     id: row.id,
+    userId: row.user_id ?? '',
     username: row.username,
     avatar: initials(row.username),
     winRate: asPercent(row.win_rate),
@@ -293,18 +295,25 @@ export function mapTipster(row: TipsterRow): Tipster {
   };
 }
 
-export function mapMission(row: MissionRow): Mission {
+interface UserMissionRow {
+  mission_id: string;
+  progress: number | null;
+  completed: boolean | null;
+  revealed: boolean | null;
+}
+
+export function mapMission(row: MissionRow, um?: UserMissionRow): Mission {
   const isHidden = row.type === 'hidden';
   return {
     id: row.id,
     title: isHidden ? (row.hidden_title ?? row.title) : row.title,
     description: row.description,
     xpReward: row.xp_reward,
-    progress: 0,
+    progress: um?.progress ?? 0,
     target: row.target ?? 1,
     type: (['daily', 'weekly', 'hidden'].includes(row.type) ? row.type : 'daily') as Mission['type'],
     icon: isHidden ? 'M' : (row.title?.[0] ?? 'M').toUpperCase(),
-    completed: false,
+    completed: um?.completed ?? false,
   };
 }
 
@@ -354,12 +363,15 @@ export async function fetchTipsters(): Promise<Tipster[]> {
 }
 
 export async function fetchMissions(): Promise<Mission[]> {
-  const { data, error } = await supabase
-    .from('missions')
-    .select('*')
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data as MissionRow[]).map(mapMission);
+  const [missionsRes, umRes] = await Promise.all([
+    supabase.from('missions').select('*').order('created_at', { ascending: true }),
+    supabase.from('user_missions').select('mission_id, progress, completed, revealed').eq('user_id', CURRENT_USER_ID),
+  ]);
+  if (missionsRes.error) throw missionsRes.error;
+  const progressByMission = new Map<string, UserMissionRow>(
+    (umRes.data as UserMissionRow[] | null ?? []).map(um => [um.mission_id, um]),
+  );
+  return (missionsRes.data as MissionRow[]).map(row => mapMission(row, progressByMission.get(row.id)));
 }
 
 export async function fetchClans(): Promise<Clan[]> {
@@ -418,14 +430,26 @@ export function mapCurrentUser(row: CurrentUserRow): User {
   };
 }
 
-export async function fetchCurrentUser(id: string = CURRENT_USER_ID): Promise<User | null> {
+export async function fetchFollowingIds(userId: string = CURRENT_USER_ID): Promise<string[]> {
   const { data, error } = await supabase
-    .from('users')
-    .select('*, clans(name)')
-    .eq('id', id)
-    .maybeSingle();
-  if (error) throw error;
-  return data ? mapCurrentUser(data as unknown as CurrentUserRow) : null;
+    .from('follows')
+    .select('following_id')
+    .eq('follower_id', userId);
+  if (error) return [];
+  return (data as Array<{ following_id: string }>).map(r => r.following_id);
+}
+
+export async function fetchCurrentUser(id: string = CURRENT_USER_ID): Promise<User | null> {
+  const [res, following] = await Promise.all([
+    supabase.from('users').select('*, clans(name)').eq('id', id).maybeSingle(),
+    fetchFollowingIds(id),
+  ]);
+  if (res.error) throw res.error;
+  if (!res.data) return null;
+  const user = mapCurrentUser(res.data as unknown as CurrentUserRow);
+  // Fonte de verdade do "seguindo" é a tabela follows
+  user.following = following;
+  return user;
 }
 
 // =====================================================
@@ -443,4 +467,23 @@ export async function rpcToggleLike(postId: string): Promise<{ liked: boolean; l
   const { data, error } = await supabase.rpc('app_demo_toggle_like', { p_user_id: CURRENT_USER_ID, p_post_id: postId });
   if (error) throw error;
   return data as { liked: boolean; likes: number };
+}
+
+export async function rpcToggleFollow(targetUserId: string): Promise<{ following: boolean; followers: number }> {
+  const { data, error } = await supabase.rpc('app_demo_follow_toggle', { p_user_id: CURRENT_USER_ID, p_target_user_id: targetUserId });
+  if (error) throw error;
+  return data as { following: boolean; followers: number };
+}
+
+export async function rpcAwardMissionProgress(actionKey: string, count = 1): Promise<number> {
+  const { data, error } = await supabase.rpc('app_demo_award_progress', { p_action_key: actionKey, p_count: count });
+  if (error) throw error;
+  return (data as number) ?? 0;
+}
+
+export async function rpcPlaceBet(matchId: string, side: string, stake: number): Promise<{ betId: string; newBalance: number }> {
+  const { data, error } = await supabase.rpc('app_demo_place_bet', { p_match_id: matchId, p_side: side, p_stake: stake });
+  if (error) throw error;
+  const d = data as { bet_id: string; new_balance: number };
+  return { betId: d.bet_id, newBalance: d.new_balance };
 }

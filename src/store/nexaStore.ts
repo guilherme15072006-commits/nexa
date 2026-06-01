@@ -1,7 +1,19 @@
 import { create } from 'zustand';
 import { analytics, trackBet, trackXPGain, trackOddsChange, trackUserState } from '../services/analytics';
 import { linear } from '../services/linear';
-import { fetchMatches, fetchFeed, fetchTipsters, fetchMissions, fetchClans, fetchLeaderboard, fetchCurrentUser, rpcCheckin, rpcToggleLike } from '../services/supabase';
+import { fetchMatches, fetchFeed, fetchTipsters, fetchMissions, fetchClans, fetchLeaderboard, fetchCurrentUser, rpcCheckin, rpcToggleLike, rpcToggleFollow, rpcAwardMissionProgress, rpcPlaceBet } from '../services/supabase';
+
+// Stake fixo por seleção enquanto não há campo de valor na betslip (demo)
+const DEMO_BET_STAKE = 5;
+
+// Avança o progresso de missões no backend e recarrega para refletir na UI
+function awardMission(action: string, reload: () => Promise<void>) {
+  rpcAwardMissionProgress(action)
+    .then(updated => { if (updated > 0) reload(); })
+    .catch(err => {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] awardMission falhou:', err);
+    });
+}
 
 export interface User {
   id: string;
@@ -51,6 +63,7 @@ export interface Match {
 
 export interface Tipster {
   id: string;
+  userId: string;
   username: string;
   avatar: string;
   winRate: number;
@@ -231,13 +244,30 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   followTipster: (tipsterId) => {
     const state = get();
     const tipster = state.tipsters.find(t => t.id === tipsterId);
-    const willFollow = tipster && !tipster.isFollowing;
+    if (!tipster) return;
+    const willFollow = !tipster.isFollowing;
     analytics.track(willFollow ? 'tipster_followed' : 'tipster_unfollowed', {
-      tipsterId, tipsterTier: tipster?.tier, tipsterWinRate: tipster?.winRate,
+      tipsterId, tipsterTier: tipster.tier, tipsterWinRate: tipster.winRate,
     });
+    // Otimista: alterna follow, ajusta contagem e a lista de "seguindo" do usuario
     set((s) => ({
-      tipsters: s.tipsters.map(t => t.id === tipsterId ? { ...t, isFollowing: !t.isFollowing } : t),
+      tipsters: s.tipsters.map(t => t.id === tipsterId
+        ? { ...t, isFollowing: willFollow, followers: Math.max(0, t.followers + (willFollow ? 1 : -1)) }
+        : t),
+      user: {
+        ...s.user,
+        following: willFollow
+          ? Array.from(new Set([...s.user.following, tipster.userId]))
+          : s.user.following.filter(id => id !== tipster.userId),
+      },
     }));
+    // Persiste no backend (tabela follows)
+    if (tipster.userId) {
+      rpcToggleFollow(tipster.userId).catch(err => {
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcToggleFollow falhou:', err);
+      });
+      if (willFollow) awardMission('tipster_follow', () => get().loadMissions());
+    }
   },
 
   selectOdd: (matchId, side) => {
@@ -287,6 +317,7 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       .catch(err => {
         if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcCheckin falhou:', err);
       });
+    awardMission('daily_checkin', () => get().loadMissions());
   },
 
   completeOnboarding: () => {
@@ -332,13 +363,14 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   placeBet: () => {
     const state = get();
     if (state.betslip.length === 0) return;
-    const totalOdds = state.betslip.reduce((acc, b) => acc * b.odds, 1);
+    const legs = [...state.betslip];
+    const totalOdds = legs.reduce((acc, b) => acc * b.odds, 1);
     analytics.track('bet_confirmed', {
-      selections: state.betslip.length,
+      selections: legs.length,
       totalOdds,
-      matches: state.betslip.map(b => b.match).join(', '),
+      matches: legs.map(b => b.match).join(', '),
     });
-    state.betslip.forEach(b => trackBet(b.matchId, b.side, b.odds, 'direct'));
+    legs.forEach(b => trackBet(b.matchId, b.side, b.odds, 'direct'));
     trackXPGain(20, 'bet_placed');
     set({
       betslip: [],
@@ -349,6 +381,27 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       celebrating: true,
     });
     setTimeout(() => set({ celebrating: false }), 1200);
+
+    // Persiste cada seleção como aposta real (saldo, KYC e limites validados no backend)
+    (async () => {
+      let placed = 0;
+      let lastBalance: number | undefined;
+      for (const leg of legs) {
+        try {
+          const res = await rpcPlaceBet(leg.matchId, leg.side, DEMO_BET_STAKE);
+          lastBalance = res.newBalance;
+          placed += 1;
+        } catch (err) {
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcPlaceBet falhou:', err);
+        }
+      }
+      if (lastBalance !== undefined) set((s) => ({ user: { ...s.user, balance: lastBalance! } }));
+      if (placed > 0) {
+        rpcAwardMissionProgress('bet_placed', placed)
+          .then(updated => { if (updated > 0) get().loadMissions(); })
+          .catch(() => {});
+      }
+    })();
   },
 
   simulateOddsChange: () => set((s) => ({
@@ -392,7 +445,8 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   loadTipsters: async () => {
     try {
       const tipsters = await fetchTipsters();
-      set({ tipsters });
+      const following = get().user.following;
+      set({ tipsters: tipsters.map(t => ({ ...t, isFollowing: following.includes(t.userId) })) });
     } catch (err) {
       if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadTipsters falhou:', err);
     }
