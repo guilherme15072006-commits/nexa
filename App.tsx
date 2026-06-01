@@ -62,6 +62,9 @@ export default function App() {
 
     setupErrorReporting();
 
+    // Carrega dados reais do backend (Supabase) — Fase 1: matches + feed
+    useNexaStore.getState().hydrate();
+
     return () => {
       analytics.endSession();
     };

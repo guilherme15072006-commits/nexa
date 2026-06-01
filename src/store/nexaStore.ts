@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { analytics, trackBet, trackXPGain, trackOddsChange, trackUserState } from '../services/analytics';
 import { linear } from '../services/linear';
+import { fetchMatches, fetchFeed } from '../services/supabase';
 
 export interface User {
   id: string;
@@ -148,6 +149,11 @@ interface NexaStore {
   placeBet: () => void;
   simulateOddsChange: () => void;
   setCelebrating: (v: boolean) => void;
+
+  // Backend (Supabase) — Fase 1: matches + feed
+  loadMatches: () => Promise<void>;
+  loadFeed: () => Promise<void>;
+  hydrate: () => Promise<void>;
 }
 
 const MOCK_USER: User = {
@@ -177,85 +183,12 @@ const MOCK_USER: User = {
   following: ['t1', 't2'],
 };
 
-const MOCK_MATCHES: Match[] = [
-  {
-    id: 'm1', league: 'Brasileirao', leagueIcon: 'BR',
-    homeTeam: 'Flamengo', awayTeam: 'Palmeiras',
-    homeLogo: 'FLA', awayLogo: 'PAL',
-    status: 'live', minute: 72,
-    score: { home: 1, away: 1 },
-    startTime: '', odds: { home: 1.85, draw: 3.20, away: 2.10 },
-    prevOdds: { home: 1.90, draw: 3.15, away: 2.05 },
-    bettors: 247, trending: true,
-  },
-  {
-    id: 'm2', league: 'Champions League', leagueIcon: 'CL',
-    homeTeam: 'Man City', awayTeam: 'Bayern',
-    homeLogo: 'MCI', awayLogo: 'BAY',
-    status: 'live', minute: 55,
-    score: { home: 2, away: 1 },
-    startTime: '', odds: { home: 1.45, draw: 4.20, away: 3.80 },
-    prevOdds: { home: 2.10, draw: 3.40, away: 1.90 },
-    bettors: 1240, trending: true,
-  },
-  {
-    id: 'm3', league: 'La Liga', leagueIcon: 'ES',
-    homeTeam: 'Real Madrid', awayTeam: 'Barcelona',
-    homeLogo: 'RMA', awayLogo: 'BAR',
-    status: 'upcoming', startTime: '20:00',
-    odds: { home: 2.05, draw: 3.40, away: 1.95 },
-    bettors: 3820, trending: true,
-  },
-  {
-    id: 'm4', league: 'Brasileirao', leagueIcon: 'BR',
-    homeTeam: 'Sao Paulo', awayTeam: 'Corinthians',
-    homeLogo: 'SAO', awayLogo: 'COR',
-    status: 'upcoming', startTime: '19:00',
-    odds: { home: 2.20, draw: 3.10, away: 2.00 },
-    bettors: 892, trending: false,
-  },
-];
-
 const MOCK_TIPSTERS: Tipster[] = [
   { id: 't1', username: 'GabrielP', avatar: 'GP', winRate: 78, roi: 22.4, followers: 4820, streak: 12, tier: 'elite', isFollowing: true, recentPick: 'Real Madrid vence', profit: 14200 },
   { id: 't2', username: 'MarFutebol', avatar: 'MF', winRate: 71, roi: 15.8, followers: 2310, streak: 7, tier: 'gold', isFollowing: true, recentPick: 'Mais de 2.5 gols', profit: 8900 },
   { id: 't3', username: 'BetKing', avatar: 'BK', winRate: 69, roi: 12.1, followers: 1890, streak: 5, tier: 'gold', isFollowing: false, profit: 6200 },
   { id: 't4', username: 'TipZone', avatar: 'TZ', winRate: 65, roi: 9.3, followers: 1120, streak: 3, tier: 'silver', isFollowing: false, profit: 3800 },
   { id: 't5', username: 'AceTrader', avatar: 'AT', winRate: 73, roi: 18.2, followers: 3200, streak: 9, tier: 'elite', isFollowing: false, profit: 11500 },
-];
-
-const MOCK_FEED: FeedPost[] = [
-  {
-    id: 'f1', type: 'tip',
-    user: { id: 't1', username: 'GabrielP', avatar: 'GP', tier: 'elite' },
-    content: 'Real Madrid favorito em casa. Defesa solida, Mbappe em boa fase. Entrada limpa.',
-    match: MOCK_MATCHES[2], pick: 'Real Madrid vence', odds: 2.05,
-    likes: 342, comments: 87, copies: 156, isLiked: false,
-    timestamp: '8min', hot: true,
-  },
-  {
-    id: 'f2', type: 'bet',
-    user: { id: 'u2', username: 'ZetaX', avatar: 'ZX', tier: 'silver' },
-    content: 'Classico sempre imprevisivel. Apostei no empate -- odds otimas.',
-    match: MOCK_MATCHES[2], pick: 'Empate', odds: 3.40,
-    likes: 28, comments: 14, copies: 9, isLiked: true,
-    timestamp: '15min', hot: false,
-  },
-  {
-    id: 'f3', type: 'achievement',
-    user: { id: 't2', username: 'MarFutebol', avatar: 'MF', tier: 'gold' },
-    content: 'Completou 7 acertos seguidos! Sequencia incrivel -- melhor semana do mes.',
-    likes: 189, comments: 42, copies: 0, isLiked: false,
-    timestamp: '32min', hot: true,
-  },
-  {
-    id: 'f4', type: 'tip',
-    user: { id: 't3', username: 'BetKing', avatar: 'BK', tier: 'gold' },
-    content: 'Flamengo pressiona no segundo tempo. Com 1x1 e time atacando, minha leitura e virada.',
-    match: MOCK_MATCHES[0], pick: 'Flamengo vence', odds: 1.85,
-    likes: 94, comments: 31, copies: 67, isLiked: false,
-    timestamp: '1h', hot: false,
-  },
 ];
 
 const MOCK_MISSIONS: Mission[] = [
@@ -274,8 +207,8 @@ const MOCK_CLAN: Clan = {
 export const useNexaStore = create<NexaStore>((set, get) => ({
   isOnboarded: false,
   user: MOCK_USER,
-  feed: MOCK_FEED,
-  matches: MOCK_MATCHES,
+  feed: [],
+  matches: [],
   tipsters: MOCK_TIPSTERS,
   missions: MOCK_MISSIONS,
   clan: MOCK_CLAN,
@@ -462,4 +395,26 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   })),
 
   setCelebrating: (v) => set({ celebrating: v }),
+
+  loadMatches: async () => {
+    try {
+      const matches = await fetchMatches();
+      set({ matches });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadMatches falhou:', err);
+    }
+  },
+
+  loadFeed: async () => {
+    try {
+      const feed = await fetchFeed();
+      set({ feed });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadFeed falhou:', err);
+    }
+  },
+
+  hydrate: async () => {
+    await Promise.all([get().loadMatches(), get().loadFeed()]);
+  },
 }));

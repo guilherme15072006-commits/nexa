@@ -12,16 +12,17 @@ A NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado par
 
 **Versão:** `0.2.0` · **Estágio:** Protótipo funcional de front-end (UI/UX completa, dados mockados)
 
-> Verificado nesta análise: `tsc --noEmit` passa **limpo** e os **74 testes passam**.
+> Verificado nesta análise: `tsc --noEmit` passa **limpo** e os **80 testes passam**.
 
 | Camada | Estado | Observação |
 |---|---|---|
 | App React Native (UI/UX) | ✅ Funcional | 5 telas + navegação + design system completo |
-| Estado global (Zustand) | ✅ Funcional | Store com dados mock + todas as actions |
+| Estado global (Zustand) | ✅ Funcional | Store com todas as actions; matches + feed vêm do Supabase |
+| **Dados reais (Supabase)** | 🟢 Fase 1 | **Matches e Feed** carregados do Postgres; demais entidades ainda mock |
 | Mecânicas de retenção | ✅ Funcional | Check-in, missões, copy bet, quase-ganho, pressão social |
 | Analytics (Amplitude) | ✅ Integrado | Usado pelo store; modo log se sem API key |
 | Linear (bug/feature/jogo responsável) | ✅ Integrado | Usado pelo store; modo no-op se sem API key |
-| API Client (`src/services/api.ts`) | 🟡 Scaffolding | Tipado e pronto, **não importado por nenhuma tela** |
+| API Client (`src/services/api.ts`) | 🟡 Scaffolding | Tipado e pronto, **não importado por nenhuma tela** (legado; o backend ativo é o Supabase) |
 | Backend Edge (Cloudflare Workers) | 🟡 Esqueleto | 8 rotas existem, retornam vazio/placeholder |
 | Landing page (`site/`) | ✅ Funcional | HTML/CSS estático pronto para Vercel |
 | Preview do app (`preview/`) | ✅ Funcional | Maquete HTML navegável + screenshots |
@@ -33,7 +34,9 @@ A NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado par
 
 ## O que está funcional hoje
 
-Toda a experiência de **front-end** está implementada e operante com dados mockados (vindos de `src/store/nexaStore.ts`). O app é navegável de ponta a ponta.
+Toda a experiência de **front-end** está implementada e o app é navegável de ponta a ponta.
+
+> **Migração de dados (em andamento):** os mocks estão sendo substituídos por dados reais do **Supabase** (Postgres). **Fase 1 concluída:** `matches` e `feed_posts` agora são carregados do backend via `src/services/supabase.ts` (hidratados no mount, em `App.tsx → hydrate()`). As demais entidades (usuário, tipsters, missões, clã, leaderboard) ainda usam mock no store e entram nas próximas fases.
 
 ### Onboarding (`OnboardingScreen`)
 - 5 passos animados (boas-vindas → aposta simulada → missão desbloqueada → tipsters → entrada).
@@ -78,7 +81,8 @@ Toda a experiência de **front-end** está implementada e operante com dados moc
 
 ## O que ainda não está pronto
 
-- **Persistência real:** o app consome `MOCK_*` direto do store. Não há chamadas de rede ativas — `src/services/api.ts` está tipado mas **não é importado** por nenhuma tela.
+- **Migração de dados:** Feed e Matches já vêm do Supabase (Fase 1); usuário, tipsters, missões, clã e leaderboard **ainda são mock** no store (próximas fases). Escritas (like/copy/bet) ainda atualizam só o estado local, sem persistir no backend.
+- **Legado:** `src/services/api.ts` (client REST para `api.nexa.bet`) continua tipado mas **não é usado** — o backend ativo passou a ser o Supabase.
 - **Backend:** os Workers (`workers/index.ts`) têm o roteador e as rotas, mas retornam arrays vazios / placeholders. KV, D1, R2 e Durable Objects estão comentados no `wrangler.toml`.
 - **Builds nativas:** não existem as pastas `android/` e `ios/`, então `run-android`/`run-ios` e o job de APK no CI falharão até que os projetos nativos sejam gerados.
 - **Asset de logo:** `assets/logo.png` está vazio (0 bytes).
@@ -93,8 +97,9 @@ Toda a experiência de **front-end** está implementada e operante com dados moc
 - **Zustand** 4.5 — estado global (`src/store/nexaStore.ts`)
 - **React Navigation** 6 (bottom-tabs) + react-native-screens / safe-area-context
 - **react-native-reanimated** 3.7 · **@shopify/flash-list** · **react-native-linear-gradient**
+- **Supabase** (`@supabase/supabase-js` 2) — backend de dados (Postgres) ativo
 - **Amplitude** (`@amplitude/analytics-react-native`) — analytics
-- **Cloudflare Workers** (Wrangler 3) — backend edge (`workers/`)
+- **Cloudflare Workers** (Wrangler 3) — backend edge legado (`workers/`)
 - **Vercel** — landing page (`site/`)
 - **Jest** 29 + **ts-jest** — testes
 
@@ -118,7 +123,8 @@ src/
     RankingScreen.tsx            → leaderboard + clãs + temporada
     PerfilScreen.tsx             → stats, conquistas, carteira, DNA
   services/
-    api.ts                       → client HTTP tipado (scaffolding p/ backend — não usado ainda)
+    supabase.ts                  → cliente Supabase + mapeamento DB→tipos (matches + feed) [ATIVO]
+    api.ts                       → client HTTP legado (não usado — substituído pelo Supabase)
     analytics.ts                 → integração Amplitude (usado pelo store)
     linear.ts                    → integração Linear (usado pelo store)
   utils/index.ts                 → formatadores (número, odds, moeda, clamp)
@@ -151,7 +157,7 @@ cp .env.example .env   # preencha as chaves que for usar (opcional em dev)
 | `npm run ios` | `react-native run-ios` | Roda no iOS *(requer pasta `ios/`)* |
 | `npm run android` | `react-native run-android` | Roda no Android *(requer pasta `android/`)* |
 | `npm run typecheck` | `tsc --noEmit` | Checagem de tipos |
-| `npm test` | `jest` | Roda os testes (74 testes) |
+| `npm test` | `jest` | Roda os testes (80 testes) |
 | `npm run workers:dev` | `wrangler dev` | Backend Workers local |
 | `npm run workers:deploy` | `wrangler deploy` | Deploy do backend |
 | `npm run site:dev` | `npx serve site` | Serve a landing page local |
@@ -181,7 +187,8 @@ Copie `.env.example` para `.env`. Todas são **opcionais em desenvolvimento** �
 | `AMPLITUDE_API_KEY` | Envio de eventos de analytics |
 | `LINEAR_API_KEY` / `LINEAR_TEAM_ID` / `LINEAR_PROJECT_ID` | Criação de issues no Linear |
 | `LINEAR_LABEL_*` | IDs de labels para classificar issues |
-| `NEXA_API_URL` / `NEXA_CDN_URL` / `NEXA_WS_URL` | Endpoints do backend NEXA |
+| `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Backend de dados (Postgres). Chaves públicas, protegidas por RLS — já têm fallback embutido no código |
+| `NEXA_API_URL` / `NEXA_CDN_URL` / `NEXA_WS_URL` | Endpoints do backend NEXA (legado) |
 | `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | Deploy dos Workers |
 | `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` | Deploy da landing page |
 
@@ -280,7 +287,7 @@ npm test
 - `__tests__/store.test.ts` — valida todas as actions do Zustand (XP, check-in, like, copy bet, follow, betslip, onboarding, odds…).
 - `__tests__/structure.test.ts` — valida a estrutura de pastas, resolução de imports e regressões de bugs conhecidos.
 
-Estado atual verificado: **74 testes passando**, typecheck limpo.
+Estado atual verificado: **80 testes passando**, typecheck limpo.
 
 ---
 
