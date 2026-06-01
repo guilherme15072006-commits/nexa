@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { analytics, trackBet, trackXPGain, trackOddsChange, trackUserState } from '../services/analytics';
 import { linear } from '../services/linear';
-import { fetchMatches, fetchFeed, fetchTipsters, fetchMissions, fetchClans, fetchLeaderboard, fetchCurrentUser } from '../services/supabase';
+import { fetchMatches, fetchFeed, fetchTipsters, fetchMissions, fetchClans, fetchLeaderboard, fetchCurrentUser, rpcCheckin, rpcToggleLike } from '../services/supabase';
 
 export interface User {
   id: string;
@@ -210,6 +210,10 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
         ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 }
         : p)
     }));
+    // Persiste no backend (Supabase) sem bloquear a UI
+    rpcToggleLike(postId).catch(err => {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcToggleLike falhou:', err);
+    });
   },
 
   copyBet: (postId) => {
@@ -277,6 +281,12 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       celebrating: true,
       lastXPGain: 50,
     }));
+    // Persiste no backend e reconcilia com os valores autoritativos
+    rpcCheckin()
+      .then(res => set((s) => ({ user: { ...s.user, xp: res.newXp, coins: res.newCoins, streak: res.streak } })))
+      .catch(err => {
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcCheckin falhou:', err);
+      });
   },
 
   completeOnboarding: () => {

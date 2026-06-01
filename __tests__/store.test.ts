@@ -40,6 +40,8 @@ jest.mock('../src/services/supabase', () => ({
   fetchClans: jest.fn().mockResolvedValue([]),
   fetchLeaderboard: jest.fn().mockResolvedValue([]),
   fetchCurrentUser: jest.fn().mockResolvedValue(null),
+  rpcCheckin: jest.fn().mockResolvedValue({ streak: 8, newXp: 2390, newCoins: 1920, already: false }),
+  rpcToggleLike: jest.fn().mockResolvedValue({ liked: true, likes: 1 }),
 }));
 
 import { useNexaStore, Match, FeedPost, Tipster } from '../src/store/nexaStore';
@@ -149,6 +151,17 @@ describe('nexaStore', () => {
     const after = useNexaStore.getState().feed.find(p => p.id === post.id)!;
     expect(after.copies).toBe(post.copies + 1);
     expect(useNexaStore.getState().user.xp).toBe(xpBefore + 10);
+  });
+
+  test('likePost persiste no backend via rpcToggleLike', () => {
+    const post = useNexaStore.getState().feed[0];
+    useNexaStore.getState().likePost(post.id);
+    expect(supa.rpcToggleLike).toHaveBeenCalledWith(post.id);
+  });
+
+  test('claimCheckin persiste no backend via rpcCheckin', () => {
+    useNexaStore.getState().claimCheckin();
+    expect(supa.rpcCheckin).toHaveBeenCalled();
   });
 
   test('followTipster alterna isFollowing', () => {

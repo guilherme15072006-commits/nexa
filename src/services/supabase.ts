@@ -160,7 +160,7 @@ function pickLabel(side: string | null, match: MatchRow | null): string | undefi
   return side === 'home' ? `${match.home_team} vence` : `${match.away_team} vence`;
 }
 
-export function mapFeedPost(row: FeedRow): FeedPost {
+export function mapFeedPost(row: FeedRow, likedIds?: Set<string>): FeedPost {
   const tierRaw = row.users?.tipsters?.[0]?.tier ?? '';
   const username = row.users?.username ?? 'NEXA';
   const likes = row.likes ?? 0;
@@ -180,10 +180,19 @@ export function mapFeedPost(row: FeedRow): FeedPost {
     likes,
     comments: row.comments ?? 0,
     copies: row.copies ?? 0,
-    isLiked: false,
+    isLiked: likedIds?.has(row.id) ?? false,
     timestamp: relativeTime(row.created_at),
     hot: likes >= 150,
   };
+}
+
+async function fetchLikedPostIds(): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from('post_likes')
+    .select('post_id')
+    .eq('user_id', CURRENT_USER_ID);
+  if (error) return new Set();
+  return new Set((data as Array<{ post_id: string }>).map(r => r.post_id));
 }
 
 // --- Repositorio (Fase 1) ---
@@ -199,12 +208,15 @@ export async function fetchMatches(): Promise<Match[]> {
 }
 
 export async function fetchFeed(): Promise<FeedPost[]> {
-  const { data, error } = await supabase
-    .from('feed_posts')
-    .select('*, matches(*), users(id, username, avatar_url, tipsters(tier))')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data as FeedRow[]).map(mapFeedPost);
+  const [res, likedIds] = await Promise.all([
+    supabase
+      .from('feed_posts')
+      .select('*, matches(*), users(id, username, avatar_url, tipsters(tier))')
+      .order('created_at', { ascending: false }),
+    fetchLikedPostIds(),
+  ]);
+  if (res.error) throw res.error;
+  return (res.data as FeedRow[]).map(row => mapFeedPost(row, likedIds));
 }
 
 // =====================================================
@@ -414,4 +426,21 @@ export async function fetchCurrentUser(id: string = CURRENT_USER_ID): Promise<Us
     .maybeSingle();
   if (error) throw error;
   return data ? mapCurrentUser(data as unknown as CurrentUserRow) : null;
+}
+
+// =====================================================
+// Fase 4: escritas persistidas (RPCs SECURITY DEFINER)
+// =====================================================
+
+export async function rpcCheckin(): Promise<{ streak: number; newXp: number; newCoins: number; already: boolean }> {
+  const { data, error } = await supabase.rpc('app_demo_checkin', { p_user_id: CURRENT_USER_ID });
+  if (error) throw error;
+  const d = data as { streak: number; new_xp: number; new_coins: number; already: boolean };
+  return { streak: d.streak, newXp: d.new_xp, newCoins: d.new_coins, already: d.already };
+}
+
+export async function rpcToggleLike(postId: string): Promise<{ liked: boolean; likes: number }> {
+  const { data, error } = await supabase.rpc('app_demo_toggle_like', { p_user_id: CURRENT_USER_ID, p_post_id: postId });
+  if (error) throw error;
+  return data as { liked: boolean; likes: number };
 }
