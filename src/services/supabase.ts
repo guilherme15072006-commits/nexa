@@ -13,12 +13,63 @@ import type { Match, FeedPost, Tipster, Mission, Clan, User, Badge } from '../st
 const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://ymuziccgrqjbugsdwgjo.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? 'sb_publishable_lqe_c_pFLJqKprdsRhnt0w_PNIPLjkg';
 
-// Usuario "logado" fixo (Fase 3 — auth adiado). Aponta para uma linha real em `users`.
+// Usuario demo (fallback sem login). Aponta para uma linha real em `users`.
 export const CURRENT_USER_ID = process.env.SUPABASE_DEMO_USER_ID ?? '11111111-1111-1111-1111-111111111111';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
+  auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false },
 });
+
+// --- Identidade efetiva (demo ou usuario autenticado) ---
+
+let effectiveUserId: string = CURRENT_USER_ID;
+
+export function getEffectiveUserId(): string {
+  return effectiveUserId;
+}
+
+// Mantem o id efetivo em sincronia com a sessao de auth
+supabase.auth.onAuthStateChange((_event, session) => {
+  effectiveUserId = session?.user?.id ?? CURRENT_USER_ID;
+});
+
+export interface AuthResult {
+  userId: string;
+  needsConfirmation: boolean;
+}
+
+export async function signUpWithEmail(email: string, password: string, username?: string): Promise<AuthResult> {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: username ? { data: { full_name: username } } : undefined,
+  });
+  if (error) throw error;
+  if (data.session?.user) effectiveUserId = data.session.user.id;
+  return { userId: data.user?.id ?? '', needsConfirmation: !data.session };
+}
+
+export async function signInWithEmail(email: string, password: string): Promise<AuthResult> {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  effectiveUserId = data.user.id;
+  return { userId: data.user.id, needsConfirmation: false };
+}
+
+export async function signOut(): Promise<void> {
+  await supabase.auth.signOut();
+  effectiveUserId = CURRENT_USER_ID;
+}
+
+// Fallback: usa o usuario demo (sem login)
+export function useDemoUser(): void {
+  effectiveUserId = CURRENT_USER_ID;
+}
+
+export async function getActiveAuthUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
+}
 
 // --- Linhas cruas do banco ---
 
@@ -190,7 +241,7 @@ async function fetchLikedPostIds(): Promise<Set<string>> {
   const { data, error } = await supabase
     .from('post_likes')
     .select('post_id')
-    .eq('user_id', CURRENT_USER_ID);
+    .eq('user_id', getEffectiveUserId());
   if (error) return new Set();
   return new Set((data as Array<{ post_id: string }>).map(r => r.post_id));
 }
@@ -365,7 +416,7 @@ export async function fetchTipsters(): Promise<Tipster[]> {
 export async function fetchMissions(): Promise<Mission[]> {
   const [missionsRes, umRes] = await Promise.all([
     supabase.from('missions').select('*').order('created_at', { ascending: true }),
-    supabase.from('user_missions').select('mission_id, progress, completed, revealed').eq('user_id', CURRENT_USER_ID),
+    supabase.from('user_missions').select('mission_id, progress, completed, revealed').eq('user_id', getEffectiveUserId()),
   ]);
   if (missionsRes.error) throw missionsRes.error;
   const progressByMission = new Map<string, UserMissionRow>(
@@ -430,7 +481,7 @@ export function mapCurrentUser(row: CurrentUserRow): User {
   };
 }
 
-export async function fetchFollowingIds(userId: string = CURRENT_USER_ID): Promise<string[]> {
+export async function fetchFollowingIds(userId: string = getEffectiveUserId()): Promise<string[]> {
   const { data, error } = await supabase
     .from('follows')
     .select('following_id')
@@ -439,7 +490,7 @@ export async function fetchFollowingIds(userId: string = CURRENT_USER_ID): Promi
   return (data as Array<{ following_id: string }>).map(r => r.following_id);
 }
 
-export async function fetchCurrentUser(id: string = CURRENT_USER_ID): Promise<User | null> {
+export async function fetchCurrentUser(id: string = getEffectiveUserId()): Promise<User | null> {
   const [res, following] = await Promise.all([
     supabase.from('users').select('*, clans(name)').eq('id', id).maybeSingle(),
     fetchFollowingIds(id),
@@ -457,32 +508,32 @@ export async function fetchCurrentUser(id: string = CURRENT_USER_ID): Promise<Us
 // =====================================================
 
 export async function rpcCheckin(): Promise<{ streak: number; newXp: number; newCoins: number; already: boolean }> {
-  const { data, error } = await supabase.rpc('app_demo_checkin', { p_user_id: CURRENT_USER_ID });
+  const { data, error } = await supabase.rpc('app_demo_checkin', { p_user_id: getEffectiveUserId() });
   if (error) throw error;
   const d = data as { streak: number; new_xp: number; new_coins: number; already: boolean };
   return { streak: d.streak, newXp: d.new_xp, newCoins: d.new_coins, already: d.already };
 }
 
 export async function rpcToggleLike(postId: string): Promise<{ liked: boolean; likes: number }> {
-  const { data, error } = await supabase.rpc('app_demo_toggle_like', { p_user_id: CURRENT_USER_ID, p_post_id: postId });
+  const { data, error } = await supabase.rpc('app_demo_toggle_like', { p_user_id: getEffectiveUserId(), p_post_id: postId });
   if (error) throw error;
   return data as { liked: boolean; likes: number };
 }
 
 export async function rpcToggleFollow(targetUserId: string): Promise<{ following: boolean; followers: number }> {
-  const { data, error } = await supabase.rpc('app_demo_follow_toggle', { p_user_id: CURRENT_USER_ID, p_target_user_id: targetUserId });
+  const { data, error } = await supabase.rpc('app_demo_follow_toggle', { p_user_id: getEffectiveUserId(), p_target_user_id: targetUserId });
   if (error) throw error;
   return data as { following: boolean; followers: number };
 }
 
 export async function rpcAwardMissionProgress(actionKey: string, count = 1): Promise<number> {
-  const { data, error } = await supabase.rpc('app_demo_award_progress', { p_action_key: actionKey, p_count: count });
+  const { data, error } = await supabase.rpc('app_demo_award_progress', { p_user_id: getEffectiveUserId(), p_action_key: actionKey, p_count: count });
   if (error) throw error;
   return (data as number) ?? 0;
 }
 
 export async function rpcPlaceBet(matchId: string, side: string, stake: number): Promise<{ betId: string; newBalance: number }> {
-  const { data, error } = await supabase.rpc('app_demo_place_bet', { p_match_id: matchId, p_side: side, p_stake: stake });
+  const { data, error } = await supabase.rpc('app_demo_place_bet', { p_user_id: getEffectiveUserId(), p_match_id: matchId, p_side: side, p_stake: stake });
   if (error) throw error;
   const d = data as { bet_id: string; new_balance: number };
   return { betId: d.bet_id, newBalance: d.new_balance };

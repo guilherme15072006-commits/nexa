@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { analytics, trackBet, trackXPGain, trackOddsChange, trackUserState } from '../services/analytics';
 import { linear } from '../services/linear';
-import { fetchMatches, fetchFeed, fetchTipsters, fetchMissions, fetchClans, fetchLeaderboard, fetchCurrentUser, rpcCheckin, rpcToggleLike, rpcToggleFollow, rpcAwardMissionProgress, rpcPlaceBet } from '../services/supabase';
+import { fetchMatches, fetchFeed, fetchTipsters, fetchMissions, fetchClans, fetchLeaderboard, fetchCurrentUser, rpcCheckin, rpcToggleLike, rpcToggleFollow, rpcAwardMissionProgress, rpcPlaceBet, signInWithEmail, signUpWithEmail, signOut as authSignOut, useDemoUser } from '../services/supabase';
 
 // Stake fixo por seleção enquanto não há campo de valor na betslip (demo)
 const DEMO_BET_STAKE = 5;
@@ -126,6 +126,7 @@ export interface BetslipItem {
 
 interface NexaStore {
   isOnboarded: boolean;
+  authStatus: 'guest' | 'demo' | 'authed';
   user: User;
   feed: FeedPost[];
   matches: Match[];
@@ -173,6 +174,12 @@ interface NexaStore {
   loadLeaderboard: () => Promise<void>;
   loadUser: () => Promise<void>;
   hydrate: () => Promise<void>;
+
+  // Auth (Supabase) — login opcional, com fallback demo
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, username?: string) => Promise<void>;
+  continueAsDemo: () => void;
+  signOutUser: () => Promise<void>;
 }
 
 // Estado inicial neutro do usuario — substituido por dados reais do Supabase no hydrate()
@@ -190,6 +197,7 @@ const EMPTY_CLAN: Clan = {
 
 export const useNexaStore = create<NexaStore>((set, get) => ({
   isOnboarded: false,
+  authStatus: 'guest',
   user: EMPTY_USER,
   feed: [],
   matches: [],
@@ -500,5 +508,39 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       get().loadClans(),
       get().loadLeaderboard(),
     ]);
+  },
+
+  signIn: async (email, password) => {
+    await signInWithEmail(email, password);
+    set({ authStatus: 'authed' });
+    await get().hydrate();
+  },
+
+  signUp: async (email, password, username) => {
+    const res = await signUpWithEmail(email, password, username);
+    if (res.needsConfirmation) {
+      // E-mail de confirmacao pendente — ainda nao ha sessao
+      set({ authStatus: 'guest' });
+    } else {
+      set({ authStatus: 'authed' });
+      await get().hydrate();
+    }
+  },
+
+  continueAsDemo: () => {
+    useDemoUser();
+    set({ authStatus: 'demo' });
+    get().hydrate();
+  },
+
+  signOutUser: async () => {
+    await authSignOut();
+    set({
+      authStatus: 'guest',
+      isOnboarded: false,
+      user: EMPTY_USER,
+      feed: [], matches: [], tipsters: [], missions: [], clans: [], leaderboard: [],
+      betslip: [], betslipVisible: false, selectedOdds: {},
+    });
   },
 }));

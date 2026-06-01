@@ -45,6 +45,10 @@ jest.mock('../src/services/supabase', () => ({
   rpcToggleFollow: jest.fn().mockResolvedValue({ following: true, followers: 100 }),
   rpcAwardMissionProgress: jest.fn().mockResolvedValue(0),
   rpcPlaceBet: jest.fn().mockResolvedValue({ betId: 'bet1', newBalance: 445 }),
+  signInWithEmail: jest.fn().mockResolvedValue({ userId: 'auth-1', needsConfirmation: false }),
+  signUpWithEmail: jest.fn().mockResolvedValue({ userId: 'auth-1', needsConfirmation: false }),
+  signOut: jest.fn().mockResolvedValue(undefined),
+  useDemoUser: jest.fn(),
 }));
 
 import { useNexaStore, Match, FeedPost, Tipster } from '../src/store/nexaStore';
@@ -206,6 +210,26 @@ describe('nexaStore', () => {
     useNexaStore.getState().selectOdd(match.id, 'home');
     useNexaStore.getState().placeBet();
     expect(supa.rpcPlaceBet).toHaveBeenCalledWith(match.id, 'home', expect.any(Number));
+  });
+
+  test('continueAsDemo entra no modo demo', () => {
+    expect(useNexaStore.getState().authStatus).toBe('guest');
+    useNexaStore.getState().continueAsDemo();
+    expect(useNexaStore.getState().authStatus).toBe('demo');
+  });
+
+  test('signIn autentica e signOutUser volta para guest', async () => {
+    await useNexaStore.getState().signIn('a@b.com', 'segredo');
+    expect(useNexaStore.getState().authStatus).toBe('authed');
+    expect(supa.signInWithEmail).toHaveBeenCalledWith('a@b.com', 'segredo');
+    await useNexaStore.getState().signOutUser();
+    expect(useNexaStore.getState().authStatus).toBe('guest');
+  });
+
+  test('signUp com confirmacao de email mantem guest', async () => {
+    (supa.signUpWithEmail as jest.Mock).mockResolvedValueOnce({ userId: 'auth-2', needsConfirmation: true });
+    await useNexaStore.getState().signUp('novo@b.com', 'segredo', 'Novato');
+    expect(useNexaStore.getState().authStatus).toBe('guest');
   });
 
   test('completeOnboarding seta isOnboarded', () => {

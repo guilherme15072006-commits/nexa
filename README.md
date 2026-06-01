@@ -12,13 +12,14 @@ A NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado par
 
 **Versão:** `0.2.0` · **Estágio:** App funcional ponta a ponta — UI/UX completa + dados reais no Supabase (Postgres)
 
-> Verificado nesta análise: `tsc --noEmit` passa **limpo** e os **87 testes passam**.
+> Verificado nesta análise: `tsc --noEmit` passa **limpo** e os **95 testes passam**.
 
 | Camada | Estado | Observação |
 |---|---|---|
 | App React Native (UI/UX) | ✅ Funcional | 5 telas + navegação + design system completo |
 | Estado global (Zustand) | ✅ Funcional | Store sem mocks — leituras e escritas no Supabase |
 | **Dados reais (Supabase)** | ✅ Fases 1–4 | Leituras 100% no Postgres. Escritas persistidas: **check-in, like, follow, missões e apostas** |
+| **Login (Supabase Auth)** | 🟢 Implementado | E-mail+senha + "continuar como demo". Caminho de escrita unificado (demo ou `auth.uid()`). Falta testar em device + persistência de sessão |
 | Mecânicas de retenção | ✅ Funcional | Check-in, missões, copy bet, quase-ganho, pressão social |
 | Analytics (Amplitude) | ✅ Integrado | Usado pelo store; modo log se sem API key |
 | Linear (bug/feature/jogo responsável) | ✅ Integrado | Usado pelo store; modo no-op se sem API key |
@@ -46,6 +47,11 @@ Toda a experiência de **front-end** está implementada e o app é navegável de
 >   - **follow** (`app_demo_follow_toggle`) → tabela `follows` + `tipsters.followers`;
 >   - **missões** (`app_demo_award_progress` → reusa `fn_award_mission_progress`) → progresso real em `user_missions`;
 >   - **apostas** (`app_demo_place_bet` → reusa `fn_place_bet`) → insere em `bets`, debita saldo e valida **KYC, mercado aberto e limites de jogo responsável**.
+
+### Login (`LoginScreen`)
+- **E-mail + senha** (cadastro e login) via Supabase Auth; ao cadastrar, um trigger cria a linha em `users` (`id = auth.uid()`) + carteira automaticamente.
+- Botão **"Continuar como demo"** (perfil RocketKing) — login é opcional.
+- O `id efetivo` (demo ou `auth.uid()`) alimenta leituras e escritas; as RPCs de escrita aceitam ambos via guarda `p_user_id = demo OR auth.uid() = p_user_id`.
 
 ### Onboarding (`OnboardingScreen`)
 - 5 passos animados (boas-vindas → aposta simulada → missão desbloqueada → tipsters → entrada).
@@ -90,7 +96,7 @@ Toda a experiência de **front-end** está implementada e o app é navegável de
 
 ## O que ainda não está pronto
 
-- **Auth/login adiado:** o usuário é fixo (`SUPABASE_DEMO_USER_ID`) e as RPCs de escrita têm guarda que só aceita esse id — ao implementar login real, trocar a guarda por `auth.uid()`.
+- **Login (a finalizar):** o fluxo e-mail+senha está implementado, mas **não testado em device** (sem emulador/rede aqui). Falta **persistência de sessão** entre reinícios — precisa de `@react-native-async-storage/async-storage` (módulo nativo); hoje a sessão vale só enquanto o app está aberto. OAuth/magic link também ficam para depois.
 - **Apostas (demo):** sem campo de valor na betslip, cada seleção usa um stake fixo (`DEMO_BET_STAKE = R$5`). O saldo é debitado de verdade em `users.balance`.
 - **Legado:** `src/services/api.ts` (client REST para `api.nexa.bet`) continua tipado mas **não é usado** — o backend ativo passou a ser o Supabase.
 - **Backend:** os Workers (`workers/index.ts`) têm o roteador e as rotas, mas retornam arrays vazios / placeholders. KV, D1, R2 e Durable Objects estão comentados no `wrangler.toml`.
@@ -107,7 +113,7 @@ Toda a experiência de **front-end** está implementada e o app é navegável de
 - **Zustand** 4.5 — estado global (`src/store/nexaStore.ts`)
 - **React Navigation** 6 (bottom-tabs) + react-native-screens / safe-area-context
 - **react-native-reanimated** 3.7 · **@shopify/flash-list** · **react-native-linear-gradient**
-- **Supabase** (`@supabase/supabase-js` 2) — backend de dados (Postgres) ativo
+- **Supabase** (`@supabase/supabase-js` 2) — backend de dados (Postgres) + **Auth** (login e-mail+senha)
 - **Amplitude** (`@amplitude/analytics-react-native`) — analytics
 - **Cloudflare Workers** (Wrangler 3) — backend edge legado (`workers/`)
 - **Vercel** — landing page (`site/`)
@@ -127,6 +133,7 @@ src/
     Logo.tsx                     → logo da marca
   navigation/TabNavigator.tsx    → tab bar com 4 abas
   screens/
+    LoginScreen.tsx              → login e-mail+senha + entrar como demo
     OnboardingScreen.tsx         → 5 passos animados
     FeedScreen.tsx               → feed, check-in, missões, tipsters, posts
     ApostasScreen.tsx            → apostas ao vivo, betslip, missão oculta
@@ -167,7 +174,7 @@ cp .env.example .env   # preencha as chaves que for usar (opcional em dev)
 | `npm run ios` | `react-native run-ios` | Roda no iOS *(requer pasta `ios/`)* |
 | `npm run android` | `react-native run-android` | Roda no Android *(requer pasta `android/`)* |
 | `npm run typecheck` | `tsc --noEmit` | Checagem de tipos |
-| `npm test` | `jest` | Roda os testes (87 testes) |
+| `npm test` | `jest` | Roda os testes (95 testes) |
 | `npm run workers:dev` | `wrangler dev` | Backend Workers local |
 | `npm run workers:deploy` | `wrangler deploy` | Deploy do backend |
 | `npm run site:dev` | `npx serve site` | Serve a landing page local |
@@ -298,7 +305,7 @@ npm test
 - `__tests__/store.test.ts` — valida todas as actions do Zustand (XP, check-in, like, copy bet, follow, betslip, onboarding, odds…).
 - `__tests__/structure.test.ts` — valida a estrutura de pastas, resolução de imports e regressões de bugs conhecidos.
 
-Estado atual verificado: **87 testes passando**, typecheck limpo.
+Estado atual verificado: **95 testes passando**, typecheck limpo.
 
 ---
 
