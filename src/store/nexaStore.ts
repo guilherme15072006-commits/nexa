@@ -1,6 +1,19 @@
 import { create } from 'zustand';
 import { analytics, trackBet, trackXPGain, trackOddsChange, trackUserState } from '../services/analytics';
 import { linear } from '../services/linear';
+import { fetchMatches, fetchFeed, fetchTipsters, fetchMissions, fetchClans, fetchLeaderboard, fetchCurrentUser, rpcCheckin, rpcToggleLike, rpcToggleFollow, rpcAwardMissionProgress, rpcPlaceBet, signInWithEmail, signUpWithEmail, signOut as authSignOut, useDemoUser } from '../services/supabase';
+
+// Stake fixo por seleção enquanto não há campo de valor na betslip (demo)
+const DEMO_BET_STAKE = 5;
+
+// Avança o progresso de missões no backend e recarrega para refletir na UI
+function awardMission(action: string, reload: () => Promise<void>) {
+  rpcAwardMissionProgress(action)
+    .then(updated => { if (updated > 0) reload(); })
+    .catch(err => {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] awardMission falhou:', err);
+    });
+}
 
 export interface User {
   id: string;
@@ -50,6 +63,7 @@ export interface Match {
 
 export interface Tipster {
   id: string;
+  userId: string;
   username: string;
   avatar: string;
   winRate: number;
@@ -112,12 +126,14 @@ export interface BetslipItem {
 
 interface NexaStore {
   isOnboarded: boolean;
+  authStatus: 'guest' | 'demo' | 'authed';
   user: User;
   feed: FeedPost[];
   matches: Match[];
   tipsters: Tipster[];
   missions: Mission[];
   clan: Clan;
+  clans: Clan[];
   leaderboard: Array<{ rank: number; user: User; xp: number }>;
 
   activeTab: string;
@@ -148,145 +164,48 @@ interface NexaStore {
   placeBet: () => void;
   simulateOddsChange: () => void;
   setCelebrating: (v: boolean) => void;
+
+  // Backend (Supabase) — Fase 1: matches + feed · Fase 2: tipsters, missoes, clas, leaderboard
+  loadMatches: () => Promise<void>;
+  loadFeed: () => Promise<void>;
+  loadTipsters: () => Promise<void>;
+  loadMissions: () => Promise<void>;
+  loadClans: () => Promise<void>;
+  loadLeaderboard: () => Promise<void>;
+  loadUser: () => Promise<void>;
+  hydrate: () => Promise<void>;
+
+  // Auth (Supabase) — login opcional, com fallback demo
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, username?: string) => Promise<void>;
+  continueAsDemo: () => void;
+  signOutUser: () => Promise<void>;
 }
 
-const MOCK_USER: User = {
-  id: 'u1',
-  username: 'RocketKing',
-  avatar: 'RK',
-  level: 12,
-  xp: 2340,
-  xpToNext: 3000,
-  streak: 7,
-  balance: 450.00,
-  coins: 1820,
-  rank: 14,
-  winRate: 61,
-  roi: 8.4,
-  clan: 'Predators',
-  dna: 'analytical',
-  state: 'motivated',
-  badges: [
-    { id: 'b1', name: 'Tipster Iniciante', icon: 'T', rarity: 'common', unlocked: true },
-    { id: 'b2', name: 'Semana Quente', icon: 'F', rarity: 'rare', unlocked: true },
-    { id: 'b3', name: 'Sequencia 7d', icon: 'S', rarity: 'rare', unlocked: true },
-    { id: 'b4', name: 'Cla Ativo', icon: 'C', rarity: 'common', unlocked: true },
-    { id: 'b5', name: 'Predador Nato', icon: 'P', rarity: 'epic', unlocked: false },
-    { id: 'b6', name: 'Lenda NEXA', icon: 'L', rarity: 'legendary', unlocked: false },
-  ],
-  following: ['t1', 't2'],
+// Estado inicial neutro do usuario — substituido por dados reais do Supabase no hydrate()
+const EMPTY_USER: User = {
+  id: '', username: 'NEXA', avatar: 'NX',
+  level: 1, xp: 0, xpToNext: 1000, streak: 0,
+  balance: 0, coins: 0, rank: 0, winRate: 0, roi: 0,
+  clan: '', dna: 'analytical', state: 'motivated',
+  badges: [], following: [],
 };
 
-const MOCK_MATCHES: Match[] = [
-  {
-    id: 'm1', league: 'Brasileirao', leagueIcon: 'BR',
-    homeTeam: 'Flamengo', awayTeam: 'Palmeiras',
-    homeLogo: 'FLA', awayLogo: 'PAL',
-    status: 'live', minute: 72,
-    score: { home: 1, away: 1 },
-    startTime: '', odds: { home: 1.85, draw: 3.20, away: 2.10 },
-    prevOdds: { home: 1.90, draw: 3.15, away: 2.05 },
-    bettors: 247, trending: true,
-  },
-  {
-    id: 'm2', league: 'Champions League', leagueIcon: 'CL',
-    homeTeam: 'Man City', awayTeam: 'Bayern',
-    homeLogo: 'MCI', awayLogo: 'BAY',
-    status: 'live', minute: 55,
-    score: { home: 2, away: 1 },
-    startTime: '', odds: { home: 1.45, draw: 4.20, away: 3.80 },
-    prevOdds: { home: 2.10, draw: 3.40, away: 1.90 },
-    bettors: 1240, trending: true,
-  },
-  {
-    id: 'm3', league: 'La Liga', leagueIcon: 'ES',
-    homeTeam: 'Real Madrid', awayTeam: 'Barcelona',
-    homeLogo: 'RMA', awayLogo: 'BAR',
-    status: 'upcoming', startTime: '20:00',
-    odds: { home: 2.05, draw: 3.40, away: 1.95 },
-    bettors: 3820, trending: true,
-  },
-  {
-    id: 'm4', league: 'Brasileirao', leagueIcon: 'BR',
-    homeTeam: 'Sao Paulo', awayTeam: 'Corinthians',
-    homeLogo: 'SAO', awayLogo: 'COR',
-    status: 'upcoming', startTime: '19:00',
-    odds: { home: 2.20, draw: 3.10, away: 2.00 },
-    bettors: 892, trending: false,
-  },
-];
-
-const MOCK_TIPSTERS: Tipster[] = [
-  { id: 't1', username: 'GabrielP', avatar: 'GP', winRate: 78, roi: 22.4, followers: 4820, streak: 12, tier: 'elite', isFollowing: true, recentPick: 'Real Madrid vence', profit: 14200 },
-  { id: 't2', username: 'MarFutebol', avatar: 'MF', winRate: 71, roi: 15.8, followers: 2310, streak: 7, tier: 'gold', isFollowing: true, recentPick: 'Mais de 2.5 gols', profit: 8900 },
-  { id: 't3', username: 'BetKing', avatar: 'BK', winRate: 69, roi: 12.1, followers: 1890, streak: 5, tier: 'gold', isFollowing: false, profit: 6200 },
-  { id: 't4', username: 'TipZone', avatar: 'TZ', winRate: 65, roi: 9.3, followers: 1120, streak: 3, tier: 'silver', isFollowing: false, profit: 3800 },
-  { id: 't5', username: 'AceTrader', avatar: 'AT', winRate: 73, roi: 18.2, followers: 3200, streak: 9, tier: 'elite', isFollowing: false, profit: 11500 },
-];
-
-const MOCK_FEED: FeedPost[] = [
-  {
-    id: 'f1', type: 'tip',
-    user: { id: 't1', username: 'GabrielP', avatar: 'GP', tier: 'elite' },
-    content: 'Real Madrid favorito em casa. Defesa solida, Mbappe em boa fase. Entrada limpa.',
-    match: MOCK_MATCHES[2], pick: 'Real Madrid vence', odds: 2.05,
-    likes: 342, comments: 87, copies: 156, isLiked: false,
-    timestamp: '8min', hot: true,
-  },
-  {
-    id: 'f2', type: 'bet',
-    user: { id: 'u2', username: 'ZetaX', avatar: 'ZX', tier: 'silver' },
-    content: 'Classico sempre imprevisivel. Apostei no empate -- odds otimas.',
-    match: MOCK_MATCHES[2], pick: 'Empate', odds: 3.40,
-    likes: 28, comments: 14, copies: 9, isLiked: true,
-    timestamp: '15min', hot: false,
-  },
-  {
-    id: 'f3', type: 'achievement',
-    user: { id: 't2', username: 'MarFutebol', avatar: 'MF', tier: 'gold' },
-    content: 'Completou 7 acertos seguidos! Sequencia incrivel -- melhor semana do mes.',
-    likes: 189, comments: 42, copies: 0, isLiked: false,
-    timestamp: '32min', hot: true,
-  },
-  {
-    id: 'f4', type: 'tip',
-    user: { id: 't3', username: 'BetKing', avatar: 'BK', tier: 'gold' },
-    content: 'Flamengo pressiona no segundo tempo. Com 1x1 e time atacando, minha leitura e virada.',
-    match: MOCK_MATCHES[0], pick: 'Flamengo vence', odds: 1.85,
-    likes: 94, comments: 31, copies: 67, isLiked: false,
-    timestamp: '1h', hot: false,
-  },
-];
-
-const MOCK_MISSIONS: Mission[] = [
-  { id: 'ms1', title: 'Aposte em 3 jogos hoje', description: 'Faca 3 apostas em partidas diferentes', xpReward: 150, progress: 2, target: 3, type: 'daily', icon: 'T', completed: false, expiresIn: '6h' },
-  { id: 'ms2', title: 'Siga 1 novo tipster', description: 'Expanda sua rede de tipsters', xpReward: 80, progress: 0, target: 1, type: 'daily', icon: 'U', completed: false, expiresIn: '6h' },
-  { id: 'ms3', title: 'Top 10 do ranking semanal', description: 'Chegue ao top 10 esta semana', xpReward: 500, progress: 14, target: 10, type: 'weekly', icon: 'R', completed: false },
-  { id: 'ms4', title: '??? Missao oculta', description: 'Complete para descobrir', xpReward: 300, progress: 0, target: 1, type: 'hidden', icon: 'M', completed: false },
-];
-
-const MOCK_CLAN: Clan = {
-  id: 'c1', name: 'Predators', tag: 'PRD',
-  members: 28, rank: 5, xp: 48200, weeklyXp: 8400,
-  icon: 'A', color: '#7C5CFC',
+const EMPTY_CLAN: Clan = {
+  id: '', name: '', tag: '', members: 0, rank: 0, xp: 0, weeklyXp: 0, icon: '', color: '#7C5CFC',
 };
 
 export const useNexaStore = create<NexaStore>((set, get) => ({
   isOnboarded: false,
-  user: MOCK_USER,
-  feed: MOCK_FEED,
-  matches: MOCK_MATCHES,
-  tipsters: MOCK_TIPSTERS,
-  missions: MOCK_MISSIONS,
-  clan: MOCK_CLAN,
-  leaderboard: [
-    { rank: 1, user: { ...MOCK_USER, id: 't1', username: 'GabrielP', avatar: 'GP', xp: 4820, winRate: 78, clan: 'Wolves' }, xp: 4820 },
-    { rank: 2, user: { ...MOCK_USER, id: 't2', username: 'MarFutebol', avatar: 'MF', xp: 3610, winRate: 71, clan: 'Sharks' }, xp: 3610 },
-    { rank: 3, user: { ...MOCK_USER, id: 't3', username: 'BetKing', avatar: 'BK', xp: 3100, winRate: 69, clan: 'Predators' }, xp: 3100 },
-    { rank: 4, user: { ...MOCK_USER, id: 't4', username: 'TipZone', avatar: 'TZ', xp: 2890, winRate: 65, clan: 'Elite FC' }, xp: 2890 },
-    { rank: 5, user: { ...MOCK_USER, id: 't5', username: 'AceTrader', avatar: 'AT', xp: 2720, winRate: 73, clan: 'Wolves' }, xp: 2720 },
-    { rank: 14, user: MOCK_USER, xp: 2340 },
-  ],
+  authStatus: 'guest',
+  user: EMPTY_USER,
+  feed: [],
+  matches: [],
+  tipsters: [],
+  missions: [],
+  clan: EMPTY_CLAN,
+  clans: [],
+  leaderboard: [],
   activeTab: 'feed',
   checkinAvailable: true,
   selectedOdds: {},
@@ -312,6 +231,10 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
         ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 }
         : p)
     }));
+    // Persiste no backend (Supabase) sem bloquear a UI
+    rpcToggleLike(postId).catch(err => {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcToggleLike falhou:', err);
+    });
   },
 
   copyBet: (postId) => {
@@ -329,13 +252,30 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   followTipster: (tipsterId) => {
     const state = get();
     const tipster = state.tipsters.find(t => t.id === tipsterId);
-    const willFollow = tipster && !tipster.isFollowing;
+    if (!tipster) return;
+    const willFollow = !tipster.isFollowing;
     analytics.track(willFollow ? 'tipster_followed' : 'tipster_unfollowed', {
-      tipsterId, tipsterTier: tipster?.tier, tipsterWinRate: tipster?.winRate,
+      tipsterId, tipsterTier: tipster.tier, tipsterWinRate: tipster.winRate,
     });
+    // Otimista: alterna follow, ajusta contagem e a lista de "seguindo" do usuario
     set((s) => ({
-      tipsters: s.tipsters.map(t => t.id === tipsterId ? { ...t, isFollowing: !t.isFollowing } : t),
+      tipsters: s.tipsters.map(t => t.id === tipsterId
+        ? { ...t, isFollowing: willFollow, followers: Math.max(0, t.followers + (willFollow ? 1 : -1)) }
+        : t),
+      user: {
+        ...s.user,
+        following: willFollow
+          ? Array.from(new Set([...s.user.following, tipster.userId]))
+          : s.user.following.filter(id => id !== tipster.userId),
+      },
     }));
+    // Persiste no backend (tabela follows)
+    if (tipster.userId) {
+      rpcToggleFollow(tipster.userId).catch(err => {
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcToggleFollow falhou:', err);
+      });
+      if (willFollow) awardMission('tipster_follow', () => get().loadMissions());
+    }
   },
 
   selectOdd: (matchId, side) => {
@@ -379,6 +319,13 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       celebrating: true,
       lastXPGain: 50,
     }));
+    // Persiste no backend e reconcilia com os valores autoritativos
+    rpcCheckin()
+      .then(res => set((s) => ({ user: { ...s.user, xp: res.newXp, coins: res.newCoins, streak: res.streak } })))
+      .catch(err => {
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcCheckin falhou:', err);
+      });
+    awardMission('daily_checkin', () => get().loadMissions());
   },
 
   completeOnboarding: () => {
@@ -424,13 +371,14 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   placeBet: () => {
     const state = get();
     if (state.betslip.length === 0) return;
-    const totalOdds = state.betslip.reduce((acc, b) => acc * b.odds, 1);
+    const legs = [...state.betslip];
+    const totalOdds = legs.reduce((acc, b) => acc * b.odds, 1);
     analytics.track('bet_confirmed', {
-      selections: state.betslip.length,
+      selections: legs.length,
       totalOdds,
-      matches: state.betslip.map(b => b.match).join(', '),
+      matches: legs.map(b => b.match).join(', '),
     });
-    state.betslip.forEach(b => trackBet(b.matchId, b.side, b.odds, 'direct'));
+    legs.forEach(b => trackBet(b.matchId, b.side, b.odds, 'direct'));
     trackXPGain(20, 'bet_placed');
     set({
       betslip: [],
@@ -441,6 +389,27 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       celebrating: true,
     });
     setTimeout(() => set({ celebrating: false }), 1200);
+
+    // Persiste cada seleção como aposta real (saldo, KYC e limites validados no backend)
+    (async () => {
+      let placed = 0;
+      let lastBalance: number | undefined;
+      for (const leg of legs) {
+        try {
+          const res = await rpcPlaceBet(leg.matchId, leg.side, DEMO_BET_STAKE);
+          lastBalance = res.newBalance;
+          placed += 1;
+        } catch (err) {
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcPlaceBet falhou:', err);
+        }
+      }
+      if (lastBalance !== undefined) set((s) => ({ user: { ...s.user, balance: lastBalance! } }));
+      if (placed > 0) {
+        rpcAwardMissionProgress('bet_placed', placed)
+          .then(updated => { if (updated > 0) get().loadMissions(); })
+          .catch(() => {});
+      }
+    })();
   },
 
   simulateOddsChange: () => set((s) => ({
@@ -462,4 +431,116 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   })),
 
   setCelebrating: (v) => set({ celebrating: v }),
+
+  loadMatches: async () => {
+    try {
+      const matches = await fetchMatches();
+      set({ matches });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadMatches falhou:', err);
+    }
+  },
+
+  loadFeed: async () => {
+    try {
+      const feed = await fetchFeed();
+      set({ feed });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadFeed falhou:', err);
+    }
+  },
+
+  loadTipsters: async () => {
+    try {
+      const tipsters = await fetchTipsters();
+      const following = get().user.following;
+      set({ tipsters: tipsters.map(t => ({ ...t, isFollowing: following.includes(t.userId) })) });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadTipsters falhou:', err);
+    }
+  },
+
+  loadMissions: async () => {
+    try {
+      const missions = await fetchMissions();
+      set({ missions });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadMissions falhou:', err);
+    }
+  },
+
+  loadClans: async () => {
+    try {
+      const clans = await fetchClans();
+      const clan = clans.find(c => c.name === get().user.clan) ?? clans[0] ?? get().clan;
+      set({ clans, clan });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadClans falhou:', err);
+    }
+  },
+
+  loadLeaderboard: async () => {
+    try {
+      const leaderboard = await fetchLeaderboard();
+      set({ leaderboard });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadLeaderboard falhou:', err);
+    }
+  },
+
+  loadUser: async () => {
+    try {
+      const user = await fetchCurrentUser();
+      if (user) set({ user });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadUser falhou:', err);
+    }
+  },
+
+  hydrate: async () => {
+    // Usuario primeiro: loadClans usa user.clan para selecionar o cla atual
+    await get().loadUser();
+    await Promise.all([
+      get().loadMatches(),
+      get().loadFeed(),
+      get().loadTipsters(),
+      get().loadMissions(),
+      get().loadClans(),
+      get().loadLeaderboard(),
+    ]);
+  },
+
+  signIn: async (email, password) => {
+    await signInWithEmail(email, password);
+    set({ authStatus: 'authed' });
+    await get().hydrate();
+  },
+
+  signUp: async (email, password, username) => {
+    const res = await signUpWithEmail(email, password, username);
+    if (res.needsConfirmation) {
+      // E-mail de confirmacao pendente — ainda nao ha sessao
+      set({ authStatus: 'guest' });
+    } else {
+      set({ authStatus: 'authed' });
+      await get().hydrate();
+    }
+  },
+
+  continueAsDemo: () => {
+    useDemoUser();
+    set({ authStatus: 'demo' });
+    get().hydrate();
+  },
+
+  signOutUser: async () => {
+    await authSignOut();
+    set({
+      authStatus: 'guest',
+      isOnboarded: false,
+      user: EMPTY_USER,
+      feed: [], matches: [], tipsters: [], missions: [], clans: [], leaderboard: [],
+      betslip: [], betslipVisible: false, selectedOdds: {},
+    });
+  },
 }));

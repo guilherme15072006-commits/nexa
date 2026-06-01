@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { SafeAreaView, StyleSheet, Platform, View, Animated } from 'react-native';
 import { useNexaStore } from './src/store/nexaStore';
 import OnboardingScreen from './src/screens/OnboardingScreen';
+import LoginScreen from './src/screens/LoginScreen';
 import TabNavigator from './src/navigation/TabNavigator';
 import { Logo } from './src/components/Logo';
 import { colors } from './src/theme';
@@ -37,6 +38,7 @@ function SplashScreen({ onDone }: { onDone: () => void }) {
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const isOnboarded = useNexaStore(s => s.isOnboarded);
+  const authStatus = useNexaStore(s => s.authStatus);
   const user = useNexaStore(s => s.user);
 
   // Init analytics + error reporting on mount
@@ -62,6 +64,9 @@ export default function App() {
 
     setupErrorReporting();
 
+    // Os dados do backend (Supabase) sao carregados via hydrate() apos
+    // login ou ao escolher "continuar como demo" na LoginScreen.
+
     return () => {
       analytics.endSession();
     };
@@ -86,7 +91,9 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.root}>
-      {isOnboarded ? <TabNavigator /> : <OnboardingScreen />}
+      {authStatus === 'guest'
+        ? <LoginScreen />
+        : isOnboarded ? <TabNavigator /> : <OnboardingScreen />}
     </SafeAreaView>
   );
 }

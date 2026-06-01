@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXA — Preview do App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#7C5CFC; --primaryLight:#9B7FFF; --primaryDark:#5A3DD8;
+    --gold:#F5C842; --green:#00C896; --red:#FF4D6A; --orange:#FF8C42;
+    --bg:#0D0B14; --bgCard:#16131F; --bgElevated:#1E1A2E; --bgHighlight:#252038;
+    --textPrimary:#F0EDF8; --textSecondary:#9B95B8; --textMuted:#5C5780;
+    --border:#2A2545; --borderLight:#362F5A;
+    --display:'Space Grotesk',sans-serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:#07060c; font-family:var(--body); color:var(--textPrimary);
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    padding:24px; gap:32px; flex-wrap:wrap;
+    background-image:radial-gradient(circle at 20% 10%, rgba(124,92,252,.10), transparent 40%),radial-gradient(circle at 90% 80%, rgba(0,200,150,.06), transparent 40%);
+  }
+
+  /* ---------- Phone frame ---------- */
+  .phone{
+    width:390px; height:844px; background:var(--bg); border-radius:44px;
+    border:10px solid #1b1726; box-shadow:0 40px 90px rgba(0,0,0,.6), 0 0 0 2px #000 inset;
+    position:relative; overflow:hidden; display:flex; flex-direction:column;
+  }
+  .notch{position:absolute; top:0; left:50%; transform:translateX(-50%); width:150px; height:26px; background:#000; border-radius:0 0 18px 18px; z-index:60}
+  .screen{flex:1; overflow-y:auto; overflow-x:hidden; position:relative; scrollbar-width:none}
+  .screen::-webkit-scrollbar{display:none}
+
+  .side{max-width:340px}
+  .side h1{font-family:var(--display); font-size:26px; letter-spacing:4px}
+  .side p{color:var(--textSecondary); font-size:14px; line-height:1.6; margin-top:12px}
+  .side .tag{display:inline-block; margin-top:16px; font-size:12px; color:var(--primaryLight); background:rgba(124,92,252,.1); border:.5px solid rgba(124,92,252,.3); padding:6px 12px; border-radius:999px}
+  .side ul{margin-top:18px; list-style:none; display:flex; flex-direction:column; gap:10px}
+  .side li{font-size:13px; color:var(--textSecondary); display:flex; gap:8px; align-items:flex-start}
+  .side li b{color:var(--textPrimary)}
+
+  /* ---------- Top bar ---------- */
+  .topbar{display:flex; justify-content:space-between; align-items:center; padding:46px 16px 8px}
+  .logo{font-family:var(--display); font-size:22px; letter-spacing:4px}
+  .topright{display:flex; align-items:center; gap:8px}
+  .badge{padding:4px 9px; border-radius:999px; font-family:var(--mono); font-weight:700; font-size:11px; border:.5px solid}
+  .badge.streak{color:var(--gold); background:rgba(245,200,66,.09); border-color:rgba(245,200,66,.27)}
+  .badge.xp{color:var(--green); background:rgba(0,200,150,.09); border-color:rgba(0,200,150,.27)}
+  .av{border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--body); font-weight:600; flex:none}
+
+  .xpwrap{padding:0 16px 8px; display:flex; align-items:center; gap:8px}
+  .xptrack{flex:1; height:4px; background:var(--bgHighlight); border-radius:999px; overflow:hidden}
+  .xpfill{height:100%; background:var(--primary); border-radius:999px; transition:width .8s cubic-bezier(.2,.8,.2,1)}
+  .lvl{font-size:11px; color:var(--textMuted); font-weight:500}
+
+  .tabsrow{display:flex; gap:8px; padding:0 16px 8px}
+  .pilltab{padding:7px 16px; border-radius:999px; background:var(--bgElevated); font-size:13px; font-weight:500; color:var(--textSecondary); cursor:pointer; transition:.2s}
+  .pilltab.active{background:var(--primary); color:#fff}
+
+  .content{padding:0 0 110px}
+
+  /* ---------- Generic card ---------- */
+  .card{background:var(--bgCard); border:.5px solid var(--border); border-radius:14px; padding:16px; margin:0 16px 12px}
+  .sec{display:flex; justify-content:space-between; align-items:center; padding:12px 16px}
+  .sec h3{font-size:13px; font-weight:600; color:var(--textSecondary); letter-spacing:.2px}
+  .sec a{font-size:12px; color:var(--primary); font-weight:500; cursor:pointer}
+
+  /* trending bar */
+  .trend{display:flex; align-items:center; gap:12px; margin:8px 16px; padding:8px 0}
+  .live{display:inline-flex; align-items:center; gap:5px; background:rgba(255,77,106,.15); border:.5px solid rgba(255,77,106,.33); padding:4px 8px; border-radius:999px; font-size:10px; font-weight:600; color:var(--red)}
+  .dot{width:5px; height:5px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(255,77,106,.7); animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,77,106,.6)}70%{box-shadow:0 0 0 6px rgba(255,77,106,0)}100%{box-shadow:0 0 0 0 rgba(255,77,106,0)}}
+  .trendsep{width:1px; height:14px; background:var(--border)}
+  .trendtxt{font-size:12px; color:var(--textSecondary); font-weight:500}
+  .trendchip{display:inline-flex; gap:4px; align-items:center; background:rgba(255,140,66,.09); border:.5px solid rgba(255,140,66,.27); padding:5px 10px; border-radius:999px}
+  .trendchip b{font-family:var(--mono); font-size:12px; color:var(--orange)} .trendchip span{font-size:11px; color:var(--orange)}
+
+  /* checkin */
+  .checkin{margin:12px 16px; padding:16px; background:rgba(124,92,252,.06); border:.5px solid rgba(124,92,252,.2); border-radius:14px; display:flex; align-items:center; gap:12px; cursor:pointer; animation:breathe 3.6s ease-in-out infinite}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.012)}}
+  .ci-icon{width:44px; height:44px; border-radius:10px; background:rgba(124,92,252,.25); display:flex; align-items:center; justify-content:center; font-family:var(--display); font-size:20px; color:var(--primary)}
+  .ci-title{font-size:13px; font-weight:600}
+  .ci-sub{font-size:11px; color:var(--primary); font-weight:500; margin-top:2px}
+  .ci-btn{background:var(--primary); padding:7px 14px; border-radius:999px; font-size:12px; font-weight:600; color:#fff}
+
+  /* mission */
+  .m-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px}
+  .m-left{display:flex; align-items:center; gap:8px}
+  .m-ic{width:32px; height:32px; border-radius:6px; background:rgba(124,92,252,.1); display:flex; align-items:center; justify-content:center; font-weight:600; color:var(--primary)}
+  .m-title{font-size:13px; font-weight:500}
+  .m-almost{font-size:11px; color:var(--primary); font-weight:600; margin-top:1px}
+  .chip{padding:5px 10px; border-radius:999px; font-size:12px; font-weight:500}
+  .progress{height:5px; background:var(--bgHighlight); border-radius:999px; overflow:hidden; margin:4px 0 8px}
+  .progress>i{display:block; height:100%; background:var(--primary); border-radius:999px}
+  .m-meta{display:flex; justify-content:space-between; font-size:11px}
+  .m-meta .c{color:var(--textMuted)} .m-meta .e{color:rgba(255,77,106,.6); font-weight:500}
+
+  /* tipsters */
+  .tscroll{display:flex; gap:8px; padding:0 16px 8px; overflow-x:auto; scrollbar-width:none}
+  .tscroll::-webkit-scrollbar{display:none}
+  .tcard{width:88px; flex:none; background:var(--bgCard); border:.5px solid var(--border); border-radius:14px; padding:12px 4px; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; text-align:center}
+  .tcard.elite{border-color:rgba(245,200,66,.27); background:rgba(245,200,66,.03)}
+  .tname{font-size:10px; font-weight:600}
+  .tstats{display:flex; gap:4px; align-items:center}
+  .trate{font-family:var(--mono); font-weight:700; font-size:11px; color:var(--green)}
+  .troi{font-family:var(--mono); font-size:9px; color:var(--textMuted)}
+  .tfol{font-size:9px; color:var(--textMuted)}
+  .fbtn{width:22px; height:22px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; line-height:1}
+  .fbtn.on{background:rgba(0,200,150,.25); color:var(--green); font-size:11px}
+
+  /* feed post */
+  .post{margin:0 16px 12px}
+  .p-head{display:flex; align-items:center; gap:8px}
+  .p-user{font-size:13px; font-weight:600}
+  .p-tier{padding:3px 8px; border-radius:999px; font-size:10px; font-weight:500}
+  .p-time{font-size:11px; color:var(--textMuted)}
+  .hot{margin-left:auto; background:rgba(255,77,106,.15); border:.5px solid rgba(255,77,106,.27); padding:3px 8px; border-radius:999px; font-size:10px; font-weight:600; color:var(--red)}
+  .p-content{font-size:14px; color:var(--textSecondary); line-height:1.5; margin:10px 0}
+  .pickrow{display:flex; gap:4px; align-items:center; margin-bottom:10px}
+  .pickbadge{background:rgba(124,92,252,.13); border:.5px solid rgba(124,92,252,.35); padding:5px 10px; border-radius:10px; font-size:12px; font-weight:500; color:var(--primary)}
+  .oddsbadge{background:rgba(245,200,66,.13); border:.5px solid rgba(245,200,66,.35); padding:5px 8px; border-radius:10px; font-family:var(--mono); font-weight:700; font-size:12px; color:var(--gold)}
+  .matchbox{background:rgba(30,26,46,.78); border:.5px solid rgba(124,92,252,.1); border-radius:10px; padding:12px; margin-bottom:10px}
+  .mh{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px}
+  .mleague{font-size:11px; color:var(--textMuted); font-weight:500}
+  .mteams{font-size:14px; font-weight:600; margin-bottom:8px}
+  .oddsrow{display:flex; gap:8px}
+  .odds{flex:1; text-align:center; padding:10px 0; background:var(--bgElevated); border:.5px solid var(--border); border-radius:10px; cursor:pointer; transition:.25s}
+  .odds.sel{background:var(--primary); border-color:var(--primary)}
+  .odds .ol{font-size:10px; color:var(--textMuted)} .odds.sel .ol{color:rgba(255,255,255,.7)}
+  .odds .ov{font-family:var(--mono); font-weight:700; font-size:16px; margin-top:2px} .odds.sel .ov{color:#fff}
+  .odds.up{animation:flashG .6s} .odds.down{animation:flashR .6s}
+  @keyframes flashG{0%{background:rgba(0,200,150,.25)}100%{}}
+  @keyframes flashR{0%{background:rgba(255,77,106,.25)}100%{}}
+  .bettors{display:flex; align-items:center; gap:8px; margin-top:8px}
+  .stack{display:flex}
+  .stack .av{border:1.5px solid var(--bgElevated)} .stack .av:not(:first-child){margin-left:-8px}
+  .bettxt{font-size:11px; color:var(--textMuted)}
+  .social{display:flex; align-items:center; gap:16px; padding-top:4px}
+  .sbtn{display:flex; align-items:center; gap:4px; cursor:pointer; font-size:13px; color:var(--textMuted)}
+  .sbtn.liked{color:var(--red)}
+  .copybtn{margin-left:auto; background:rgba(124,92,252,.13); border:.5px solid rgba(124,92,252,.35); padding:5px 12px; border-radius:999px; font-size:11px; font-weight:600; color:var(--primary); cursor:pointer}
+
+  /* betslip */
+  .betslip{position:absolute; left:0; right:0; bottom:64px; background:rgba(22,19,31,.97); border-top:.5px solid var(--border); padding:14px 16px 16px; display:flex; align-items:center; justify-content:space-between; transform:translateY(160%); transition:transform .35s cubic-bezier(.2,.8,.2,1); z-index:40; visibility:hidden}
+  .betslip.show{transform:translateY(0); visibility:visible}
+  .bs-count{font-size:14px; font-weight:600} .bs-odds{font-size:12px; font-family:var(--mono); color:var(--primary)}
+  .bs-btn{background:var(--primary); padding:12px 24px; border-radius:14px; font-size:14px; font-weight:600; color:#fff; cursor:pointer}
+
+  /* tabbar */
+  .tabbar{display:flex; background:var(--bgCard); border-top:.5px solid var(--border); padding:10px 0 26px}
+  .tab{flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer}
+  .tab .ti{width:38px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-family:var(--display); font-size:14px; color:var(--textMuted); transition:.2s}
+  .tab.active .ti{background:rgba(124,92,252,.09); color:var(--primary)}
+  .tab .tl{font-size:10px; color:var(--textMuted)}
+  .tab.active .tl{color:var(--primary); font-weight:500}
+  .tab .td{height:2px; width:0; background:var(--primary); border-radius:1px; transition:.2s}
+  .tab.active .td{width:16px}
+
+  /* ranking */
+  .podium{display:flex; justify-content:center; align-items:flex-end; gap:10px; padding:20px 16px 8px}
+  .pod{display:flex; flex-direction:column; align-items:center; gap:6px}
+  .pod .bar{width:80px; border-radius:12px 12px 0 0; display:flex; align-items:flex-start; justify-content:center; padding-top:8px; font-family:var(--mono); font-weight:700; font-size:13px}
+  .pod .crown{font-size:18px}
+  .pod .pn{font-size:11px; font-weight:600} .pod .px{font-size:10px; color:var(--textMuted); font-family:var(--mono)}
+  .lbitem{display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:.5px solid var(--border)}
+  .lbitem.me{background:rgba(124,92,252,.06)}
+  .lbrank{width:24px; text-align:center; font-family:var(--mono); font-weight:700; color:var(--textMuted)}
+  .lbname{font-size:13px; font-weight:600} .lbclan{font-size:11px; color:var(--textMuted)}
+  .lbxp{margin-left:auto; font-family:var(--mono); font-weight:700; color:var(--green); font-size:13px}
+
+  /* perfil */
+  .hero{display:flex; flex-direction:column; align-items:center; gap:8px; padding:24px 16px 12px}
+  .hero .uname{font-family:var(--display); font-size:22px}
+  .hero .uclan{font-size:12px; color:var(--textSecondary)}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:0 16px 12px}
+  .stat{background:var(--bgCard); border:.5px solid var(--border); border-radius:14px; padding:14px}
+  .stat .sv{font-family:var(--mono); font-weight:700; font-size:20px}
+  .stat .sl{font-size:11px; color:var(--textMuted); margin-top:2px}
+  .wallet{display:flex; gap:12px; margin:0 16px 12px}
+  .wbox{flex:1; background:var(--bgCard); border:.5px solid var(--border); border-radius:14px; padding:14px}
+  .wbox .wv{font-family:var(--mono); font-weight:700; font-size:18px} .wbox .wl{font-size:11px; color:var(--textMuted)}
+  .badges{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:0 16px 12px}
+  .bcell{aspect-ratio:1; border-radius:14px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border:.5px solid}
+  .bcell .bi{font-size:22px; font-family:var(--display)}
+  .bcell .bn{font-size:9px; text-align:center; padding:0 4px}
+  .bcell.lock{opacity:.35}
+  .heat{display:flex; flex-wrap:wrap; gap:4px; margin:0 16px 12px; padding:14px; background:var(--bgCard); border:.5px solid var(--border); border-radius:14px}
+  .hc{width:13px; height:13px; border-radius:3px}
+
+  .empty{padding:60px 24px; text-align:center; color:var(--textMuted); font-size:13px}
+  .hide{display:none}
+</style>
+</head>
+<body>
+
+<aside class="side">
+  <h1>NEXA</h1>
+  <p>Preview interativo do app React Native renderizado em HTML. Reproduz fielmente o design system, os dados mock do <code>nexaStore</code> e as mecânicas de retenção.</p>
+  <span class="tag">Protótipo de UI · dados mockados</span>
+  <ul>
+    <li>👉 <span><b>Toque nas abas</b> embaixo para navegar (Início, Apostas, Ranking, Perfil)</span></li>
+    <li>❤️ <span><b>Curtir / Copiar / Seguir</b> funcionam de verdade</span></li>
+    <li>🎯 <span><b>Selecione odds</b> → abre o betslip flutuante</span></li>
+    <li>🔥 <span><b>Check-in</b> dá XP, moedas e streak</span></li>
+    <li>📈 <span>As <b>odds ao vivo oscilam</b> a cada 5s</span></li>
+  </ul>
+</aside>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="screen" id="screen"></div>
+  <div class="tabbar" id="tabbar"></div>
+</div>
+
+<div class="side" style="max-width:300px">
+  <h1 style="font-size:18px; letter-spacing:0">Mecânicas vivas</h1>
+  <p>Cada tela embute gatilhos psicológicos do núcleo da NEXA:</p>
+  <ul>
+    <li>🟣 <span><b>Pressão social:</b> "247 apostando agora"</span></li>
+    <li>🟡 <span><b>Quase-ganho:</b> "falta 1 missão"</span></li>
+    <li>🟢 <span><b>Streak diário</b> com celebração</span></li>
+    <li>🔵 <span><b>Copy bet</b> em 1 toque (+10 XP)</span></li>
+    <li>🟠 <span><b>Raridade</b> de badges no perfil</span></li>
+  </ul>
+</div>
+
+<script>
+// ============ MOCK STORE (espelha src/store/nexaStore.ts) ============
+const TIER = {elite:['#F5C842','#3A2E00'],gold:['#FF8C42','#3A1C00'],silver:['#9B95B8','#1E1A2E'],bronze:['#C08060','#2E1A10'],default:['#7C5CFC','#1A1040']};
+const tierText = {elite:'#F5C842',gold:'#FF8C42',silver:'#9B95B8',bronze:'#C08060'};
+const RARITY = {common:'#9B95B8',rare:'#7C5CFC',epic:'#FF8C42',legendary:'#F5C842'};
+
+const store = {
+  activeTab:'feed',
+  checkinAvailable:true,
+  feedTab:'para-voce',
+  selectedOdds:{},
+  betslip:[],
+  user:{id:'u1',username:'RocketKing',avatar:'RK',level:12,xp:2340,xpToNext:3000,streak:7,balance:450.00,coins:1820,rank:14,winRate:61,roi:8.4,clan:'Predators',dna:'analytical',state:'motivated',
+    badges:[
+      {id:'b1',name:'Tipster Iniciante',icon:'T',rarity:'common',unlocked:true},
+      {id:'b2',name:'Semana Quente',icon:'F',rarity:'rare',unlocked:true},
+      {id:'b3',name:'Sequência 7d',icon:'S',rarity:'rare',unlocked:true},
+      {id:'b4',name:'Clã Ativo',icon:'C',rarity:'common',unlocked:true},
+      {id:'b5',name:'Predador Nato',icon:'P',rarity:'epic',unlocked:false},
+      {id:'b6',name:'Lenda NEXA',icon:'L',rarity:'legendary',unlocked:false}],
+    following:['t1','t2']},
+  matches:[
+    {id:'m1',league:'Brasileirão',leagueIcon:'BR',homeTeam:'Flamengo',awayTeam:'Palmeiras',homeLogo:'FLA',awayLogo:'PAL',status:'live',minute:72,score:{home:1,away:1},odds:{home:1.85,draw:3.20,away:2.10},prevOdds:{home:1.90,draw:3.15,away:2.05},bettors:247,trending:true},
+    {id:'m2',league:'Champions League',leagueIcon:'CL',homeTeam:'Man City',awayTeam:'Bayern',homeLogo:'MCI',awayLogo:'BAY',status:'live',minute:55,score:{home:2,away:1},odds:{home:1.45,draw:4.20,away:3.80},prevOdds:{home:2.10,draw:3.40,away:1.90},bettors:1240,trending:true},
+    {id:'m3',league:'La Liga',leagueIcon:'ES',homeTeam:'Real Madrid',awayTeam:'Barcelona',homeLogo:'RMA',awayLogo:'BAR',status:'upcoming',startTime:'20:00',odds:{home:2.05,draw:3.40,away:1.95},bettors:3820,trending:true},
+    {id:'m4',league:'Brasileirão',leagueIcon:'BR',homeTeam:'São Paulo',awayTeam:'Corinthians',homeLogo:'SAO',awayLogo:'COR',status:'upcoming',startTime:'19:00',odds:{home:2.20,draw:3.10,away:2.00},bettors:892,trending:false}],
+  tipsters:[
+    {id:'t1',username:'GabrielP',avatar:'GP',winRate:78,roi:22.4,followers:4820,streak:12,tier:'elite',isFollowing:true},
+    {id:'t2',username:'MarFutebol',avatar:'MF',winRate:71,roi:15.8,followers:2310,streak:7,tier:'gold',isFollowing:true},
+    {id:'t3',username:'BetKing',avatar:'BK',winRate:69,roi:12.1,followers:1890,streak:5,tier:'gold',isFollowing:false},
+    {id:'t4',username:'TipZone',avatar:'TZ',winRate:65,roi:9.3,followers:1120,streak:3,tier:'silver',isFollowing:false},
+    {id:'t5',username:'AceTrader',avatar:'AT',winRate:73,roi:18.2,followers:3200,streak:9,tier:'elite',isFollowing:false}],
+  missions:[
+    {id:'ms1',title:'Aposte em 3 jogos hoje',xpReward:150,progress:2,target:3,type:'daily',icon:'T',completed:false,expiresIn:'6h'},
+    {id:'ms2',title:'Siga 1 novo tipster',xpReward:80,progress:0,target:1,type:'daily',icon:'U',completed:false,expiresIn:'6h'},
+    {id:'ms3',title:'Top 10 do ranking semanal',xpReward:500,progress:14,target:10,type:'weekly',icon:'R',completed:false},
+    {id:'ms4',title:'??? Missão oculta',xpReward:300,progress:0,target:1,type:'hidden',icon:'M',completed:false}],
+  clan:{name:'Predators',tag:'PRD',members:28,rank:5,xp:48200,weeklyXp:8400},
+  leaderboard:[
+    {rank:1,username:'GabrielP',avatar:'GP',clan:'Wolves',xp:4820,tier:'elite'},
+    {rank:2,username:'MarFutebol',avatar:'MF',clan:'Sharks',xp:3610,tier:'gold'},
+    {rank:3,username:'BetKing',avatar:'BK',clan:'Predators',xp:3100,tier:'gold'},
+    {rank:4,username:'TipZone',avatar:'TZ',clan:'Elite FC',xp:2890,tier:'silver'},
+    {rank:5,username:'AceTrader',avatar:'AT',clan:'Wolves',xp:2720,tier:'elite'},
+    {rank:14,username:'RocketKing',avatar:'RK',clan:'Predators',xp:2340,tier:'silver',me:true}],
+  feed:[
+    {id:'f1',type:'tip',user:{id:'t1',username:'GabrielP',avatar:'GP',tier:'elite'},content:'Real Madrid favorito em casa. Defesa sólida, Mbappé em boa fase. Entrada limpa.',matchId:'m3',pick:'Real Madrid vence',odds:2.05,likes:342,comments:87,copies:156,isLiked:false,timestamp:'8min',hot:true},
+    {id:'f2',type:'bet',user:{id:'u2',username:'ZetaX',avatar:'ZX',tier:'silver'},content:'Clássico sempre imprevisível. Apostei no empate — odds ótimas.',matchId:'m3',pick:'Empate',odds:3.40,likes:28,comments:14,copies:9,isLiked:true,timestamp:'15min',hot:false},
+    {id:'f3',type:'achievement',user:{id:'t2',username:'MarFutebol',avatar:'MF',tier:'gold'},content:'Completou 7 acertos seguidos! Sequência incrível — melhor semana do mês.',likes:189,comments:42,copies:0,isLiked:false,timestamp:'32min',hot:true},
+    {id:'f4',type:'tip',user:{id:'t3',username:'BetKing',avatar:'BK',tier:'gold'},content:'Flamengo pressiona no segundo tempo. Com 1x1 e time atacando, minha leitura é virada.',matchId:'m1',pick:'Flamengo vence',odds:1.85,likes:94,comments:31,copies:67,isLiked:false,timestamp:'1h',hot:false}]
+};
+
+const fmt = n => n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'k':(''+n);
+const fmtFull = n => n.toLocaleString('pt-BR');
+const m = id => store.matches.find(x=>x.id===id);
+
+function avatar(label,size,tier='default'){
+  const [bg,fg]=TIER[tier]||TIER.default;
+  return `<div class="av" style="width:${size}px;height:${size}px;background:${bg};color:${fg};font-size:${size*0.32}px${tier==='elite'?';box-shadow:0 0 0 1.5px '+bg:''}">${label}</div>`;
+}
+
+// ============ SCREENS ============
+function feedScreen(){
+  const u=store.user;
+  const liveCount=store.matches.filter(x=>x.status==='live').length;
+  const totalBettors=store.matches.reduce((s,x)=>s+x.bettors,0);
+  const active=store.missions.find(x=>!x.completed&&x.type==='daily');
+  const almost=active&&active.progress===active.target-1;
+  const feed=store.feedTab==='seguindo'?store.feed.filter(p=>u.following.includes(p.user.id)):store.feed;
+
+  return `
+  <div class="topbar">
+    <div class="logo">NEXA</div>
+    <div class="topright">
+      <div class="badge streak">${u.streak}d</div>
+      <div class="badge xp">${fmtFull(u.xp)} XP</div>
+      ${avatar(u.avatar,30,'silver')}
+    </div>
+  </div>
+  <div class="xpwrap">
+    <div class="xptrack"><div class="xpfill" style="width:${Math.min(u.xp/u.xpToNext*100,100)}%"></div></div>
+    <div class="lvl">Nível ${u.level}</div>
+  </div>
+  <div class="tabsrow">
+    <div class="pilltab ${store.feedTab==='para-voce'?'active':''}" onclick="setFeedTab('para-voce')">Para você</div>
+    <div class="pilltab ${store.feedTab==='seguindo'?'active':''}" onclick="setFeedTab('seguindo')">Seguindo</div>
+  </div>
+  <div class="content">
+    <div class="trend">
+      <div style="display:flex;align-items:center;gap:5px"><span class="live"><span class="dot"></span>AO VIVO</span><span class="trendtxt">${liveCount} ao vivo</span></div>
+      <div class="trendsep"></div>
+      <div class="trendchip"><b>${fmtFull(totalBettors)}</b><span>apostando</span></div>
+    </div>
+    ${store.checkinAvailable?`
+    <div class="checkin" onclick="claimCheckin()">
+      <div class="ci-icon">G</div>
+      <div style="flex:1"><div class="ci-title">Check-in diário disponível</div><div class="ci-sub">+50 XP · +100 moedas · Sequência ${u.streak+1}d</div></div>
+      <div class="ci-btn">Resgatar</div>
+    </div>`:''}
+    ${active?`
+    <div class="card" style="${almost?'background:rgba(124,92,252,.06);border-color:rgba(124,92,252,.2)':''}">
+      <div class="m-top">
+        <div class="m-left"><div class="m-ic">${active.icon}</div><div><div class="m-title">${active.title}</div>${almost?'<div class="m-almost">falta 1 missão</div>':''}</div></div>
+        <div class="chip" style="color:var(--green);background:rgba(0,200,150,.09)">+${active.xpReward} XP</div>
+      </div>
+      <div class="progress"><i style="width:${active.progress/active.target*100}%"></i></div>
+      <div class="m-meta"><span class="c">${active.progress} de ${active.target}</span><span class="e">expira em ${active.expiresIn}</span></div>
+    </div>`:''}
+    <div class="sec"><h3>Tipsters em destaque</h3><a>ver todos</a></div>
+    <div class="tscroll">
+      ${store.tipsters.map(t=>`
+        <div class="tcard ${t.tier==='elite'?'elite':''}" onclick="toggleFollow('${t.id}')">
+          ${avatar(t.avatar,40,t.tier)}
+          <div class="tname">${t.username}</div>
+          <div class="tstats"><span class="trate">${t.winRate}%</span><span class="troi">+${t.roi}%</span></div>
+          <div class="tfol">${fmt(t.followers)}</div>
+          <div class="fbtn ${t.isFollowing?'on':''}">${t.isFollowing?'✓':'+'}</div>
+        </div>`).join('')}
+    </div>
+    <div class="sec"><h3>Feed ao vivo</h3></div>
+    ${feed.length?feed.map(p=>feedPost(p)).join(''):'<div class="empty">Nenhum post de quem você segue ainda.</div>'}
+  </div>`;
+}
+
+function feedPost(p){
+  const mt = p.matchId?m(p.matchId):null;
+  const t=tierText[p.user.tier]||'#7C5CFC';
+  return `
+  <div class="card post">
+    <div class="p-head">
+      ${avatar(p.user.avatar,36,p.user.tier)}
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px"><span class="p-user">${p.user.username}</span><span class="p-tier" style="color:${t};background:${t}22">${p.user.tier}</span></div>
+        <div class="p-time">${p.timestamp}</div>
+      </div>
+      ${p.hot?'<div class="hot">Em alta</div>':''}
+    </div>
+    <div class="p-content">${p.content}</div>
+    ${p.pick?`<div class="pickrow"><span class="pickbadge">${p.pick}</span>${p.odds?`<span class="oddsbadge">${p.odds.toFixed(2)}</span>`:''}</div>`:''}
+    ${mt&&p.type!=='achievement'?`
+    <div class="matchbox">
+      <div class="mh"><span class="mleague">${mt.leagueIcon} · ${mt.league}</span>${mt.status==='live'?`<span class="live"><span class="dot"></span>${mt.minute}'</span>`:''}</div>
+      <div class="mteams">${mt.homeTeam} vs ${mt.awayTeam}</div>
+      <div class="oddsrow">
+        ${oddBtn(mt,'home',mt.homeLogo)}${oddBtn(mt,'draw','X')}${oddBtn(mt,'away',mt.awayLogo)}
+      </div>
+      <div class="bettors">
+        <div class="stack">${['GP','MF','BK'].map(a=>avatar(a,20)).join('')}</div>
+        <span class="bettxt">${fmtFull(mt.bettors)} apostando agora</span>
+      </div>
+    </div>`:''}
+    <div class="social">
+      <div class="sbtn ${p.isLiked?'liked':''}" onclick="like('${p.id}')"><span>${p.isLiked?'♥':'♡'}</span><span>${p.likes}</span></div>
+      <div class="sbtn"><span>💬</span><span>${p.comments}</span></div>
+      ${p.type==='tip'?`<div class="copybtn" onclick="copy('${p.id}')">Copiar aposta · ${p.copies}</div>`:''}
+    </div>
+  </div>`;
+}
+
+function oddBtn(mt,side,label){
+  const sel=store.selectedOdds[mt.id]===side;
+  const up=mt.prevOdds&&mt.odds[side]>mt.prevOdds[side];
+  const dn=mt.prevOdds&&mt.odds[side]<mt.prevOdds[side];
+  return `<div class="odds ${sel?'sel':''} ${up?'up':dn?'down':''}" onclick="selectOdd('${mt.id}','${side}')"><div class="ol">${label}</div><div class="ov">${mt.odds[side].toFixed(2)}</div></div>`;
+}
+
+function apostasScreen(){
+  const live=store.matches.filter(x=>x.status==='live');
+  const upc=store.matches.filter(x=>x.status==='upcoming');
+  const matchBig = mt => `
+    <div class="card" style="margin-bottom:12px">
+      <div class="mh"><span class="mleague">${mt.leagueIcon} · ${mt.league}</span>${mt.status==='live'?`<span class="live"><span class="dot"></span>${mt.minute}'</span>`:`<span class="mleague">${mt.startTime}</span>`}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 10px">
+        <div class="mteams" style="margin:0">${mt.homeTeam} vs ${mt.awayTeam}</div>
+        ${mt.score?`<span style="font-family:var(--mono);font-weight:700;color:var(--green)">${mt.score.home}-${mt.score.away}</span>`:''}
+      </div>
+      <div class="oddsrow">${oddBtn(mt,'home',mt.homeLogo)}${oddBtn(mt,'draw','X')}${oddBtn(mt,'away',mt.awayLogo)}</div>
+      <div class="bettors" style="margin-top:8px"><span class="bettxt">🔥 ${fmtFull(mt.bettors)} apostando agora</span></div>
+    </div>`;
+  return `
+  <div class="topbar"><div class="logo">Apostas</div><div class="topright"><div class="badge xp">R$ ${store.user.balance.toFixed(2)}</div></div></div>
+  <div class="content">
+    <div class="sec"><h3>${live.length} jogos ao vivo</h3></div>
+    <div style="padding:0 16px">${live.map(matchBig).join('')}</div>
+    <div class="sec"><h3>Jogos de hoje</h3></div>
+    <div style="padding:0 16px">${upc.map(matchBig).join('')}</div>
+    <div class="sec"><h3>Missão oculta</h3></div>
+    <div class="card" style="background:rgba(245,200,66,.05);border-color:rgba(245,200,66,.25)">
+      <div style="display:flex;align-items:center;gap:10px"><div class="m-ic" style="background:rgba(245,200,66,.12);color:var(--gold)">M</div>
+      <div style="flex:1"><div class="m-title">??? Recompensa secreta</div><div style="font-size:11px;color:var(--textMuted);margin-top:2px">Faça uma aposta combinada para revelar · +300 XP</div></div></div>
+    </div>
+  </div>`;
+}
+
+function rankingScreen(){
+  const lb=store.leaderboard;
+  const top3=lb.slice(0,3);
+  const order=[top3[1],top3[0],top3[2]]; // 2,1,3
+  const heights={0:96,1:72,2:56}; const crowns={0:'👑',1:'🥈',2:'🥉'};
+  const colors={0:'var(--gold)',1:'#9B95B8',2:'#C08060'};
+  return `
+  <div class="topbar"><div class="logo">Ranking</div></div>
+  <div class="tabsrow"><div class="pilltab active">Semanal</div><div class="pilltab">Mensal</div></div>
+  <div class="content">
+    <div class="podium">
+      ${order.map((e,i)=>{const realIdx=e.rank-1; return `
+        <div class="pod">
+          <div class="crown">${crowns[realIdx]||''}</div>
+          ${avatar(e.avatar,realIdx===0?52:42,e.tier)}
+          <div class="pn">${e.username}</div>
+          <div class="px">${fmtFull(e.xp)}</div>
+          <div class="bar" style="height:${heights[realIdx]}px;background:linear-gradient(${colors[realIdx]}33,${colors[realIdx]}08);border:.5px solid ${colors[realIdx]}55;color:${colors[realIdx]}">${e.rank}</div>
+        </div>`;}).join('')}
+    </div>
+    <div class="card" style="background:rgba(124,92,252,.06);border-color:rgba(124,92,252,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div class="m-title">Temporada 1 · Ascensão</div><div style="font-size:11px;color:var(--primary);margin-top:2px">termina em 12 dias</div></div>
+        <div class="chip" style="color:var(--gold);background:rgba(245,200,66,.1)">Recompensas exclusivas</div>
+      </div>
+    </div>
+    <div class="sec"><h3>Top apostadores — semana</h3></div>
+    ${lb.map(e=>`
+      <div class="lbitem ${e.me?'me':''}">
+        <div class="lbrank">${e.rank}</div>
+        ${avatar(e.avatar,34,e.tier)}
+        <div><div class="lbname">${e.username}${e.me?' (você)':''}</div><div class="lbclan">${e.clan}</div></div>
+        <div class="lbxp">${fmtFull(e.xp)} XP</div>
+      </div>`).join('')}
+    <div class="sec"><h3>Ranking de clãs</h3><a>criar clã</a></div>
+    <div class="card" style="display:flex;align-items:center;gap:12px">
+      <div class="av" style="width:42px;height:42px;background:var(--primary);color:#fff;border-radius:12px;font-weight:700">PRD</div>
+      <div style="flex:1"><div class="lbname">${store.clan.name} <span class="m-almost" style="display:inline">#${store.clan.rank}</span></div><div class="lbclan">${store.clan.members} membros · ${fmtFull(store.clan.weeklyXp)} XP esta semana</div></div>
+    </div>
+  </div>`;
+}
+
+function perfilScreen(){
+  const u=store.user;
+  const heatColors=['#16131F','#1d3a30','#16604a','#0a9970','#00C896'];
+  let heat=''; for(let i=0;i<98;i++){heat+=`<div class="hc" style="background:${heatColors[Math.floor(Math.random()*5)]}"></div>`;}
+  return `
+  <div class="topbar"><div class="logo">Perfil</div><div class="topright"><div class="badge streak">⚙</div></div></div>
+  <div class="content">
+    <div class="hero">
+      ${avatar(u.avatar,72,'silver')}
+      <div class="uname">${u.username}</div>
+      <div class="uclan">🛡 ${u.clan} · DNA ${u.dna} · estado: ${u.state}</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="m-title">Nível ${u.level}</span><span class="lbclan">${fmtFull(u.xp)} / ${fmtFull(u.xpToNext)} XP</span></div>
+      <div class="progress" style="height:8px"><i style="width:${u.xp/u.xpToNext*100}%"></i></div>
+      <div class="m-almost" style="margin-top:6px">faltam ${fmtFull(u.xpToNext-u.xp)} XP para o nível ${u.level+1} 🔥</div>
+    </div>
+    <div class="wallet">
+      <div class="wbox"><div class="wv" style="color:var(--green)">R$ ${u.balance.toFixed(2)}</div><div class="wl">Saldo</div></div>
+      <div class="wbox"><div class="wv" style="color:var(--gold)">${fmtFull(u.coins)}</div><div class="wl">Moedas NEXA</div></div>
+    </div>
+    <div class="grid2">
+      <div class="stat"><div class="sv" style="color:var(--green)">${u.winRate}%</div><div class="sl">Win rate</div></div>
+      <div class="stat"><div class="sv" style="color:var(--primary)">+${u.roi}%</div><div class="sl">ROI</div></div>
+      <div class="stat"><div class="sv" style="color:var(--gold)">${u.streak}d</div><div class="sl">Sequência</div></div>
+      <div class="stat"><div class="sv">#${u.rank}</div><div class="sl">Ranking</div></div>
+    </div>
+    <div class="sec"><h3>Atividade</h3></div>
+    <div class="heat">${heat}</div>
+    <div class="sec"><h3>Conquistas</h3><a>${u.badges.filter(b=>b.unlocked).length}/${u.badges.length}</a></div>
+    <div class="badges">
+      ${u.badges.map(b=>{const c=RARITY[b.rarity];return `<div class="bcell ${b.unlocked?'':'lock'}" style="background:${c}14;border-color:${c}40"><div class="bi" style="color:${c}">${b.unlocked?b.icon:'?'}</div><div class="bn">${b.name}</div></div>`;}).join('')}
+    </div>
+    <div class="sec"><h3>Missões ativas</h3></div>
+    <div style="padding:0 16px">
+    ${store.missions.map(ms=>`
+      <div class="card" style="margin:0 0 10px">
+        <div class="m-top" style="margin-bottom:8px"><div class="m-left"><div class="m-ic" style="${ms.type==='hidden'?'background:rgba(245,200,66,.12);color:var(--gold)':''}">${ms.icon}</div><div class="m-title">${ms.title}</div></div><div class="chip" style="color:var(--green);background:rgba(0,200,150,.09)">+${ms.xpReward}</div></div>
+        <div class="progress"><i style="width:${Math.min(ms.progress/ms.target*100,100)}%"></i></div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ============ TABBAR + RENDER ============
+const TABS=[{id:'feed',label:'Início',icon:'H'},{id:'apostas',label:'Apostas',icon:'A'},{id:'ranking',label:'Ranking',icon:'R'},{id:'perfil',label:'Perfil',icon:'P'}];
+function renderTabbar(){
+  document.getElementById('tabbar').innerHTML=TABS.map(t=>`
+    <div class="tab ${store.activeTab===t.id?'active':''}" onclick="setTab('${t.id}')">
+      <div class="ti">${t.icon}</div><div class="tl">${t.label}</div><div class="td"></div>
+    </div>`).join('');
+}
+function betslipBar(){
+  const b=store.betslip; const odds=b.reduce((a,x)=>a*x.odds,1);
+  return `<div class="betslip ${b.length?'show':''}">
+    <div><div class="bs-count">${b.length} ${b.length===1?'seleção':'seleções'}</div><div class="bs-odds">Odds ${odds.toFixed(2)}</div></div>
+    <div class="bs-btn" onclick="placeBet()">Apostar</div>
+  </div>`;
+}
+function render(){
+  const s=store.activeTab;
+  const html = s==='feed'?feedScreen():s==='apostas'?apostasScreen():s==='ranking'?rankingScreen():perfilScreen();
+  const scr=document.getElementById('screen');
+  const top=scr.scrollTop;
+  scr.innerHTML=html+betslipBar();
+  scr.scrollTop=top;
+  renderTabbar();
+}
+
+// ============ ACTIONS (espelham as actions do Zustand) ============
+function setTab(id){store.activeTab=id; document.getElementById('screen').scrollTop=0; render();}
+function setFeedTab(t){store.feedTab=t; render();}
+function like(id){const p=store.feed.find(x=>x.id===id); p.isLiked=!p.isLiked; p.likes+=p.isLiked?1:-1; render();}
+function copy(id){const p=store.feed.find(x=>x.id===id); p.copies++; store.user.xp+=10; toast('+10 XP · aposta copiada'); render();}
+function toggleFollow(id){const t=store.tipsters.find(x=>x.id===id); t.isFollowing=!t.isFollowing; if(t.isFollowing&&!store.user.following.includes(id))store.user.following.push(id); else store.user.following=store.user.following.filter(x=>x!==id); render();}
+function selectOdd(mid,side){
+  const mt=m(mid); const i=store.betslip.findIndex(b=>b.matchId===mid);
+  if(i>=0){ if(store.betslip[i].side===side){store.betslip.splice(i,1); delete store.selectedOdds[mid];} else {store.betslip[i]={matchId:mid,side,odds:mt.odds[side]}; store.selectedOdds[mid]=side;} }
+  else {store.betslip.push({matchId:mid,side,odds:mt.odds[side]}); store.selectedOdds[mid]=side;}
+  render();
+}
+function placeBet(){if(!store.betslip.length)return; store.user.xp+=20; toast('Aposta confirmada · +20 XP 🎉'); store.betslip=[]; store.selectedOdds={}; render();}
+function claimCheckin(){store.checkinAvailable=false; store.user.xp+=50; store.user.coins+=100; store.user.streak+=1; toast('Check-in! +50 XP · +100 moedas 🔥'); render();}
+
+// live odds oscillation (simulateOddsChange a cada 5s)
+setInterval(()=>{
+  store.matches.forEach(mt=>{ if(mt.status!=='live')return; mt.prevOdds={...mt.odds};
+    const v=()=>Math.round((Math.random()*0.2-0.1)*100)/100;
+    mt.odds.home=Math.max(1.01,+(mt.odds.home+v()).toFixed(2));
+    mt.odds.draw=Math.max(1.01,+(mt.odds.draw+v()).toFixed(2));
+    mt.odds.away=Math.max(1.01,+(mt.odds.away+v()).toFixed(2));
+    mt.bettors+=Math.floor(Math.random()*8); mt.minute++; });
+  if(store.activeTab==='feed'||store.activeTab==='apostas')render();
+},5000);
+
+// tiny toast
+function toast(msg){
+  const t=document.createElement('div'); t.textContent=msg;
+  t.style.cssText='position:absolute;bottom:140px;left:50%;transform:translateX(-50%);background:var(--bgElevated);border:.5px solid var(--primary);color:#fff;padding:10px 16px;border-radius:999px;font-size:12px;font-weight:600;z-index:80;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:fadein .3s';
+  document.querySelector('.phone').appendChild(t);
+  setTimeout(()=>{t.style.transition='opacity .4s';t.style.opacity='0';setTimeout(()=>t.remove(),400);},1600);
+}
+
+render();
+</script>
+</body>
+</html>
