@@ -28,7 +28,7 @@ A NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado par
 | Landing page (`site/`) | ✅ Funcional | HTML/CSS estático pronto para Vercel |
 | Preview do app (`preview/`) | ✅ Funcional | Maquete HTML navegável + screenshots |
 | CI/CD (GitHub Actions) | ✅ Configurado | Typecheck, testes, build e deploy |
-| Projetos nativos (`android/`, `ios/`) | ❌ Ausentes | Precisam ser gerados para builds nativas |
+| Projetos nativos (`android/`, `ios/`) | ✅ Gerados | Template RN 0.73.4 (`index.js`/`app.json` inclusos). iOS requer `pod install` |
 | `assets/logo.png` | ⚠️ Vazio | Arquivo com 0 bytes — substituir pela arte real |
 
 ---
@@ -100,7 +100,7 @@ Toda a experiência de **front-end** está implementada e o app é navegável de
 - **Apostas (demo):** sem campo de valor na betslip, cada seleção usa um stake fixo (`DEMO_BET_STAKE = R$5`). O saldo é debitado de verdade em `users.balance`.
 - **Legado:** `src/services/api.ts` (client REST para `api.nexa.bet`) continua tipado mas **não é usado** — o backend ativo passou a ser o Supabase.
 - **Backend:** os Workers (`workers/index.ts`) têm o roteador e as rotas, mas retornam arrays vazios / placeholders. KV, D1, R2 e Durable Objects estão comentados no `wrangler.toml`.
-- **Builds nativas:** não existem as pastas `android/` e `ios/`, então `run-android`/`run-ios` e o job de APK no CI falharão até que os projetos nativos sejam gerados.
+- **Builds nativas:** as pastas `android/` e `ios/` já existem (template RN 0.73.4). Para iOS é preciso rodar `bundle install && cd ios && pod install`. As builds ainda não foram executadas/validadas neste ambiente.
 - **Asset de logo:** `assets/logo.png` está vazio (0 bytes).
 - **Auth/KYC, carteira real, Pix/cartão, WebSocket de odds:** definidos no contrato da API, mas não implementados.
 
@@ -124,7 +124,10 @@ Toda a experiência de **front-end** está implementada e o app é navegável de
 ## Estrutura de arquivos
 
 ```
-App.tsx                          → entry point (splash → onboarding ou tabs)
+index.js                         → registro do app (AppRegistry) — entry nativo
+app.json                         → nome do app (NEXA)
+android/ · ios/                  → projetos nativos (template RN 0.73.4)
+App.tsx                          → entry point (splash → login → onboarding ou tabs)
 src/
   theme/index.ts                 → cores, tipografia, espaçamento, sombras, animações, glass
   store/nexaStore.ts             → estado global + actions (fonte de verdade, dados mock)
@@ -171,7 +174,7 @@ cp .env.example .env   # preencha as chaves que for usar (opcional em dev)
 | Script | Comando | O que faz |
 |---|---|---|
 | `npm start` | `react-native start` | Inicia o Metro bundler |
-| `npm run ios` | `react-native run-ios` | Roda no iOS *(requer pasta `ios/`)* |
+| `npm run ios` | `react-native run-ios` | Roda no iOS *(rode `pod install` antes)* |
 | `npm run android` | `react-native run-android` | Roda no Android *(requer pasta `android/`)* |
 | `npm run typecheck` | `tsc --noEmit` | Checagem de tipos |
 | `npm test` | `jest` | Roda os testes (95 testes) |
@@ -180,7 +183,7 @@ cp .env.example .env   # preencha as chaves que for usar (opcional em dev)
 | `npm run site:dev` | `npx serve site` | Serve a landing page local |
 | `npm run site:deploy` | `vercel --prod` | Deploy da landing page |
 
-> **Nota:** as pastas nativas `android/` e `ios/` ainda não foram geradas neste repositório. Para builds nativas, gere-as a partir de um template React Native 0.73 antes de rodar `run-ios`/`run-android`.
+> **Nota:** os projetos nativos `android/` e `ios/` já estão no repositório (template RN 0.73.4, com `index.js` e `app.json`). Para iOS, instale os pods primeiro: `bundle install && cd ios && pod install && cd ..`.
 
 ---
 
@@ -237,7 +240,7 @@ Pipeline em `.github/workflows/ci.yml` (Node 20), dispara em push para `main`/`d
 
 1. **quality** — `tsc --noEmit`
 2. **test** — `npm test -- --ci --coverage` (depende de quality; sobe artefato de cobertura)
-3. **build-android** — `gradlew assembleRelease` *(só em `main`; **falha enquanto `android/` não existir**)*
+3. **build-android** — `gradlew assembleRelease` *(só em `main`; agora há `android/`, mas pode exigir ajuste de signing/SDK no runner)*
 4. **deploy-site** — deploy na Vercel *(só em `main`)*
 5. **deploy-api** — deploy dos Workers na Cloudflare *(só em `main`)*
 
