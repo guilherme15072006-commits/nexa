@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { analytics, trackBet, trackXPGain, trackOddsChange, trackUserState } from '../services/analytics';
 import { linear } from '../services/linear';
-import { fetchMatches, fetchFeed, fetchTipsters, fetchMissions, fetchClans, fetchLeaderboard } from '../services/supabase';
+import { fetchMatches, fetchFeed, fetchTipsters, fetchMissions, fetchClans, fetchLeaderboard, fetchCurrentUser } from '../services/supabase';
 
 export interface User {
   id: string;
@@ -158,34 +158,17 @@ interface NexaStore {
   loadMissions: () => Promise<void>;
   loadClans: () => Promise<void>;
   loadLeaderboard: () => Promise<void>;
+  loadUser: () => Promise<void>;
   hydrate: () => Promise<void>;
 }
 
-const MOCK_USER: User = {
-  id: 'u1',
-  username: 'RocketKing',
-  avatar: 'RK',
-  level: 12,
-  xp: 2340,
-  xpToNext: 3000,
-  streak: 7,
-  balance: 450.00,
-  coins: 1820,
-  rank: 14,
-  winRate: 61,
-  roi: 8.4,
-  clan: 'Predators',
-  dna: 'analytical',
-  state: 'motivated',
-  badges: [
-    { id: 'b1', name: 'Tipster Iniciante', icon: 'T', rarity: 'common', unlocked: true },
-    { id: 'b2', name: 'Semana Quente', icon: 'F', rarity: 'rare', unlocked: true },
-    { id: 'b3', name: 'Sequencia 7d', icon: 'S', rarity: 'rare', unlocked: true },
-    { id: 'b4', name: 'Cla Ativo', icon: 'C', rarity: 'common', unlocked: true },
-    { id: 'b5', name: 'Predador Nato', icon: 'P', rarity: 'epic', unlocked: false },
-    { id: 'b6', name: 'Lenda NEXA', icon: 'L', rarity: 'legendary', unlocked: false },
-  ],
-  following: ['t1', 't2'],
+// Estado inicial neutro do usuario — substituido por dados reais do Supabase no hydrate()
+const EMPTY_USER: User = {
+  id: '', username: 'NEXA', avatar: 'NX',
+  level: 1, xp: 0, xpToNext: 1000, streak: 0,
+  balance: 0, coins: 0, rank: 0, winRate: 0, roi: 0,
+  clan: '', dna: 'analytical', state: 'motivated',
+  badges: [], following: [],
 };
 
 const EMPTY_CLAN: Clan = {
@@ -194,7 +177,7 @@ const EMPTY_CLAN: Clan = {
 
 export const useNexaStore = create<NexaStore>((set, get) => ({
   isOnboarded: false,
-  user: MOCK_USER,
+  user: EMPTY_USER,
   feed: [],
   matches: [],
   tipsters: [],
@@ -433,7 +416,18 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     }
   },
 
+  loadUser: async () => {
+    try {
+      const user = await fetchCurrentUser();
+      if (user) set({ user });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadUser falhou:', err);
+    }
+  },
+
   hydrate: async () => {
+    // Usuario primeiro: loadClans usa user.clan para selecionar o cla atual
+    await get().loadUser();
     await Promise.all([
       get().loadMatches(),
       get().loadFeed(),

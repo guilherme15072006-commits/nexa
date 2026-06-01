@@ -39,6 +39,7 @@ jest.mock('../src/services/supabase', () => ({
   fetchMissions: jest.fn().mockResolvedValue([]),
   fetchClans: jest.fn().mockResolvedValue([]),
   fetchLeaderboard: jest.fn().mockResolvedValue([]),
+  fetchCurrentUser: jest.fn().mockResolvedValue(null),
 }));
 
 import { useNexaStore, Match, FeedPost, Tipster } from '../src/store/nexaStore';
@@ -94,12 +95,22 @@ describe('nexaStore', () => {
     });
   });
 
-  test('estado inicial tem usuario valido', () => {
+  test('estado inicial tem usuario default valido (antes do hydrate)', () => {
     const state = useNexaStore.getState();
     expect(state.user).toBeDefined();
-    expect(state.user.id).toBe('u1');
-    expect(state.user.username).toBe('RocketKing');
+    expect(typeof state.user.username).toBe('string');
     expect(state.user.level).toBeGreaterThanOrEqual(1);
+    expect(Array.isArray(state.user.badges)).toBe(true);
+    expect(Array.isArray(state.user.following)).toBe(true);
+  });
+
+  test('loadUser carrega o usuario fixo do backend', async () => {
+    const fakeUser = { ...useNexaStore.getState().user, id: '11111111-1111-1111-1111-111111111111', username: 'RocketKing', level: 12, clan: 'Predators' };
+    (supa.fetchCurrentUser as jest.Mock).mockResolvedValueOnce(fakeUser);
+    await useNexaStore.getState().loadUser();
+    const u = useNexaStore.getState().user;
+    expect(u.username).toBe('RocketKing');
+    expect(u.clan).toBe('Predators');
   });
 
   test('addXP incrementa XP do usuario', () => {

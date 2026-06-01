@@ -6,12 +6,15 @@
 // =====================================================
 
 import { createClient } from '@supabase/supabase-js';
-import type { Match, FeedPost, Tipster, Mission, Clan, User } from '../store/nexaStore';
+import type { Match, FeedPost, Tipster, Mission, Clan, User, Badge } from '../store/nexaStore';
 
 // --- Config (chaves anon/publishable: seguras no cliente) ---
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://ymuziccgrqjbugsdwgjo.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? 'sb_publishable_lqe_c_pFLJqKprdsRhnt0w_PNIPLjkg';
+
+// Usuario "logado" fixo (Fase 3 — auth adiado). Aponta para uma linha real em `users`.
+export const CURRENT_USER_ID = process.env.SUPABASE_DEMO_USER_ID ?? '11111111-1111-1111-1111-111111111111';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -368,4 +371,47 @@ export async function fetchLeaderboard(): Promise<Array<{ rank: number; user: Us
     const user = mapLeaderboardUser(row);
     return { rank: user.rank, user, xp: user.xp };
   });
+}
+
+// =====================================================
+// Fase 3: usuario logado (fixo, sem auth)
+// =====================================================
+
+interface CurrentUserRow extends LeaderboardUserRow {
+  badges: unknown;
+  following_ids: string[] | null;
+  dna: unknown;
+  state: string | null;
+}
+
+export function mapCurrentUser(row: CurrentUserRow): User {
+  return {
+    id: row.id,
+    username: row.username ?? 'NEXA',
+    avatar: initials(row.username ?? 'NEXA'),
+    level: row.level ?? 1,
+    xp: row.xp ?? 0,
+    xpToNext: row.xp_to_next ?? 1000,
+    streak: row.streak ?? 0,
+    balance: num(row.balance),
+    coins: row.coins ?? 0,
+    rank: row.rank ?? 0,
+    winRate: asPercent(row.win_rate),
+    roi: num(row.roi),
+    clan: row.clans?.name ?? '',
+    badges: Array.isArray(row.badges) ? (row.badges as Badge[]) : [],
+    following: row.following_ids ?? [],
+    dna: (typeof row.dna === 'string' ? row.dna : 'analytical') as User['dna'],
+    state: ((row.state ?? 'motivated') as User['state']),
+  };
+}
+
+export async function fetchCurrentUser(id: string = CURRENT_USER_ID): Promise<User | null> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*, clans(name)')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? mapCurrentUser(data as unknown as CurrentUserRow) : null;
 }
