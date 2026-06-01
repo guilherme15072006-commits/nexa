@@ -35,9 +35,13 @@ jest.mock('../src/services/supabase', () => ({
   supabase: {},
   fetchMatches: jest.fn().mockResolvedValue([]),
   fetchFeed: jest.fn().mockResolvedValue([]),
+  fetchTipsters: jest.fn().mockResolvedValue([]),
+  fetchMissions: jest.fn().mockResolvedValue([]),
+  fetchClans: jest.fn().mockResolvedValue([]),
+  fetchLeaderboard: jest.fn().mockResolvedValue([]),
 }));
 
-import { useNexaStore, Match, FeedPost } from '../src/store/nexaStore';
+import { useNexaStore, Match, FeedPost, Tipster } from '../src/store/nexaStore';
 import * as supa from '../src/services/supabase';
 
 // Fixtures de teste (substituem os antigos mocks do store, agora vindos do backend)
@@ -74,11 +78,20 @@ const TEST_FEED: FeedPost[] = [
   },
 ];
 
+const TEST_TIPSTERS: Tipster[] = [
+  { id: 't1', username: 'GabrielP', avatar: 'GP', winRate: 78, roi: 22.4, followers: 4820, streak: 12, tier: 'elite', isFollowing: false },
+  { id: 't2', username: 'MarFutebol', avatar: 'MF', winRate: 71, roi: 15.8, followers: 2310, streak: 7, tier: 'gold', isFollowing: false },
+];
+
 describe('nexaStore', () => {
   beforeEach(() => {
-    // Reset store to initial state + semeia matches/feed (antes eram mocks no store)
+    // Reset store to initial state + semeia dados (antes eram mocks no store, agora vêm do backend)
     useNexaStore.setState(useNexaStore.getInitialState());
-    useNexaStore.setState({ matches: TEST_MATCHES.map(m => ({ ...m })), feed: TEST_FEED.map(p => ({ ...p })) });
+    useNexaStore.setState({
+      matches: TEST_MATCHES.map(m => ({ ...m })),
+      feed: TEST_FEED.map(p => ({ ...p })),
+      tipsters: TEST_TIPSTERS.map(t => ({ ...t })),
+    });
   });
 
   test('estado inicial tem usuario valido', () => {
@@ -191,6 +204,33 @@ describe('nexaStore', () => {
     await useNexaStore.getState().hydrate();
     expect(useNexaStore.getState().matches.length).toBe(TEST_MATCHES.length);
     expect(useNexaStore.getState().feed.length).toBe(TEST_FEED.length);
+  });
+
+  test('loadTipsters popula tipsters a partir do backend', async () => {
+    (supa.fetchTipsters as jest.Mock).mockResolvedValueOnce(TEST_TIPSTERS);
+    useNexaStore.setState({ tipsters: [] });
+    await useNexaStore.getState().loadTipsters();
+    expect(useNexaStore.getState().tipsters.length).toBe(TEST_TIPSTERS.length);
+  });
+
+  test('loadClans popula clans e seleciona o cla do usuario', async () => {
+    const clans = [
+      { id: 'c1', name: 'Predators', tag: 'PRD', members: 28, rank: 5, xp: 48200, weeklyXp: 8400, icon: 'P', color: '#7C5CFC' },
+      { id: 'c2', name: 'Wolves', tag: 'WLF', members: 21, rank: 8, xp: 38000, weeklyXp: 6100, icon: 'W', color: '#7C5CFC' },
+    ];
+    (supa.fetchClans as jest.Mock).mockResolvedValueOnce(clans);
+    await useNexaStore.getState().loadClans();
+    expect(useNexaStore.getState().clans.length).toBe(2);
+    // user.clan === 'Predators' -> deve selecionar esse cla
+    expect(useNexaStore.getState().clan.name).toBe('Predators');
+  });
+
+  test('loadLeaderboard popula o ranking', async () => {
+    const lb = [{ rank: 1, user: { ...useNexaStore.getState().user, id: 'x', username: 'Top' }, xp: 9999 }];
+    (supa.fetchLeaderboard as jest.Mock).mockResolvedValueOnce(lb);
+    await useNexaStore.getState().loadLeaderboard();
+    expect(useNexaStore.getState().leaderboard.length).toBe(1);
+    expect(useNexaStore.getState().leaderboard[0].user.username).toBe('Top');
   });
 
   test('loadMatches nao quebra se o backend falhar', async () => {

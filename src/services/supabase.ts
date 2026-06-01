@@ -6,7 +6,7 @@
 // =====================================================
 
 import { createClient } from '@supabase/supabase-js';
-import type { Match, FeedPost } from '../store/nexaStore';
+import type { Match, FeedPost, Tipster, Mission, Clan, User } from '../store/nexaStore';
 
 // --- Config (chaves anon/publishable: seguras no cliente) ---
 
@@ -202,4 +202,170 @@ export async function fetchFeed(): Promise<FeedPost[]> {
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data as FeedRow[]).map(mapFeedPost);
+}
+
+// =====================================================
+// Fase 2: tipsters, missions, clans, leaderboard
+// =====================================================
+
+interface TipsterRow {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  win_rate: number | string;
+  roi: number | string;
+  followers: number | null;
+  streak: number | null;
+  tier: string;
+  recent_pick_side: string | null;
+  recent_pick_odds: number | string | null;
+}
+
+interface MissionRow {
+  id: string;
+  title: string;
+  description: string;
+  xp_reward: number;
+  type: string;
+  target: number | null;
+  hidden_title: string | null;
+}
+
+interface ClanRow {
+  id: string;
+  name: string;
+  tag: string;
+  members: number | null;
+  rank: number | null;
+  xp: number | null;
+  weekly_xp: number | null;
+  badge: string | null;
+}
+
+interface LeaderboardUserRow {
+  id: string;
+  username: string | null;
+  avatar_url: string | null;
+  level: number | null;
+  xp: number | null;
+  xp_to_next: number | null;
+  streak: number | null;
+  balance: number | string | null;
+  coins: number | null;
+  rank: number | null;
+  win_rate: number | string | null;
+  roi: number | string | null;
+  clans: { name: string } | null;
+}
+
+// win_rate vem como fracao (0.71) na tabela users e como % (71) em tipsters
+function asPercent(v: number | string | null | undefined): number {
+  const n = num(v);
+  return Math.round(n <= 1 ? n * 100 : n);
+}
+
+export function mapTipster(row: TipsterRow): Tipster {
+  return {
+    id: row.id,
+    username: row.username,
+    avatar: initials(row.username),
+    winRate: asPercent(row.win_rate),
+    roi: num(row.roi),
+    followers: row.followers ?? 0,
+    streak: row.streak ?? 0,
+    tier: (TIER_MAP[row.tier] ?? 'silver') as Tipster['tier'],
+    isFollowing: false,
+  };
+}
+
+export function mapMission(row: MissionRow): Mission {
+  const isHidden = row.type === 'hidden';
+  return {
+    id: row.id,
+    title: isHidden ? (row.hidden_title ?? row.title) : row.title,
+    description: row.description,
+    xpReward: row.xp_reward,
+    progress: 0,
+    target: row.target ?? 1,
+    type: (['daily', 'weekly', 'hidden'].includes(row.type) ? row.type : 'daily') as Mission['type'],
+    icon: isHidden ? 'M' : (row.title?.[0] ?? 'M').toUpperCase(),
+    completed: false,
+  };
+}
+
+export function mapClan(row: ClanRow): Clan {
+  return {
+    id: row.id,
+    name: row.name,
+    tag: row.tag,
+    members: row.members ?? 0,
+    rank: row.rank ?? 0,
+    xp: row.xp ?? 0,
+    weeklyXp: row.weekly_xp ?? 0,
+    icon: row.badge ?? row.tag.slice(0, 1).toUpperCase(),
+    color: '#7C5CFC',
+  };
+}
+
+export function mapLeaderboardUser(row: LeaderboardUserRow): User {
+  return {
+    id: row.id,
+    username: row.username ?? 'NEXA',
+    avatar: initials(row.username ?? 'NEXA'),
+    level: row.level ?? 1,
+    xp: row.xp ?? 0,
+    xpToNext: row.xp_to_next ?? 1000,
+    streak: row.streak ?? 0,
+    balance: num(row.balance),
+    coins: row.coins ?? 0,
+    rank: row.rank ?? 0,
+    winRate: asPercent(row.win_rate),
+    roi: num(row.roi),
+    clan: row.clans?.name ?? '',
+    badges: [],
+    following: [],
+    dna: 'analytical',
+    state: 'motivated',
+  };
+}
+
+export async function fetchTipsters(): Promise<Tipster[]> {
+  const { data, error } = await supabase
+    .from('tipsters')
+    .select('*')
+    .order('followers', { ascending: false });
+  if (error) throw error;
+  return (data as TipsterRow[]).map(mapTipster);
+}
+
+export async function fetchMissions(): Promise<Mission[]> {
+  const { data, error } = await supabase
+    .from('missions')
+    .select('*')
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data as MissionRow[]).map(mapMission);
+}
+
+export async function fetchClans(): Promise<Clan[]> {
+  const { data, error } = await supabase
+    .from('clans')
+    .select('*')
+    .order('rank', { ascending: true });
+  if (error) throw error;
+  return (data as ClanRow[]).map(mapClan);
+}
+
+export async function fetchLeaderboard(): Promise<Array<{ rank: number; user: User; xp: number }>> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, username, avatar_url, level, xp, xp_to_next, streak, balance, coins, rank, win_rate, roi, clans(name)')
+    .gt('rank', 0)
+    .order('rank', { ascending: true })
+    .limit(10);
+  if (error) throw error;
+  return (data as unknown as LeaderboardUserRow[]).map(row => {
+    const user = mapLeaderboardUser(row);
+    return { rank: user.rank, user, xp: user.xp };
+  });
 }

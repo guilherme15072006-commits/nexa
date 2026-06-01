@@ -226,14 +226,8 @@ function ClanCard({ clan, index }: { clan: any; index: number }) {
 // Ranking Screen
 // =====================================================
 export default function RankingScreen() {
-  const { leaderboard, user, clan } = useNexaStore();
+  const { leaderboard, user, clans } = useNexaStore();
   const [tab, setTab] = useState(0);
-
-  const clans = [
-    clan,
-    { ...clan, id: 'c2', name: 'Sharks FC', tag: 'SHK', rank: 3, xp: 52000, weeklyXp: 9200, icon: 'S', color: colors.green, members: 34 },
-    { ...clan, id: 'c3', name: 'Wolves', tag: 'WLF', rank: 8, xp: 38000, weeklyXp: 6100, icon: 'W', color: colors.orange, members: 21 },
-  ];
 
   return (
     <View style={styles.container}>

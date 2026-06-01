@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { analytics, trackBet, trackXPGain, trackOddsChange, trackUserState } from '../services/analytics';
 import { linear } from '../services/linear';
-import { fetchMatches, fetchFeed } from '../services/supabase';
+import { fetchMatches, fetchFeed, fetchTipsters, fetchMissions, fetchClans, fetchLeaderboard } from '../services/supabase';
 
 export interface User {
   id: string;
@@ -119,6 +119,7 @@ interface NexaStore {
   tipsters: Tipster[];
   missions: Mission[];
   clan: Clan;
+  clans: Clan[];
   leaderboard: Array<{ rank: number; user: User; xp: number }>;
 
   activeTab: string;
@@ -150,9 +151,13 @@ interface NexaStore {
   simulateOddsChange: () => void;
   setCelebrating: (v: boolean) => void;
 
-  // Backend (Supabase) — Fase 1: matches + feed
+  // Backend (Supabase) — Fase 1: matches + feed · Fase 2: tipsters, missoes, clas, leaderboard
   loadMatches: () => Promise<void>;
   loadFeed: () => Promise<void>;
+  loadTipsters: () => Promise<void>;
+  loadMissions: () => Promise<void>;
+  loadClans: () => Promise<void>;
+  loadLeaderboard: () => Promise<void>;
   hydrate: () => Promise<void>;
 }
 
@@ -183,25 +188,8 @@ const MOCK_USER: User = {
   following: ['t1', 't2'],
 };
 
-const MOCK_TIPSTERS: Tipster[] = [
-  { id: 't1', username: 'GabrielP', avatar: 'GP', winRate: 78, roi: 22.4, followers: 4820, streak: 12, tier: 'elite', isFollowing: true, recentPick: 'Real Madrid vence', profit: 14200 },
-  { id: 't2', username: 'MarFutebol', avatar: 'MF', winRate: 71, roi: 15.8, followers: 2310, streak: 7, tier: 'gold', isFollowing: true, recentPick: 'Mais de 2.5 gols', profit: 8900 },
-  { id: 't3', username: 'BetKing', avatar: 'BK', winRate: 69, roi: 12.1, followers: 1890, streak: 5, tier: 'gold', isFollowing: false, profit: 6200 },
-  { id: 't4', username: 'TipZone', avatar: 'TZ', winRate: 65, roi: 9.3, followers: 1120, streak: 3, tier: 'silver', isFollowing: false, profit: 3800 },
-  { id: 't5', username: 'AceTrader', avatar: 'AT', winRate: 73, roi: 18.2, followers: 3200, streak: 9, tier: 'elite', isFollowing: false, profit: 11500 },
-];
-
-const MOCK_MISSIONS: Mission[] = [
-  { id: 'ms1', title: 'Aposte em 3 jogos hoje', description: 'Faca 3 apostas em partidas diferentes', xpReward: 150, progress: 2, target: 3, type: 'daily', icon: 'T', completed: false, expiresIn: '6h' },
-  { id: 'ms2', title: 'Siga 1 novo tipster', description: 'Expanda sua rede de tipsters', xpReward: 80, progress: 0, target: 1, type: 'daily', icon: 'U', completed: false, expiresIn: '6h' },
-  { id: 'ms3', title: 'Top 10 do ranking semanal', description: 'Chegue ao top 10 esta semana', xpReward: 500, progress: 14, target: 10, type: 'weekly', icon: 'R', completed: false },
-  { id: 'ms4', title: '??? Missao oculta', description: 'Complete para descobrir', xpReward: 300, progress: 0, target: 1, type: 'hidden', icon: 'M', completed: false },
-];
-
-const MOCK_CLAN: Clan = {
-  id: 'c1', name: 'Predators', tag: 'PRD',
-  members: 28, rank: 5, xp: 48200, weeklyXp: 8400,
-  icon: 'A', color: '#7C5CFC',
+const EMPTY_CLAN: Clan = {
+  id: '', name: '', tag: '', members: 0, rank: 0, xp: 0, weeklyXp: 0, icon: '', color: '#7C5CFC',
 };
 
 export const useNexaStore = create<NexaStore>((set, get) => ({
@@ -209,17 +197,11 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   user: MOCK_USER,
   feed: [],
   matches: [],
-  tipsters: MOCK_TIPSTERS,
-  missions: MOCK_MISSIONS,
-  clan: MOCK_CLAN,
-  leaderboard: [
-    { rank: 1, user: { ...MOCK_USER, id: 't1', username: 'GabrielP', avatar: 'GP', xp: 4820, winRate: 78, clan: 'Wolves' }, xp: 4820 },
-    { rank: 2, user: { ...MOCK_USER, id: 't2', username: 'MarFutebol', avatar: 'MF', xp: 3610, winRate: 71, clan: 'Sharks' }, xp: 3610 },
-    { rank: 3, user: { ...MOCK_USER, id: 't3', username: 'BetKing', avatar: 'BK', xp: 3100, winRate: 69, clan: 'Predators' }, xp: 3100 },
-    { rank: 4, user: { ...MOCK_USER, id: 't4', username: 'TipZone', avatar: 'TZ', xp: 2890, winRate: 65, clan: 'Elite FC' }, xp: 2890 },
-    { rank: 5, user: { ...MOCK_USER, id: 't5', username: 'AceTrader', avatar: 'AT', xp: 2720, winRate: 73, clan: 'Wolves' }, xp: 2720 },
-    { rank: 14, user: MOCK_USER, xp: 2340 },
-  ],
+  tipsters: [],
+  missions: [],
+  clan: EMPTY_CLAN,
+  clans: [],
+  leaderboard: [],
   activeTab: 'feed',
   checkinAvailable: true,
   selectedOdds: {},
@@ -414,7 +396,51 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     }
   },
 
+  loadTipsters: async () => {
+    try {
+      const tipsters = await fetchTipsters();
+      set({ tipsters });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadTipsters falhou:', err);
+    }
+  },
+
+  loadMissions: async () => {
+    try {
+      const missions = await fetchMissions();
+      set({ missions });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadMissions falhou:', err);
+    }
+  },
+
+  loadClans: async () => {
+    try {
+      const clans = await fetchClans();
+      const clan = clans.find(c => c.name === get().user.clan) ?? clans[0] ?? get().clan;
+      set({ clans, clan });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadClans falhou:', err);
+    }
+  },
+
+  loadLeaderboard: async () => {
+    try {
+      const leaderboard = await fetchLeaderboard();
+      set({ leaderboard });
+    } catch (err) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] loadLeaderboard falhou:', err);
+    }
+  },
+
   hydrate: async () => {
-    await Promise.all([get().loadMatches(), get().loadFeed()]);
+    await Promise.all([
+      get().loadMatches(),
+      get().loadFeed(),
+      get().loadTipsters(),
+      get().loadMissions(),
+      get().loadClans(),
+      get().loadLeaderboard(),
+    ]);
   },
 }));

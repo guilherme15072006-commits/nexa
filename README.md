@@ -12,13 +12,13 @@ A NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado par
 
 **Versão:** `0.2.0` · **Estágio:** Protótipo funcional de front-end (UI/UX completa, dados mockados)
 
-> Verificado nesta análise: `tsc --noEmit` passa **limpo** e os **80 testes passam**.
+> Verificado nesta análise: `tsc --noEmit` passa **limpo** e os **83 testes passam**.
 
 | Camada | Estado | Observação |
 |---|---|---|
 | App React Native (UI/UX) | ✅ Funcional | 5 telas + navegação + design system completo |
-| Estado global (Zustand) | ✅ Funcional | Store com todas as actions; matches + feed vêm do Supabase |
-| **Dados reais (Supabase)** | 🟢 Fase 1 | **Matches e Feed** carregados do Postgres; demais entidades ainda mock |
+| Estado global (Zustand) | ✅ Funcional | Store com todas as actions; quase tudo vem do Supabase |
+| **Dados reais (Supabase)** | 🟢 Fases 1–2 | **Matches, Feed, Tipsters, Missões, Clãs e Leaderboard** vêm do Postgres; só o usuário logado ainda é mock |
 | Mecânicas de retenção | ✅ Funcional | Check-in, missões, copy bet, quase-ganho, pressão social |
 | Analytics (Amplitude) | ✅ Integrado | Usado pelo store; modo log se sem API key |
 | Linear (bug/feature/jogo responsável) | ✅ Integrado | Usado pelo store; modo no-op se sem API key |
@@ -36,7 +36,10 @@ A NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado par
 
 Toda a experiência de **front-end** está implementada e o app é navegável de ponta a ponta.
 
-> **Migração de dados (em andamento):** os mocks estão sendo substituídos por dados reais do **Supabase** (Postgres). **Fase 1 concluída:** `matches` e `feed_posts` agora são carregados do backend via `src/services/supabase.ts` (hidratados no mount, em `App.tsx → hydrate()`). As demais entidades (usuário, tipsters, missões, clã, leaderboard) ainda usam mock no store e entram nas próximas fases.
+> **Migração de dados (em andamento):** os mocks estão sendo substituídos por dados reais do **Supabase** (Postgres), carregados no mount via `App.tsx → hydrate()` (camada em `src/services/supabase.ts`).
+> - **Fase 1 ✅** — `matches` e `feed_posts`.
+> - **Fase 2 ✅** — `tipsters`, `missions`, `clans` (lista do ranking) e `leaderboard` (derivado de `users`).
+> - **Pendente** — o usuário logado ainda é mock (depende de auth, Fase 3) e as escritas (like/copy/bet/follow) ainda só alteram o estado local.
 
 ### Onboarding (`OnboardingScreen`)
 - 5 passos animados (boas-vindas → aposta simulada → missão desbloqueada → tipsters → entrada).
@@ -81,7 +84,7 @@ Toda a experiência de **front-end** está implementada e o app é navegável de
 
 ## O que ainda não está pronto
 
-- **Migração de dados:** Feed e Matches já vêm do Supabase (Fase 1); usuário, tipsters, missões, clã e leaderboard **ainda são mock** no store (próximas fases). Escritas (like/copy/bet) ainda atualizam só o estado local, sem persistir no backend.
+- **Migração de dados:** Matches, Feed, Tipsters, Missões, Clãs e Leaderboard já vêm do Supabase (Fases 1–2). **Ainda mock:** o usuário logado (depende de auth — Fase 3). As escritas (like/copy/bet/follow) e o progresso de missões por usuário ainda atualizam só o estado local, sem persistir no backend (Fase 4).
 - **Legado:** `src/services/api.ts` (client REST para `api.nexa.bet`) continua tipado mas **não é usado** — o backend ativo passou a ser o Supabase.
 - **Backend:** os Workers (`workers/index.ts`) têm o roteador e as rotas, mas retornam arrays vazios / placeholders. KV, D1, R2 e Durable Objects estão comentados no `wrangler.toml`.
 - **Builds nativas:** não existem as pastas `android/` e `ios/`, então `run-android`/`run-ios` e o job de APK no CI falharão até que os projetos nativos sejam gerados.
@@ -157,7 +160,7 @@ cp .env.example .env   # preencha as chaves que for usar (opcional em dev)
 | `npm run ios` | `react-native run-ios` | Roda no iOS *(requer pasta `ios/`)* |
 | `npm run android` | `react-native run-android` | Roda no Android *(requer pasta `android/`)* |
 | `npm run typecheck` | `tsc --noEmit` | Checagem de tipos |
-| `npm test` | `jest` | Roda os testes (80 testes) |
+| `npm test` | `jest` | Roda os testes (83 testes) |
 | `npm run workers:dev` | `wrangler dev` | Backend Workers local |
 | `npm run workers:deploy` | `wrangler deploy` | Deploy do backend |
 | `npm run site:dev` | `npx serve site` | Serve a landing page local |
@@ -287,7 +290,7 @@ npm test
 - `__tests__/store.test.ts` — valida todas as actions do Zustand (XP, check-in, like, copy bet, follow, betslip, onboarding, odds…).
 - `__tests__/structure.test.ts` — valida a estrutura de pastas, resolução de imports e regressões de bugs conhecidos.
 
-Estado atual verificado: **80 testes passando**, typecheck limpo.
+Estado atual verificado: **83 testes passando**, typecheck limpo.
 
 ---
 
