@@ -2,7 +2,7 @@
 
 > Plataforma global de entretenimento interativo que une **apostas esportivas, gamificação, rede social e economia própria** em um único ecossistema.
 
-NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado para capturar, manter e monetizar a atenção do usuário através de um loop de comportamento:
+A NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado para capturar, manter e monetizar a atenção do usuário através de um loop de comportamento:
 
 **ver → interagir → apostar → evoluir → competir → voltar**
 
@@ -12,16 +12,19 @@ NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado para 
 
 **Versão:** `0.2.0` · **Estágio:** Protótipo funcional de front-end (UI/UX completa, dados mockados)
 
+> Verificado nesta análise: `tsc --noEmit` passa **limpo** e os **74 testes passam**.
+
 | Camada | Estado | Observação |
 |---|---|---|
 | App React Native (UI/UX) | ✅ Funcional | 5 telas + navegação + design system completo |
 | Estado global (Zustand) | ✅ Funcional | Store com dados mock + todas as actions |
 | Mecânicas de retenção | ✅ Funcional | Check-in, missões, copy bet, quase-ganho, pressão social |
-| Analytics (Amplitude) | ✅ Integrado | Funciona em modo log se sem API key |
-| Linear (bug/feature tracking) | ✅ Integrado | Funciona em modo no-op se sem API key |
-| API Client (`src/services/api.ts`) | 🟡 Scaffolding | Tipado e pronto, **ainda não conectado** ao app |
-| Backend Edge (Cloudflare Workers) | 🟡 Esqueleto | Rotas existem, retornam dados vazios/placeholder |
-| Landing page (`site/`) | ✅ Funcional | HTML/CSS estático pronto para deploy |
+| Analytics (Amplitude) | ✅ Integrado | Usado pelo store; modo log se sem API key |
+| Linear (bug/feature/jogo responsável) | ✅ Integrado | Usado pelo store; modo no-op se sem API key |
+| API Client (`src/services/api.ts`) | 🟡 Scaffolding | Tipado e pronto, **não importado por nenhuma tela** |
+| Backend Edge (Cloudflare Workers) | 🟡 Esqueleto | 8 rotas existem, retornam vazio/placeholder |
+| Landing page (`site/`) | ✅ Funcional | HTML/CSS estático pronto para Vercel |
+| Preview do app (`preview/`) | ✅ Funcional | Maquete HTML navegável + screenshots |
 | CI/CD (GitHub Actions) | ✅ Configurado | Typecheck, testes, build e deploy |
 | Projetos nativos (`android/`, `ios/`) | ❌ Ausentes | Precisam ser gerados para builds nativas |
 | `assets/logo.png` | ⚠️ Vazio | Arquivo com 0 bytes — substituir pela arte real |
@@ -30,50 +33,53 @@ NEXA não é uma bet, nem uma rede social. É um sistema fechado projetado para 
 
 ## O que está funcional hoje
 
-Toda a experiência de **front-end** está implementada e operante com dados mockados. O app é navegável de ponta a ponta:
+Toda a experiência de **front-end** está implementada e operante com dados mockados (vindos de `src/store/nexaStore.ts`). O app é navegável de ponta a ponta.
 
-### Onboarding
-- 5 passos animados com aposta simulada e XP inicial.
-- Conclui chamando `completeOnboarding()` → libera as tabs.
+### Onboarding (`OnboardingScreen`)
+- 5 passos animados (boas-vindas → aposta simulada → missão desbloqueada → tipsters → entrada).
+- Concede **+100 XP** durante o fluxo (`addXP`) e conclui com `completeOnboarding()`, liberando as tabs.
+- Botão de pular, progress dots, entrada animada de ícone e celebração de XP.
 
 ### Feed (`FeedScreen`)
-- Feed personalizado com abas **Para você / Seguindo**.
-- Banner de **check-in diário** (+50 XP, +100 moedas, +1 streak) com celebração/confete.
-- **Missões** com barra de progresso e gatilho de "quase-ganho" (*falta 1 missão*).
-- Carrossel de **tipsters** em destaque com follow de 1 toque.
-- Posts com **double-tap to like** (estilo Instagram), pick + odds, prova social (*"247 apostando agora"*).
+- Top bar com **streak**, contador de **XP** animado e avatar; barra de XP do nível abaixo.
+- Abas **Para você / Seguindo** (filtra por quem o usuário segue).
+- **Trending bar**: contagem de jogos ao vivo + total apostando.
+- Banner de **check-in diário** — `claimCheckin()` dá +50 XP, +100 moedas e +1 streak, com celebração/confete.
+- **Missão** com barra de progresso e gatilho de quase-ganho (*"falta 1 missão"*) + timer de expiração.
+- Carrossel de **tipsters** em destaque com follow de 1 toque (`followTipster`).
+- Posts com **double-tap to like** (estilo Instagram), pick + odds, prova social (*"247 apostando agora"*) e **copy bet** (`copyBet`, +10 XP).
 - **Odds ao vivo** que oscilam a cada 5s (`simulateOddsChange`) com flash verde/vermelho.
 - **Betslip flutuante** (estilo Bet365) com odds combinadas e botão apostar.
+- Partículas ambientes de fundo e pull-to-refresh.
 
 ### Apostas (`ApostasScreen`)
-- Lista de jogos ao vivo + de hoje + picks dos tipsters seguidos.
-- Seleção de odds que alimenta o betslip global.
-- **Missão oculta** revelada por ação do usuário.
-- Confirmação de aposta com celebração e ganho de XP.
+- Seções: **"X jogos ao vivo"**, **"Jogos de hoje"** e **"Apostas dos tipsters que você segue"**.
+- Cards de jogo com placar ao vivo, minuto, odds 1/X/2 selecionáveis e prova social.
+- **Missão oculta** revelada por ação do usuário (curiosidade/descoberta).
+- Betslip com `placeBet()` / `clearBetslip()`, confirmação com celebração e +20 XP.
 
 ### Ranking (`RankingScreen`)
-- Pódio animado (top 3) + leaderboard semanal/mensal.
-- Card de temporada (season) e ranking de clãs.
-- Destaque da posição do próprio usuário.
+- **Pódio** animado dos top 3 com coroas (ouro/prata/bronze).
+- **Leaderboard** semanal/mensal com a posição do próprio usuário destacada e gatilho de quase-ganho.
+- **Season card** (temporada com recompensas) e **ranking de clãs**.
 
 ### Perfil (`PerfilScreen`)
-- Hero com avatar, nível e progressão de XP.
-- Carteira (saldo BRL + moedas NEXA).
-- Grade de estatísticas (win rate, ROI, streak).
-- **Heatmap de atividade**, grade de **conquistas/badges** por raridade e painel de missões.
-- "DNA do apostador" + estado do usuário em tempo real.
+- Hero com avatar, **DNA do apostador** (`aggressive`/`conservative`/`analytical`) e **estado** em tempo real.
+- Progressão de nível com "faltam X XP" e prévia de recompensas.
+- **Carteira**: saldo (R$) + moedas NEXA.
+- **Grade de estatísticas** (win rate, ROI, streak, ranking), **heatmap de atividade**, **grade de badges** por raridade (common/rare/epic/legendary) e painel de missões.
 
 ### Serviços
-- **Analytics:** fila com batching, flush automático, métricas de engajamento/risco de retenção. Sem `AMPLITUDE_API_KEY`, loga eventos no console em dev.
-- **Linear:** cria issues de bug/feature/performance e **alertas de jogo responsável** automaticamente. Sem API key, opera em modo no-op.
-- **Jogo responsável:** `detectUserState()` classifica o usuário (`motivated/frustrated/impulsive/disengaged`) e aciona alerta no Linear quando `frustrated`.
+- **Analytics** (`analytics.ts`): fila com batching, flush automático, métricas de engajamento e risco de retenção. Sem `AMPLITUDE_API_KEY`, loga eventos no console em dev.
+- **Linear** (`linear.ts`): cria issues de bug/feature/performance e **alertas de jogo responsável** automaticamente. Sem API key, opera em modo no-op.
+- **Jogo responsável:** `detectUserState()` classifica o usuário (`motivated`/`frustrated`/`impulsive`/`disengaged`) e dispara alerta no Linear quando `frustrated`.
 
 ---
 
 ## O que ainda não está pronto
 
 - **Persistência real:** o app consome `MOCK_*` direto do store. Não há chamadas de rede ativas — `src/services/api.ts` está tipado mas **não é importado** por nenhuma tela.
-- **Backend:** os Workers (`workers/index.ts`) têm o roteador e as rotas, mas retornam arrays vazios / placeholders. Faltam KV, D1, R2 e Durable Objects (comentados no `wrangler.toml`).
+- **Backend:** os Workers (`workers/index.ts`) têm o roteador e as rotas, mas retornam arrays vazios / placeholders. KV, D1, R2 e Durable Objects estão comentados no `wrangler.toml`.
 - **Builds nativas:** não existem as pastas `android/` e `ios/`, então `run-android`/`run-ios` e o job de APK no CI falharão até que os projetos nativos sejam gerados.
 - **Asset de logo:** `assets/logo.png` está vazio (0 bytes).
 - **Auth/KYC, carteira real, Pix/cartão, WebSocket de odds:** definidos no contrato da API, mas não implementados.
@@ -82,14 +88,15 @@ Toda a experiência de **front-end** está implementada e operante com dados moc
 
 ## Stack
 
-- **React Native** 0.73.4 (iOS + Android) · **React** 18.2
+- **React Native** 0.73.4 (iOS + Android) · **React** 18.2.0
 - **TypeScript** estrito (5.0.4)
 - **Zustand** 4.5 — estado global (`src/store/nexaStore.ts`)
-- **React Navigation** 6 (bottom-tabs)
-- **Amplitude** — analytics
-- **Cloudflare Workers** — backend edge (`workers/`)
+- **React Navigation** 6 (bottom-tabs) + react-native-screens / safe-area-context
+- **react-native-reanimated** 3.7 · **@shopify/flash-list** · **react-native-linear-gradient**
+- **Amplitude** (`@amplitude/analytics-react-native`) — analytics
+- **Cloudflare Workers** (Wrangler 3) — backend edge (`workers/`)
 - **Vercel** — landing page (`site/`)
-- **Jest** + **ts-jest** — testes
+- **Jest** 29 + **ts-jest** — testes
 
 ---
 
@@ -98,8 +105,8 @@ Toda a experiência de **front-end** está implementada e operante com dados moc
 ```
 App.tsx                          → entry point (splash → onboarding ou tabs)
 src/
-  theme/index.ts                 → cores, tipografia, espaçamento, sombras, animações
-  store/nexaStore.ts             → estado global + actions (fonte de verdade)
+  theme/index.ts                 → cores, tipografia, espaçamento, sombras, animações, glass
+  store/nexaStore.ts             → estado global + actions (fonte de verdade, dados mock)
   components/
     ui.tsx                       → biblioteca de componentes (Avatar, OddsBtn, Card, XPBar…)
     Logo.tsx                     → logo da marca
@@ -108,15 +115,16 @@ src/
     OnboardingScreen.tsx         → 5 passos animados
     FeedScreen.tsx               → feed, check-in, missões, tipsters, posts
     ApostasScreen.tsx            → apostas ao vivo, betslip, missão oculta
-    RankingScreen.tsx            → leaderboard + clãs
+    RankingScreen.tsx            → leaderboard + clãs + temporada
     PerfilScreen.tsx             → stats, conquistas, carteira, DNA
   services/
-    api.ts                       → client HTTP tipado (scaffolding p/ backend)
-    analytics.ts                 → integração Amplitude
-    linear.ts                    → integração Linear (bugs/features/jogo responsável)
-  utils/index.ts                 → formatadores (número, odds, moeda)
+    api.ts                       → client HTTP tipado (scaffolding p/ backend — não usado ainda)
+    analytics.ts                 → integração Amplitude (usado pelo store)
+    linear.ts                    → integração Linear (usado pelo store)
+  utils/index.ts                 → formatadores (número, odds, moeda, clamp)
 workers/index.ts                 → Cloudflare Workers Edge API (esqueleto)
-site/index.html                  → landing page estática
+site/index.html                  → landing page estática (Vercel)
+preview/                         → maquete HTML navegável do app + screenshots
 __tests__/                       → testes de store e estrutura
 ```
 
@@ -135,36 +143,32 @@ npm install
 cp .env.example .env   # preencha as chaves que for usar (opcional em dev)
 ```
 
-### Desenvolvimento do app
+### Scripts disponíveis (`package.json`)
 
-```bash
-npm start              # inicia o Metro bundler
-npm run ios            # roda no iOS    (requer pasta ios/  — ver nota abaixo)
-npm run android        # roda no Android (requer pasta android/ — ver nota abaixo)
-```
+| Script | Comando | O que faz |
+|---|---|---|
+| `npm start` | `react-native start` | Inicia o Metro bundler |
+| `npm run ios` | `react-native run-ios` | Roda no iOS *(requer pasta `ios/`)* |
+| `npm run android` | `react-native run-android` | Roda no Android *(requer pasta `android/`)* |
+| `npm run typecheck` | `tsc --noEmit` | Checagem de tipos |
+| `npm test` | `jest` | Roda os testes (74 testes) |
+| `npm run workers:dev` | `wrangler dev` | Backend Workers local |
+| `npm run workers:deploy` | `wrangler deploy` | Deploy do backend |
+| `npm run site:dev` | `npx serve site` | Serve a landing page local |
+| `npm run site:deploy` | `vercel --prod` | Deploy da landing page |
 
 > **Nota:** as pastas nativas `android/` e `ios/` ainda não foram geradas neste repositório. Para builds nativas, gere-as a partir de um template React Native 0.73 antes de rodar `run-ios`/`run-android`.
 
-### Qualidade
+---
 
-```bash
-npm run typecheck      # tsc --noEmit
-npm test               # jest (74 testes)
-```
+## Preview do app (sem ambiente React Native)
 
-### Backend (Cloudflare Workers)
+Para visualizar a interface sem montar o ambiente RN, há uma **maquete fiel em HTML**:
 
-```bash
-npm run workers:dev    # wrangler dev
-npm run workers:deploy # wrangler deploy
-```
+- **`preview/index.html`** — arquivo único, sem dependências. Abra no navegador (duplo-clique) e navegue entre as 4 abas; curtir, copiar aposta, seguir tipster, check-in e seleção de odds funcionam, e as odds ao vivo oscilam a cada 5s.
+- **`preview/shot.js`** — script Puppeteer que gera os screenshots de cada tela (`preview/*.png`). O Puppeteer não está versionado nas dependências do projeto; instale-o sob demanda (`npm i -D puppeteer`) para regenerar as imagens.
 
-### Landing page
-
-```bash
-npm run site:dev       # serve o site/ localmente
-npm run site:deploy    # vercel --prod
-```
+> O preview é uma maquete de visualização — o app real roda em React Native. Cores, tipografia, telas e mecânicas batem 1:1 com o código em `src/screens/`.
 
 ---
 
@@ -178,19 +182,50 @@ Copie `.env.example` para `.env`. Todas são **opcionais em desenvolvimento** �
 | `LINEAR_API_KEY` / `LINEAR_TEAM_ID` / `LINEAR_PROJECT_ID` | Criação de issues no Linear |
 | `LINEAR_LABEL_*` | IDs de labels para classificar issues |
 | `NEXA_API_URL` / `NEXA_CDN_URL` / `NEXA_WS_URL` | Endpoints do backend NEXA |
-| `CLOUDFLARE_*` | Deploy dos Workers |
-| `VERCEL_*` | Deploy da landing page |
+| `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | Deploy dos Workers |
+| `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` | Deploy da landing page |
+
+---
+
+## Backend (Cloudflare Workers)
+
+Roteador próprio em `workers/index.ts` com edge caching. **Todas as rotas hoje retornam dados vazios ou placeholders** — falta conectar persistência.
+
+| Método | Rota | Retorno atual |
+|---|---|---|
+| GET | `/v1/health` | `{ status: 'ok', service, timestamp }` |
+| GET | `/v1/matches/live` | `[]` (com cache de 5s) |
+| GET | `/v1/feed` | `[]` (com paginação) |
+| POST | `/v1/bets` | `{ betId, xpGained: 20, status: 'confirmed' }` |
+| POST | `/v1/missions/checkin` | `{ xp: 50, coins: 100, streak: 1 }` |
+| GET | `/v1/leaderboard` | `[]` (com cache de 60s) |
+| GET | `/v1/wallet/balance` | `{ brl: 0, coins: 0 }` |
+| POST | `/v1/wallet/deposit` | `{ transactionId, status: 'pending' }` |
+
+Infra preparada mas comentada no `wrangler.toml`: KV (`ODDS_CACHE`, `SESSION_STORE`), D1 (`DB`), R2 (`ASSETS`), Durable Objects (`LIVE_ODDS`) e rate limiting.
+
+---
+
+## CI/CD (GitHub Actions)
+
+Pipeline em `.github/workflows/ci.yml` (Node 20), dispara em push para `main`/`develop` e PRs para `main`:
+
+1. **quality** — `tsc --noEmit`
+2. **test** — `npm test -- --ci --coverage` (depende de quality; sobe artefato de cobertura)
+3. **build-android** — `gradlew assembleRelease` *(só em `main`; **falha enquanto `android/` não existir**)*
+4. **deploy-site** — deploy na Vercel *(só em `main`)*
+5. **deploy-api** — deploy dos Workers na Cloudflare *(só em `main`)*
 
 ---
 
 ## Design system (regras obrigatórias)
 
-- **Tema escuro sempre.** Fundo `#0D0B14`, cards `#16131F`.
-- **Cor da marca:** roxo `#7C5CFC`. Acentos: gold, green, red, orange.
+- **Tema escuro sempre.** Fundo `#0D0B14`, cards `#16131F`, elevados `#1E1A2E`.
+- **Cor da marca:** roxo `#7C5CFC`. Acentos: gold `#F5C842`, green `#00C896`, red `#FF4D6A`, orange `#FF8C42`.
 - **Bordas:** sempre `0.5px` (exceto item featured: `2px`).
 - **Border radius:** `radius.lg` (14) em cards, `radius.full` em pills.
 - **Tipografia:** SpaceGrotesk (títulos), Inter (corpo), JetBrainsMono (números/odds).
-- Sempre usar as variáveis de `src/theme/index.ts` e os componentes de `src/components/ui.tsx`.
+- Sempre usar as variáveis de `src/theme/index.ts` e os componentes de `src/components/ui.tsx` antes de criar novos.
 
 ---
 
@@ -199,12 +234,13 @@ Copie `.env.example` para `.env`. Todas são **opcionais em desenvolvimento** �
 | Mecânica | Onde |
 |---|---|
 | Pressão social (*"247 apostando agora"*) | Feed, Apostas |
-| Quase-ganho (*"falta 1 missão"*) | Feed, Ranking, Perfil |
+| Quase-ganho (*"falta 1 missão"* / *"quase subiu de nível"*) | Feed, Ranking, Perfil |
 | Check-in diário (+XP, +moedas, streak) | Feed |
 | Missão oculta | Apostas |
-| Copy bet (1 toque) | Feed, Apostas |
+| Copy bet (1 toque, +10 XP) | Feed, Apostas |
 | Raridade de badges | Perfil |
 | DNA + estado do usuário em tempo real | Perfil / Store |
+| Narrativa (*"sequência incrível"*, *"melhor semana"*) | Feed |
 | Detecção defensiva de estado (`detectUserState`) | Store |
 
 ---
@@ -221,13 +257,17 @@ Requisitos obrigatórios para produção (parcialmente preparados):
 
 ---
 
-## Roadmap (próximas telas)
+## Roadmap
 
 **Alta prioridade:** `LiveScreen`, `TipsterProfileScreen`, `BetslipScreen`, `WalletScreen`, `NotificationsScreen`
 **Média:** `ClanScreen`, `MarketplaceScreen`, `SearchScreen`, `SettingsScreen`
 **Futuro:** `NexaPlayScreen` (PvP), `SeasonScreen`
 
-Além das telas, os próximos passos técnicos são: conectar `api.ts` ao store, implementar o backend nos Workers (KV/D1/R2), gerar os projetos nativos e adicionar a arte do logo.
+Próximos passos técnicos:
+1. Adicionar a arte real em `assets/logo.png`.
+2. Gerar os projetos nativos (`android/`, `ios/`) a partir do template RN 0.73.
+3. Conectar `src/services/api.ts` ao store (trocar mocks por chamadas reais).
+4. Implementar o backend nos Workers (KV/D1/R2/Durable Objects) e o WebSocket de odds.
 
 ---
 
@@ -237,7 +277,13 @@ Além das telas, os próximos passos técnicos são: conectar `api.ts` ao store,
 npm test
 ```
 
-- `__tests__/store.test.ts` — valida todas as actions do Zustand (XP, check-in, like, copy bet, follow, betslip, onboarding…).
+- `__tests__/store.test.ts` — valida todas as actions do Zustand (XP, check-in, like, copy bet, follow, betslip, onboarding, odds…).
 - `__tests__/structure.test.ts` — valida a estrutura de pastas, resolução de imports e regressões de bugs conhecidos.
 
-Estado atual: **74 testes passando**, typecheck limpo.
+Estado atual verificado: **74 testes passando**, typecheck limpo.
+
+---
+
+## Licença
+
+Projeto privado · NEXA Entertainment. Jogue com responsabilidade. **+18 apenas.**
