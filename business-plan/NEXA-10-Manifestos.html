@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NEXA — Os Dez Manifestos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: oklch(0.18 0.018 35); --ink-soft: oklch(0.32 0.020 40); --ink-mute: oklch(0.52 0.018 45);
+  --paper: oklch(0.965 0.012 88); --paper-deep: oklch(0.925 0.020 82);
+  --rule: oklch(0.78 0.020 75); --rule-soft: oklch(0.86 0.015 78);
+  --nexa: oklch(0.52 0.22 295); --nexa-deep: oklch(0.32 0.18 290); --nexa-tint: oklch(0.92 0.04 295);
+  --blood: oklch(0.46 0.17 28); --blood-soft: oklch(0.93 0.04 30);
+  --field: oklch(0.40 0.085 150); --alert: oklch(0.65 0.16 55); --alert-soft: oklch(0.93 0.05 70);
+  --ff-display: "Instrument Serif", "Times New Roman", serif;
+  --ff-edit: "Newsreader", "Georgia", serif;
+  --ff-body: "Geist", -apple-system, sans-serif;
+  --ff-mono: "Geist Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+*::selection { background: var(--ink); color: var(--paper); }
+html { scroll-behavior: smooth; scroll-snap-type: y mandatory; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--ff-body);
+  font-size: clamp(0.95rem, 0.85rem + 0.3vw, 1.0625rem); line-height: 1.55;
+  font-feature-settings: "ss01", "cv11"; letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+
+/* Chrome */
+.frame { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+.frame::before, .frame::after { content:""; position:absolute; background: var(--ink); }
+.frame::before { top:0; left:0; right:0; height:1px; }
+.frame::after  { bottom:0; left:0; right:0; height:1px; }
+
+.masthead {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+  padding: 14px clamp(20px, 3vw, 48px);
+  background: color-mix(in oklab, var(--paper) 86%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule-soft);
+  font-family: var(--ff-body); font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+.masthead .brand { font-family: var(--ff-display); font-style: italic; font-size: 22px; letter-spacing: -0.02em; text-transform: none; color: var(--ink); line-height: 1; }
+.masthead .brand span { color: var(--nexa); }
+.masthead .meta { text-align: center; font-weight: 500; }
+.masthead .meta b { color: var(--ink); font-weight: 600; }
+.masthead .ctrl { display: flex; gap: 16px; align-items: center; font-weight: 500; }
+.masthead .ctrl button {
+  background: none; border: 1px solid var(--rule); color: var(--ink-soft); font: inherit;
+  letter-spacing: 0.14em; text-transform: uppercase; padding: 5px 10px; cursor: pointer;
+  pointer-events: auto; transition: background .2s, color .2s, border-color .2s;
+}
+.masthead .ctrl button:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+.progress { position: fixed; top: 47px; left: 0; height: 2px; background: var(--nexa); z-index: 39; width: 0%; transition: width .3s cubic-bezier(.2,.7,.2,1); }
+
+.rail {
+  position: fixed; top: 50%; transform: translateY(-50%); left: 18px; z-index: 35;
+  display: flex; flex-direction: column; gap: 10px;
+  font-family: var(--ff-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--ink-mute);
+  pointer-events: auto;
+}
+.rail a { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; padding: 4px 0; transition: color .2s; }
+.rail a::before { content: ""; width: 14px; height: 1px; background: var(--rule); transition: width .25s, background .25s; flex-shrink: 0; }
+.rail a:hover, .rail a.active { color: var(--ink); }
+.rail a.active::before { width: 28px; background: var(--nexa); }
+.rail a span.t { opacity: 0; transition: opacity .2s; }
+.rail:hover a span.t { opacity: 1; }
+@media (max-width: 900px) { .rail { display: none; } }
+
+/* Each manifesto = full slide */
+.manifesto {
+  min-height: 100vh; scroll-snap-align: start;
+  padding: clamp(64px, 9vh, 110px) clamp(20px, 6vw, 96px) clamp(40px, 6vh, 80px);
+  position: relative; display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 40px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.manifesto.dark {
+  background: var(--ink); color: var(--paper);
+  border-bottom: 1px solid oklch(0.32 0.02 50);
+}
+
+/* Manifesto number — gigantic editorial */
+.m-num {
+  display: grid; grid-template-columns: auto 1fr auto;
+  gap: 30px; align-items: baseline;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 18px;
+}
+.manifesto.dark .m-num { border-bottom-color: oklch(0.42 0.02 50); }
+.m-num .roman {
+  font-family: var(--ff-display); font-style: italic;
+  font-size: clamp(3.5rem, 7vw, 7.5rem);
+  line-height: 0.82; letter-spacing: -0.04em;
+  color: var(--nexa);
+  font-feature-settings: "ss01";
+}
+.m-num .lbl {
+  font-family: var(--ff-mono); font-size: 11px;
+  letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--ink-mute); line-height: 1.6;
+  align-self: end; padding-bottom: 12px;
+}
+.manifesto.dark .m-num .lbl { color: oklch(0.65 0.02 75); }
+.m-num .lbl b { color: var(--ink); font-weight: 500; display: block; font-size: 13px; letter-spacing: 0.2em; margin-top: 4px; }
+.manifesto.dark .m-num .lbl b { color: var(--paper); }
+.m-num .meta {
+  font-family: var(--ff-mono); font-size: 10px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--ink-mute); text-align: right; line-height: 1.7;
+  align-self: end; padding-bottom: 12px;
+}
+.manifesto.dark .m-num .meta { color: oklch(0.65 0.02 75); }
+
+/* Manifesto body */
+.m-body {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: clamp(40px, 6vw, 100px);
+  align-items: start;
+}
+.m-statement {
+  font-family: var(--ff-display); font-weight: 400;
+  font-size: clamp(2.6rem, 5.8vw, 6.4rem);
+  line-height: 1.0; letter-spacing: -0.035em;
+  color: var(--ink); max-width: 18ch;
+}
+.manifesto.dark .m-statement { color: var(--paper); }
+.m-statement em { font-style: italic; color: var(--nexa); }
+.manifesto.dark .m-statement em { color: var(--nexa-tint); }
+.m-statement .strike {
+  text-decoration: line-through;
+  text-decoration-color: var(--blood);
+  text-decoration-thickness: 0.045em;
+  color: var(--ink-mute);
+  font-style: italic;
+}
+.manifesto.dark .m-statement .strike { color: oklch(0.55 0.02 60); }
+.m-statement .hi {
+  background: linear-gradient(180deg, transparent 60%, var(--nexa-tint) 60%);
+  padding: 0 0.05em;
+}
+.manifesto.dark .m-statement .hi {
+  background: linear-gradient(180deg, transparent 60%, oklch(0.32 0.18 290) 60%);
+}
+
+.m-side {
+  display: flex; flex-direction: column; gap: 26px;
+  padding-top: clamp(40px, 6vh, 80px);
+}
+.m-side .pull {
+  font-family: var(--ff-edit); font-style: italic;
+  font-size: clamp(1.1rem, 1.4vw, 1.4rem);
+  line-height: 1.4; font-weight: 350;
+  color: var(--ink-soft);
+  border-left: 2px solid var(--nexa);
+  padding-left: 22px;
+}
+.manifesto.dark .m-side .pull { color: oklch(0.85 0.018 80); }
+.m-side .pull em { color: var(--nexa-deep); font-style: italic; }
+.manifesto.dark .m-side .pull em { color: var(--nexa-tint); }
+.m-side .pull b { color: var(--ink); font-weight: 500; font-style: italic; }
+.manifesto.dark .m-side .pull b { color: var(--paper); }
+
+.m-evidence {
+  display: grid; gap: 0;
+  border-top: 1px solid var(--rule);
+  margin-top: 4px;
+}
+.manifesto.dark .m-evidence { border-top-color: oklch(0.32 0.02 50); }
+.m-evidence .row {
+  display: grid; grid-template-columns: auto 1fr;
+  gap: 16px; padding: 12px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  align-items: baseline;
+}
+.manifesto.dark .m-evidence .row { border-bottom-color: oklch(0.28 0.02 50); }
+.m-evidence .row .mk {
+  font-family: var(--ff-display); font-style: italic;
+  font-size: 1.4rem; color: var(--nexa); line-height: 1;
+}
+.manifesto.dark .m-evidence .row .mk { color: var(--nexa-tint); }
+.m-evidence .row .t {
+  font-family: var(--ff-edit); font-size: 0.92rem; line-height: 1.4;
+  color: var(--ink-soft);
+}
+.manifesto.dark .m-evidence .row .t { color: oklch(0.82 0.018 80); }
+.m-evidence .row .t b { color: var(--ink); font-weight: 500; }
+.manifesto.dark .m-evidence .row .t b { color: var(--paper); }
+
+/* Footer of each manifesto */
+.m-foot {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 40px; align-items: end;
+  border-top: 1px solid var(--ink);
+  padding-top: 22px;
+}
+.manifesto.dark .m-foot { border-top-color: oklch(0.42 0.02 50); }
+.m-foot .commit {
+  font-family: var(--ff-edit); font-style: italic;
+  font-size: clamp(1.1rem, 1.4vw, 1.4rem);
+  line-height: 1.35; color: var(--ink);
+  max-width: 52ch;
+}
+.manifesto.dark .m-foot .commit { color: var(--paper); }
+.m-foot .commit em { color: var(--nexa); font-style: italic; }
+.manifesto.dark .m-foot .commit em { color: var(--nexa-tint); }
+.m-foot .seal {
+  font-family: var(--ff-mono); font-size: 10px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--ink-mute); text-align: right; line-height: 1.8;
+}
+.manifesto.dark .m-foot .seal { color: oklch(0.65 0.02 75); }
+.m-foot .seal b { color: var(--ink); font-weight: 500; }
+.manifesto.dark .m-foot .seal b { color: var(--paper); }
+
+/* Cover */
+.cover {
+  min-height: 100vh; scroll-snap-align: start;
+  padding: clamp(64px, 9vh, 110px) clamp(20px, 6vw, 96px) clamp(40px, 6vh, 80px);
+  display: grid; grid-template-rows: auto 1fr auto auto; gap: 30px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.cover .stamp {
+  font-family: var(--ff-mono); font-size: 11px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--ink-mute);
+  display: flex; justify-content: space-between;
+  border-bottom: 1px solid var(--ink); padding-bottom: 16px;
+}
+.cover .stamp b { color: var(--ink); font-weight: 500; }
+.cover .stamp .e { color: var(--nexa); }
+.cover .big {
+  font-family: var(--ff-display); font-weight: 400;
+  font-size: clamp(3.6rem, 11vw, 13rem);
+  line-height: 0.88; letter-spacing: -0.045em;
+  color: var(--ink); align-self: center; max-width: 12ch;
+}
+.cover .big em { font-style: italic; color: var(--nexa); }
+.cover .big .n {
+  font-style: italic; color: var(--nexa);
+  font-feature-settings: "ss01";
+}
+.cover .strap {
+  display: grid; grid-template-columns: 1.5fr 1fr;
+  gap: 50px; align-items: end;
+  border-top: 1px solid var(--ink); padding-top: 22px;
+}
+.cover .strap .l {
+  font-family: var(--ff-edit); font-style: italic; font-weight: 350;
+  font-size: clamp(1.15rem, 1.55vw, 1.45rem); line-height: 1.35;
+  color: var(--ink-soft); max-width: 56ch;
+}
+.cover .strap .l em { color: var(--nexa); font-style: italic; }
+.cover .strap .l b { color: var(--ink); font-weight: 500; font-style: italic; }
+.cover .strap .r {
+  font-family: var(--ff-mono); font-size: 10.5px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--ink-mute); text-align: right; line-height: 1.85;
+}
+.cover .strap .r b { color: var(--ink); font-weight: 500; }
+
+.cover .toc {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid var(--rule); padding-top: 14px;
+  gap: 14px;
+}
+.cover .toc .it {
+  display: flex; flex-direction: column; gap: 4px;
+  padding-right: 14px; border-right: 1px solid var(--rule-soft);
+}
+.cover .toc .it:nth-child(5n) { border-right: none; }
+.cover .toc .it .r {
+  font-family: var(--ff-display); font-style: italic;
+  font-size: 1.2rem; color: var(--nexa); line-height: 1;
+}
+.cover .toc .it .t {
+  font-family: var(--ff-mono); font-size: 9.5px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink); line-height: 1.4;
+}
+@media (max-width: 900px) {
+  .cover .toc { grid-template-columns: repeat(2, 1fr); }
+  .cover .toc .it:nth-child(2n) { border-right: none; }
+  .cover .strap { grid-template-columns: 1fr; }
+}
+
+/* Closing */
+.closing {
+  background: var(--ink); color: var(--paper);
+  min-height: 100vh; scroll-snap-align: start;
+  padding: clamp(80px, 14vh, 160px) clamp(20px, 6vw, 96px) clamp(60px, 10vh, 100px);
+  display: grid; grid-template-rows: auto 1fr auto; gap: 40px;
+}
+.closing .kicker {
+  font-family: var(--ff-mono); font-size: 11px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: oklch(0.65 0.02 75);
+  display: inline-flex; align-items: center; gap: 12px;
+}
+.closing .kicker::before {
+  content: ""; width: 28px; height: 1px; background: var(--nexa-tint);
+}
+.closing h1 {
+  font-family: var(--ff-display); font-weight: 400;
+  font-size: clamp(2.4rem, 5.6vw, 5.6rem); line-height: 0.98;
+  letter-spacing: -0.03em; max-width: 22ch;
+  align-self: center;
+}
+.closing h1 em { font-style: italic; color: var(--nexa-tint); }
+.closing .creed {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 12px 36px; max-width: 90ch;
+  border-top: 1px solid oklch(0.4 0.02 50);
+  padding-top: 22px; margin-top: 30px;
+}
+.closing .creed .l {
+  display: grid; grid-template-columns: 60px 1fr;
+  gap: 14px; padding: 8px 0; align-items: baseline;
+}
+.closing .creed .l .n {
+  font-family: var(--ff-display); font-style: italic;
+  font-size: 1.4rem; color: var(--nexa-tint); line-height: 1;
+}
+.closing .creed .l .t {
+  font-family: var(--ff-edit); font-style: italic;
+  font-size: 1.0rem; line-height: 1.4;
+  color: oklch(0.9 0.02 80);
+}
+.closing .creed .l .t b {
+  font-family: var(--ff-display); color: var(--paper);
+  font-weight: 400; font-style: italic;
+}
+.closing .seal {
+  display: grid; grid-template-columns: 1fr 1fr;
+  align-items: end; border-top: 1px solid oklch(0.4 0.02 50);
+  padding-top: 24px;
+}
+.closing .seal .l {
+  font-family: var(--ff-display); font-style: italic;
+  font-size: clamp(1.7rem, 2.4vw, 2.4rem); letter-spacing: -0.02em; line-height: 1;
+}
+.closing .seal .l span { color: var(--nexa-tint); }
+.closing .seal .r {
+  font-family: var(--ff-mono); font-size: 11px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: oklch(0.65 0.02 75);
+  text-align: right; line-height: 1.8;
+}
+.closing .seal .r b { color: var(--paper); font-weight: 500; }
+@media (max-width: 700px) {
+  .closing .creed { grid-template-columns: 1fr; }
+}
+
+/* reveal */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
+.reveal.in { opacity: 1; transform: none; }
+.reveal.d1 { transition-delay: .08s; } .reveal.d2 { transition-delay: .16s; } .reveal.d3 { transition-delay: .24s; }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
+@media (max-width: 900px) { .m-body { grid-template-columns: 1fr; gap: 30px; } .m-side { padding-top: 0; } .m-foot { grid-template-columns: 1fr; } }
+@media print { html, body { background: white; color: black; } .frame, .masthead, .progress, .rail { display: none; } .manifesto, .cover, .closing { page-break-after: always; min-height: auto; padding: 40px; } .reveal { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+
+<div class="frame" aria-hidden="true"></div>
+
+<header class="masthead">
+  <div class="brand">N<span>E</span>XA</div>
+  <div class="meta"><b>OS DEZ MANIFESTOS</b> · declarações fundadoras · 2026·05·21</div>
+  <div class="ctrl">
+    <button id="btnPrint" type="button">Imprimir</button>
+    <button id="btnTop" type="button">Topo</button>
+  </div>
+</header>
+<div class="progress" id="progress"></div>
+
+<nav class="rail" aria-label="Navegação">
+  <a href="#m00" class="active"><span class="n">00</span><span class="t">Cover</span></a>
+  <a href="#m01"><span class="n">Ⅰ</span><span class="t">Pertencimento</span></a>
+  <a href="#m02"><span class="n">Ⅱ</span><span class="t">Canal próprio</span></a>
+  <a href="#m03"><span class="n">Ⅲ</span><span class="t">Identidade</span></a>
+  <a href="#m04"><span class="n">Ⅳ</span><span class="t">Retenção</span></a>
+  <a href="#m05"><span class="n">Ⅴ</span><span class="t">Creator</span></a>
+  <a href="#m06"><span class="n">Ⅵ</span><span class="t">Cripto</span></a>
+  <a href="#m07"><span class="n">Ⅶ</span><span class="t">Earn</span></a>
+  <a href="#m08"><span class="n">Ⅷ</span><span class="t">Honestidade</span></a>
+  <a href="#m09"><span class="n">Ⅸ</span><span class="t">Família</span></a>
+  <a href="#m10"><span class="n">Ⅹ</span><span class="t">Infraestrutura</span></a>
+  <a href="#mEnd"><span class="n">∎</span><span class="t">Credo</span></a>
+</nav>
+
+<main>
+
+<!-- ━━━ COVER ━━━ -->
+<section class="cover" id="m00">
+  <div class="stamp">
+    <span><b>NEXA</b> · OS DEZ MANIFESTOS</span>
+    <span>v1 · 21 · 05 · 2026</span>
+    <span>Declarações <span class="e">fundadoras</span></span>
+  </div>
+  <div class="big reveal">
+    Os <span class="n">10</span><br/>
+    <em>Manifestos</em>
+  </div>
+  <div class="strap reveal d1">
+    <div class="l">
+      Dez declarações curtas. Cada uma <em>uma página</em>, <em>uma frase</em>, <em>um compromisso</em>. Quem assina aqui aceita os termos pelos quais NEXA se obriga e pelos quais será cobrada. <b>Quem não assina, não precisa estar dentro.</b>
+    </div>
+    <div class="r">
+      Autor · Leonardo Guilherme<br/>
+      Tipo · declaração fundadora<br/>
+      Distribuição · irrestrita<br/>
+      Licença · pode citar
+    </div>
+  </div>
+  <div class="toc">
+    <div class="it"><div class="r">Ⅰ</div><div class="t">Pertencimento</div></div>
+    <div class="it"><div class="r">Ⅱ</div><div class="t">Canal próprio</div></div>
+    <div class="it"><div class="r">Ⅲ</div><div class="t">Identidade</div></div>
+    <div class="it"><div class="r">Ⅳ</div><div class="t">Retenção saudável</div></div>
+    <div class="it"><div class="r">Ⅴ</div><div class="t">Creator economy</div></div>
+    <div class="it"><div class="r">Ⅵ</div><div class="t">Cripto utility</div></div>
+    <div class="it"><div class="r">Ⅶ</div><div class="t">Earn não predatório</div></div>
+    <div class="it"><div class="r">Ⅷ</div><div class="t">Honestidade institucional</div></div>
+    <div class="it"><div class="r">Ⅸ</div><div class="t">Família como cofre</div></div>
+    <div class="it"><div class="r">Ⅹ</div><div class="t">Infraestrutura LATAM</div></div>
+  </div>
+</section>
+
+<!-- ━━━ I · PERTENCIMENTO ━━━ -->
+<section class="manifesto" id="m01">
+  <div class="m-num">
+    <div class="roman">Ⅰ</div>
+    <div class="lbl">Manifesto Primeiro<br/><b>Sobre o pertencimento</b></div>
+    <div class="meta">Tese central<br/>Substitui solidão</div>
+  </div>
+  <div class="m-body">
+    <div class="m-statement reveal">
+      Aposta deveria ser <em>pertencimento</em>.<br/>
+      O mercado fez disso <span class="strike">solidão</span>.
+    </div>
+    <div class="m-side reveal d2">
+      <div class="pull">A indústria brasileira otimiza pra <b>extração</b>. Queima usuários em 6 a 12 meses, substitui via CAC de R$ 80–150. NEXA recusa o modelo. Aposta, quando faz parte de uma comunidade, deixa de ser fuga e vira <em>conversa</em>.</div>
+      <div class="m-evidence">
+        <div class="row"><div class="mk">§</div><div class="t"><b>153 mil</b> brasileiros se autoexcluíram em 20 dias via PCA gov.br — evidência industrial do dano.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Galera com <b>87 %</b> de receita concentrada caiu 40–60 % num trimestre quando o regulador apertou.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Better Collective BR Q1/2025 fechou em <b>−13 % YoY</b>. Afiliado puro sem comunidade não sobrevive.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-foot">
+    <div class="commit">Nos obrigamos a construir um <em>lugar</em>, não um funil. O membro entra pra pertencer, não pra perder. Reality check, anti-features e earn social <em>são parte do contrato</em>, não compliance.</div>
+    <div class="seal">Manifesto Ⅰ<br/><b>Sobre o pertencimento</b><br/>21 · 05 · 2026</div>
+  </div>
+</section>
+
+<!-- ━━━ II · CANAL PRÓPRIO ━━━ -->
+<section class="manifesto dark" id="m02">
+  <div class="m-num">
+    <div class="roman">Ⅱ</div>
+    <div class="lbl">Manifesto Segundo<br/><b>Sobre o canal próprio</b></div>
+    <div class="meta">Frase âncora<br/>Distribuição é o produto</div>
+  </div>
+  <div class="m-body">
+    <div class="m-statement reveal">
+      NEXA é o <span class="hi">canal próprio</span><br/>
+      de distribuição da<br/>
+      <em>economia esportiva</em><br/>
+      brasileira.
+    </div>
+    <div class="m-side reveal d2">
+      <div class="pull">A operadora tradicional <b>aluga</b> o usuário do Meta a R$ 80–150 de CAC. Cada cadastro custa o leilão de 188 marcas competindo. NEXA <b>é dona</b> dele — entra pela comunidade, fica pela identidade, aposta como consequência.</div>
+      <div class="m-evidence">
+        <div class="row"><div class="mk">§</div><div class="t">CAC blended <b>R$ 25–35</b> — 70–80 % abaixo do operador padrão BR.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Creator outreach focado em <b>10 streamers gamer-esports</b> traz lead a R$ 3–8 vs leilão Meta a R$ 12–30.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">k-factor de <b>0,6–0,9</b> via clã reduz CAC pago em 30–40 % no ano 1.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-foot">
+    <div class="commit">Nos obrigamos a <em>nunca</em> depender de canal alugado. Cada real investido em creator outreach, SEO orgânico e referral interno constrói <em>infraestrutura</em> que continua trabalhando depois — não inventário que evapora no fim do mês.</div>
+    <div class="seal">Manifesto Ⅱ<br/><b>Sobre o canal próprio</b><br/>21 · 05 · 2026</div>
+  </div>
+</section>
+
+<!-- ━━━ III · IDENTIDADE ━━━ -->
+<section class="manifesto" id="m03">
+  <div class="m-num">
+    <div class="roman">Ⅲ</div>
+    <div class="lbl">Manifesto Terceiro<br/><b>Sobre a identidade</b></div>
+    <div class="meta">O moat real<br/>Transação vira pessoa</div>
+  </div>
+  <div class="m-body">
+    <div class="m-statement reveal">
+      <span class="strike">Apostador anônimo</span><br/>
+      vira <em>membro</em><br/>
+      com histórico público.
+    </div>
+    <div class="m-side reveal d2">
+      <div class="pull">Operadora típica enxerga usuário como número de CPF. NEXA dá ao membro <b>badge raro, posição em ranking, clã de 18 colegas, histórico publicado de picks</b>. Sair significa abandonar uma identidade pública construída ao longo de meses — o lock-in não é técnico, é <em>reputacional</em>.</div>
+      <div class="m-evidence">
+        <div class="row"><div class="mk">§</div><div class="t">Churn cai de <b>8–12 %</b> mensal típico operadora para <b>4–5 %</b> steady-state NEXA.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Vida média do membro: <b>24–48 meses</b> vs 6–12 m apostador puro.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">D180 retenção <b>≥ 95 %</b> — quem chega aqui dificilmente sai antes do ano 2.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-foot">
+    <div class="commit">Nos obrigamos a construir <em>reputação</em>, não vício. Badges são raros e honestos. Ranking é horizontal contra peers, não vertical contra whales. Streak quebrado <em>não tira</em> conquistas. Identidade é cumulativa — punir quem pausa seria contraditório.</div>
+    <div class="seal">Manifesto Ⅲ<br/><b>Sobre a identidade</b><br/>21 · 05 · 2026</div>
+  </div>
+</section>
+
+<!-- ━━━ IV · RETENÇÃO ━━━ -->
+<section class="manifesto" id="m04">
+  <div class="m-num">
+    <div class="roman">Ⅳ</div>
+    <div class="lbl">Manifesto Quarto<br/><b>Sobre a retenção saudável</b></div>
+    <div class="meta">Cuidar é margem<br/>LTV composto</div>
+  </div>
+  <div class="m-body">
+    <div class="m-statement reveal">
+      Reality check <em>não é</em><br/>
+      compliance. É <em>feature</em><br/>
+      core que protege LTV.
+    </div>
+    <div class="m-side reveal d2">
+      <div class="pull">Apostador exausto vira detractor. Operadora tradicional otimiza pra LTV de curto prazo e queima — depois reclama de churn 50 % YoY. NEXA inverte: <b>cuidar é margem composta.</b> 30/60/90 min, detectUserState com 4 modos, PCA gov.br integrada em 72h.</div>
+      <div class="m-evidence">
+        <div class="row"><div class="mk">§</div><div class="t">Função <b>detectUserState()</b> classifica usuário em motivated / frustrated / impulsive / disengaged — UI adapta automaticamente.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Limite default <b>R$ 200/semana</b> auto-configurado no onboarding. Aumentar exige opt-in explícito.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">LTV 24m projetado <b>R$ 920–1.380</b> — 4–6× apostador puro de operadora pura.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-foot">
+    <div class="commit">Nos obrigamos a tratar reality check como <em>core do produto</em>, não como checkbox regulatório. Quando o membro perde, não comemoramos — reduzimos. Quando aposta 4× num dia, perguntamos se quer pausar. Quando some, mandamos editorial, não cobrança.</div>
+    <div class="seal">Manifesto Ⅳ<br/><b>Sobre a retenção</b><br/>21 · 05 · 2026</div>
+  </div>
+</section>
+
+<!-- ━━━ V · CREATOR ━━━ -->
+<section class="manifesto dark" id="m05">
+  <div class="m-num">
+    <div class="roman">Ⅴ</div>
+    <div class="lbl">Manifesto Quinto<br/><b>Sobre a creator economy</b></div>
+    <div class="meta">Tipster é colega<br/>Não recurso</div>
+  </div>
+  <div class="m-body">
+    <div class="m-statement reveal">
+      Tipster brasileiro<br/>
+      sai do <span class="strike">DM</span><br/>
+      e entra no <em>palco</em>.
+    </div>
+    <div class="m-side reveal d2">
+      <div class="pull">Hoje tipster fatura via DM no Telegram, sem contrato, sem garantia. Marketplace NEXA dá ferramenta de cobrança, audiência pré-engajada, ranking público com win rate auditável, payout semanal via Stripe ou Pix. <b>Split favorável 90/10.</b> NEXA captura take rate, não substitui o criador.</div>
+      <div class="m-evidence">
+        <div class="row"><div class="mk">§</div><div class="t">Brasil tem <b>20 milhões de criadores</b> (Meta 2023). 389 k empregos formais em creator economy (FGV/Hotmart 2024).</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Fee NEXA <b>10–20 %</b>. Top tier 15 %, featured 20 % — sempre transparente, sempre opt-in.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Tipster engajado fatura <b>R$ 200–2.000/mês</b> em assinatura + marketplace. Não substitui salário — substitui ansiedade.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-foot">
+    <div class="commit">Nos obrigamos a tratar criador como <em>parceiro</em>, não como fornecedor descartável. Ranking auditável. Histórico imutável. Direito de portar audiência se sair. Tipster que cresceu via NEXA pode ir embora levando os followers — preferimos isso a prendê-lo por padrão dark.</div>
+    <div class="seal">Manifesto Ⅴ<br/><b>Sobre a creator economy</b><br/>21 · 05 · 2026</div>
+  </div>
+</section>
+
+<!-- ━━━ VI · CRIPTO ━━━ -->
+<section class="manifesto" id="m06">
+  <div class="m-num">
+    <div class="roman">Ⅵ</div>
+    <div class="lbl">Manifesto Sexto<br/><b>Sobre a cripto utility</b></div>
+    <div class="meta">Três zeros<br/>Por design, não parecer</div>
+  </div>
+  <div class="m-body">
+    <div class="m-statement reveal">
+      NEXA Coin tem<br/>
+      zero <em>yield</em>,<br/>
+      zero <em>dividendo</em>,<br/>
+      zero <em>promessa</em>.
+    </div>
+    <div class="m-side reveal d2">
+      <div class="pull">Coin existe pra ser <b>usada</b>, não pra ser <b>esperada</b>. Compra produto no marketplace, sobe status em clã, paga missão, libera battle pass. Não rende, não distribui, não promete valorização. Quem espera retorno especulativo do Coin <em>não é nosso público</em>.</div>
+      <div class="m-evidence">
+        <div class="row"><div class="mk">§</div><div class="t"><b>Fase 1</b> off-chain Postgres · <b>Fase 2</b> on-chain via Mercado Bitcoin · <b>Fase 3</b> PSAV próprio Bacen.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">CVM Parecer 40/2022 satisfeito <b>por design</b>. Não dependemos de interpretação favorável de parecer jurídico.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Cap diário <b>200 Coin</b>/usuário. Holding period <b>15–30 d</b> antes de saque. Anti-bot, anti-money-laundering.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-foot">
+    <div class="commit">Nos obrigamos a <em>nunca</em> comunicar valorização. Marketing fala de utilidade, não de retorno. Smart contract com audit duplo (CertiK + OpenZeppelin), bug bounty Immunefi, seguro Nexus Mutual, timelock + multisig em treasury. <em>Cuidado material com fundos do usuário, não promessa narrativa.</em></div>
+    <div class="seal">Manifesto Ⅵ<br/><b>Sobre a cripto utility</b><br/>21 · 05 · 2026</div>
+  </div>
+</section>
+
+<!-- ━━━ VII · EARN ━━━ -->
+<section class="manifesto" id="m07">
+  <div class="m-num">
+    <div class="roman">Ⅶ</div>
+    <div class="lbl">Manifesto Sétimo<br/><b>Sobre o earn</b></div>
+    <div class="meta">Lei 14.790 art. 29<br/>Letra e espírito</div>
+  </div>
+  <div class="m-body">
+    <div class="m-statement reveal">
+      Apostar em si<br/>
+      dá <em>zero</em> Coin.<br/>
+      <span class="strike">Loyalty disfarçada</span><br/>
+      não passa aqui.
+    </div>
+    <div class="m-side reveal d2">
+      <div class="pull">A indústria lê o art. 29 e reformula "bônus por aposta" como "bônus de cadastro" — mesmo design, etiqueta nova. NEXA lê o artigo e entende que <em>condicionado à realização de apostas</em> é o coração. Todas as 10 mecânicas earn são pelo uso <b>social</b> ou <b>criação de conteúdo</b>.</div>
+      <div class="m-evidence">
+        <div class="row"><div class="mk">§</div><div class="t"><b>10 caminhos earn:</b> cadastro, KYC, post, comentário, refer-a-friend, virar tipster, marketplace seller, watch live, clan war, streak social.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Você pode usar NEXA <b>2 anos sem apostar uma vez</b> e progredir igual.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Quem aposta ganha XP <b>menos</b>, não mais. Inversão deliberada vs setor.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-foot">
+    <div class="commit">Nos obrigamos a respeitar a letra <em>e o espírito</em> do art. 29 da Lei 14.790. Quem contorna a letra mas viola o espírito está reescrevendo o mesmo padrão predatório com etiqueta diferente. <em>NEXA não disfarça.</em></div>
+    <div class="seal">Manifesto Ⅶ<br/><b>Sobre o earn</b><br/>21 · 05 · 2026</div>
+  </div>
+</section>
+
+<!-- ━━━ VIII · HONESTIDADE ━━━ -->
+<section class="manifesto dark" id="m08">
+  <div class="m-num">
+    <div class="roman">Ⅷ</div>
+    <div class="lbl">Manifesto Oitavo<br/><b>Sobre a honestidade</b></div>
+    <div class="meta">Reality check pra dentro<br/>30 P0s públicos</div>
+  </div>
+  <div class="m-body">
+    <div class="m-statement reveal">
+      Mostramos o<br/>
+      estado real <em>antes</em><br/>
+      que o investidor<br/>
+      descubra.
+    </div>
+    <div class="m-side reveal d2">
+      <div class="pull">A maior parte dos founders sobrevende. NEXA opera no contrário: o documento institucional v5 declara, em letra grande, que o backend tem <b>21 P0s abertos</b>, que 13 das 20 Edge Functions estavam quebradas semana passada, que a última migration estagnou 11 dias. Não como confissão — como <em>princípio</em>.</div>
+      <div class="m-evidence">
+        <div class="row"><div class="mk">§</div><div class="t">Audits trimestrais internos com <b>3 agentes independentes</b>. Resultados publicados pra o time.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Postmortems sem culpa nominal. Cultura de aprender, <b>não de punir</b>.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Reality check aplicado ao próprio time — engenheiro queimado produz bug, bug produz dano financeiro real.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-foot">
+    <div class="commit">Nos obrigamos a vender <em>menos</em> hoje para valer <em>mais</em> ao longo de cinco anos. Founders que mentem sobre estado do código mentem sobre tudo eventualmente. <em>Não somos esses founders.</em></div>
+    <div class="seal">Manifesto Ⅷ<br/><b>Sobre a honestidade</b><br/>21 · 05 · 2026</div>
+  </div>
+</section>
+
+<!-- ━━━ IX · FAMÍLIA ━━━ -->
+<section class="manifesto" id="m09">
+  <div class="m-num">
+    <div class="roman">Ⅸ</div>
+    <div class="lbl">Manifesto Nono<br/><b>Sobre a família como cofre</b></div>
+    <div class="meta">Sem VC externo<br/>Sem lock-in 7 anos</div>
+  </div>
+  <div class="m-body">
+    <div class="m-statement reveal">
+      Holding família<br/>
+      aporta <em>R$ 1,2 M</em>.<br/>
+      <span class="strike">SAFE</span> e <span class="strike">VC</span><br/>
+      ficam de fora.
+    </div>
+    <div class="m-side reveal d2">
+      <div class="pull">Não captamos Series A externa em ano 1–2. Subsidiária da holding com integração vertical maximiza retorno consolidado familiar — e <b>evita lock-in com VC que exige liquidez em 5–7 anos</b>. Capital família é paciente. Não força exit prematuro.</div>
+      <div class="m-evidence">
+        <div class="row"><div class="mk">§</div><div class="t">Holding é dona de <b>Betsul</b> (operadora SIGAP licenciada) que entra como primeira casa parceira de afiliação premium.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Burn projetado <b>R$ 150 k/mês</b> · runway efetiva 14–22 m com receita orgânica m6+.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">Opção de exit: <b>IPO B3</b> ano 5–7 ou <b>aquisição estratégica</b> 6–10× ARR. Asymmetric upside.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-foot">
+    <div class="commit">Nos obrigamos a tratar capital família como <em>cofre da paciência</em>, não como pressão. Cada decisão de produto é tomada pensando em 10 anos, não em milestone trimestral. <em>Esse é o privilégio que nos compromete.</em></div>
+    <div class="seal">Manifesto Ⅸ<br/><b>Sobre a família</b><br/>21 · 05 · 2026</div>
+  </div>
+</section>
+
+<!-- ━━━ X · INFRAESTRUTURA ━━━ -->
+<section class="manifesto dark" id="m10">
+  <div class="m-num">
+    <div class="roman">Ⅹ</div>
+    <div class="lbl">Manifesto Décimo<br/><b>Sobre a infraestrutura LATAM</b></div>
+    <div class="meta">Visão 2036<br/>WhatsApp do esporte</div>
+  </div>
+  <div class="m-body">
+    <div class="m-statement reveal">
+      Em 2036 o brasileiro<br/>
+      abre NEXA como<br/>
+      abre <em>WhatsApp</em>.
+    </div>
+    <div class="m-side reveal d2">
+      <div class="pull">Não pra apostar. Pra <b>existir</b> como torcedor. Ler análise de amigo, ver clipping de tipster, comentar resultado, ler conteúdo de creator. A aposta deixa de ser evento isolado e vira <em>linguagem nativa</em> da conversa esportiva diária.</div>
+      <div class="m-evidence">
+        <div class="row"><div class="mk">§</div><div class="t">2029 · expansão <b>LATAM</b> · AR / MX / CO · stablecoin NEXA-BRL.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">2031 · PSAV próprio Bacen · 8–12 casas integradas · <b>IPO B3</b> ou consolidator.</div></div>
+        <div class="row"><div class="mk">§</div><div class="t">2036 · <b>8–12 M membros</b> · MRR R$ 80–120 M · padrão Roblox + Spotify para esporte.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-foot">
+    <div class="commit">Nos obrigamos a construir <em>infraestrutura</em>, não app. Roblox não é jogo — é onde jogos acontecem. WhatsApp não é mensagem — é onde conversa acontece. NEXA não é casa de aposta — é <em>onde a vida esportiva brasileira acontece</em>. Dez anos parece muito até você lembrar que WhatsApp tem doze.</div>
+    <div class="seal">Manifesto Ⅹ<br/><b>Sobre a infraestrutura</b><br/>21 · 05 · 2026</div>
+  </div>
+</section>
+
+<!-- ━━━ CREDO ━━━ -->
+<section class="closing" id="mEnd">
+  <div>
+    <span class="kicker">Credo · síntese dos dez</span>
+    <h1 class="reveal">Dez manifestos. Uma promessa. Tudo o que NEXA é se reduz a estas <em>dez linhas</em>.</h1>
+    <div class="creed reveal d2">
+      <div class="l"><div class="n">Ⅰ</div><div class="t">Construímos um <b>lugar</b>, não um funil.</div></div>
+      <div class="l"><div class="n">Ⅱ</div><div class="t">Somos <b>canal próprio</b>, não inquilino do Meta.</div></div>
+      <div class="l"><div class="n">Ⅲ</div><div class="t">Damos <b>identidade pública</b>, não anonimato extrativo.</div></div>
+      <div class="l"><div class="n">Ⅳ</div><div class="t"><b>Cuidar é margem</b> composta, não custo de compliance.</div></div>
+      <div class="l"><div class="n">Ⅴ</div><div class="t">Tipster é <b>parceiro</b>, não fornecedor descartável.</div></div>
+      <div class="l"><div class="n">Ⅵ</div><div class="t">Coin é <b>utility</b> — zero yield, zero promessa, zero security.</div></div>
+      <div class="l"><div class="n">Ⅶ</div><div class="t">Earn nunca <b>incentiva apostar</b> — Art. 29 em código.</div></div>
+      <div class="l"><div class="n">Ⅷ</div><div class="t">Mostramos <b>estado real</b> antes que o investidor descubra.</div></div>
+      <div class="l"><div class="n">Ⅸ</div><div class="t">Capital família é <b>cofre paciente</b>, não pressão de exit.</div></div>
+      <div class="l"><div class="n">Ⅹ</div><div class="t">Construímos <b>infraestrutura</b>, não app. Dez anos.</div></div>
+    </div>
+  </div>
+  <div class="seal">
+    <div class="l">N<span>E</span>XA · <i>os dez manifestos</i></div>
+    <div class="r">
+      Leonardo Guilherme · founder<br/>
+      <b>guilherme15072006@gmail.com</b><br/>
+      Edição v1 · 21·05·2026<br/>
+      Distribuição irrestrita · pode citar
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function(){
+  const progress = document.getElementById('progress');
+  const slides = document.querySelectorAll('.manifesto, .cover, .closing');
+  const rail = document.querySelectorAll('.rail a');
+
+  function onScroll() {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const p = max > 0 ? (window.scrollY / max) * 100 : 0;
+    progress.style.width = p + '%';
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  const railIo = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id;
+        rail.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+      }
+    });
+  }, { threshold: 0.45 });
+  slides.forEach(s => railIo.observe(s));
+
+  function currentSlideIndex() {
+    let best = 0, bestDist = Infinity;
+    slides.forEach((s, i) => {
+      const d = Math.abs(s.getBoundingClientRect().top);
+      if (d < bestDist) { bestDist = d; best = i; }
+    });
+    return best;
+  }
+  function goTo(i) {
+    i = Math.max(0, Math.min(slides.length - 1, i));
+    slides[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    const i = currentSlideIndex();
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'j' || e.key === ' ') { e.preventDefault(); goTo(i + 1); }
+    else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'k') { e.preventDefault(); goTo(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    else if (e.key === 'End') { e.preventDefault(); goTo(slides.length - 1); }
+  });
+
+  document.getElementById('btnPrint').addEventListener('click', () => window.print());
+  document.getElementById('btnTop').addEventListener('click', () => goTo(0));
+})();
+</script>
+
+</body>
+</html>

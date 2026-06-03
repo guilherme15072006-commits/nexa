@@ -1,0 +1,2804 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NEXA — Apresentação Institucional · v5 fantasy-first</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────
+   NEXA · Editorial Investor Presentation
+   Paleta: newsprint + ink + roxo restrito + campo
+   Tipografia: Instrument Serif (display) / Newsreader (editorial) / Geist (body)
+   ───────────────────────────────────────────── */
+
+:root {
+  --ink:        oklch(0.18 0.018 35);
+  --ink-soft:   oklch(0.32 0.020 40);
+  --ink-mute:   oklch(0.52 0.018 45);
+  --paper:      oklch(0.965 0.012 88);
+  --paper-deep: oklch(0.925 0.020 82);
+  --paper-dim:  oklch(0.88 0.024 78);
+  --rule:       oklch(0.78 0.020 75);
+  --rule-soft:  oklch(0.86 0.015 78);
+
+  --nexa:       oklch(0.52 0.22 295);
+  --nexa-deep:  oklch(0.32 0.18 290);
+  --nexa-tint:  oklch(0.92 0.04 295);
+
+  --field:      oklch(0.40 0.085 150);
+  --field-soft: oklch(0.88 0.04 145);
+
+  --alert:      oklch(0.65 0.16 55);
+  --alert-soft: oklch(0.93 0.05 70);
+
+  --blood:      oklch(0.46 0.17 28);
+  --blood-soft: oklch(0.93 0.04 30);
+
+  --ff-display: "Instrument Serif", "Times New Roman", serif;
+  --ff-edit:    "Newsreader", "Georgia", serif;
+  --ff-body:    "Geist", -apple-system, BlinkMacSystemFont, sans-serif;
+  --ff-mono:    "Geist Mono", ui-monospace, monospace;
+
+  --measure: 62ch;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+*::selection { background: var(--ink); color: var(--paper); }
+
+html { scroll-behavior: smooth; scroll-snap-type: y mandatory; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ff-body);
+  font-size: clamp(0.95rem, 0.85rem + 0.3vw, 1.0625rem);
+  line-height: 1.55;
+  font-feature-settings: "ss01", "cv11";
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── Frame / chrome ──────────────────────────── */
+.frame {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+.frame::before, .frame::after {
+  content: "";
+  position: absolute;
+  background: var(--ink);
+}
+.frame::before { /* top hairline */
+  top: 0; left: 0; right: 0; height: 1px;
+}
+.frame::after { /* bottom hairline */
+  bottom: 0; left: 0; right: 0; height: 1px;
+}
+
+.masthead {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  padding: 14px clamp(20px, 3vw, 48px);
+  background: color-mix(in oklab, var(--paper) 86%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--rule-soft);
+  font-family: var(--ff-body);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.masthead .brand {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--ink);
+  line-height: 1;
+}
+.masthead .brand span { color: var(--nexa); }
+.masthead .meta {
+  text-align: center;
+  font-weight: 500;
+}
+.masthead .meta b { color: var(--ink); font-weight: 600; letter-spacing: 0.14em; }
+.masthead .ctrl {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-weight: 500;
+}
+.masthead .ctrl button {
+  background: none;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font: inherit;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background .2s, color .2s, border-color .2s;
+  pointer-events: auto;
+}
+.masthead .ctrl button:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* progress */
+.progress {
+  position: fixed;
+  top: 47px; left: 0;
+  height: 2px;
+  background: var(--nexa);
+  z-index: 39;
+  width: 0%;
+  transition: width .3s cubic-bezier(.2,.7,.2,1);
+}
+
+/* side rail */
+.rail {
+  position: fixed;
+  top: 50%; transform: translateY(-50%);
+  left: 18px;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-mute);
+  pointer-events: auto;
+}
+.rail a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  padding: 4px 0;
+  transition: color .2s, transform .2s;
+}
+.rail a::before {
+  content: "";
+  width: 14px; height: 1px;
+  background: var(--rule);
+  transition: width .25s, background .25s;
+}
+.rail a:hover, .rail a.active {
+  color: var(--ink);
+}
+.rail a.active::before {
+  width: 28px;
+  background: var(--nexa);
+}
+.rail a span.n {
+  font-variant-numeric: tabular-nums;
+}
+.rail a span.t { opacity: 0; transition: opacity .2s; }
+.rail:hover a span.t { opacity: 1; }
+@media (max-width: 900px) { .rail { display: none; } }
+
+/* ── Slide system ──────────────────────────── */
+.slide {
+  min-height: 100vh;
+  scroll-snap-align: start;
+  padding: clamp(64px, 9vh, 110px) clamp(20px, 6vw, 96px) clamp(40px, 6vh, 80px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.slide:last-child { border-bottom: none; }
+.slide-num {
+  position: absolute;
+  top: clamp(72px, 10vh, 120px);
+  right: clamp(20px, 4vw, 56px);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-mute);
+  text-align: right;
+  line-height: 1.6;
+}
+.slide-num b {
+  display: block;
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: clamp(48px, 7vw, 90px);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  line-height: 0.9;
+  margin-top: 4px;
+}
+
+.kicker {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.kicker::before {
+  content: "";
+  width: 28px; height: 1px;
+  background: var(--nexa);
+}
+
+h1.display {
+  font-family: var(--ff-display);
+  font-weight: 400;
+  font-size: clamp(3.2rem, 9vw, 9rem);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+}
+h1.display em {
+  font-style: italic;
+  color: var(--nexa);
+}
+
+h2.headline {
+  font-family: var(--ff-display);
+  font-weight: 400;
+  font-size: clamp(2.4rem, 5vw, 4.6rem);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  max-width: 22ch;
+}
+h2.headline em { font-style: italic; color: var(--nexa); }
+
+p.lede {
+  font-family: var(--ff-edit);
+  font-size: clamp(1.15rem, 1.4vw, 1.5rem);
+  line-height: 1.4;
+  font-weight: 350;
+  color: var(--ink-soft);
+  max-width: var(--measure);
+  letter-spacing: -0.005em;
+}
+p.lede em { font-style: italic; color: var(--nexa-deep); }
+
+p.body {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  font-weight: 400;
+}
+p.body + p.body { margin-top: 1.1em; }
+
+.dropcap::first-letter {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 5.5em;
+  float: left;
+  line-height: 0.85;
+  padding: 0.05em 0.1em 0 0;
+  color: var(--nexa);
+  font-weight: 400;
+}
+
+/* ── 01 · COVER ──────────────────────────── */
+.cover {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr auto auto;
+  gap: 30px;
+  padding-bottom: 56px;
+}
+.cover .word {
+  font-family: var(--ff-display);
+  font-weight: 400;
+  font-size: clamp(7rem, 28vw, 28rem);
+  line-height: 0.82;
+  letter-spacing: -0.06em;
+  color: var(--ink);
+  align-self: end;
+}
+.cover .word .e {
+  font-style: italic;
+  color: var(--nexa);
+  display: inline-block;
+  transform: translateY(0.012em);
+}
+.cover .strap {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 40px;
+  align-items: end;
+  border-top: 1px solid var(--ink);
+  padding-top: 22px;
+}
+.cover .strap .left {
+  font-family: var(--ff-edit);
+  font-style: italic;
+  font-weight: 350;
+  font-size: clamp(1.25rem, 2vw, 1.85rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  max-width: 38ch;
+}
+.cover .strap .right {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  text-align: right;
+  line-height: 1.8;
+}
+.cover .strap .right b { color: var(--ink); font-weight: 500; }
+.cover .seal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--rule);
+  padding-top: 14px;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+/* ── 02 · TESE ──────────────────────────── */
+.tese-grid {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: clamp(40px, 6vw, 110px);
+  flex: 1;
+  align-items: center;
+  margin-top: 24px;
+}
+.tese-left h2 { margin-bottom: 28px; }
+.tese-right {
+  position: relative;
+  padding-left: 28px;
+  border-left: 1px solid var(--rule);
+}
+.pull {
+  font-family: var(--ff-edit);
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(1.5rem, 2.4vw, 2.4rem);
+  line-height: 1.18;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.pull mark {
+  background: linear-gradient(180deg, transparent 60%, var(--nexa-tint) 60%);
+  color: var(--ink);
+  padding: 0 0.05em;
+}
+.tese-foot {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  margin-top: 48px;
+  padding-top: 22px;
+  border-top: 1px solid var(--rule);
+}
+.tese-foot .cell .lbl {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 8px;
+}
+.tese-foot .cell .val {
+  font-family: var(--ff-display);
+  font-size: clamp(1.4rem, 2vw, 2rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.tese-foot .cell .val em { font-style: italic; color: var(--nexa); }
+.tese-foot .cell .sub {
+  font-size: 12px;
+  color: var(--ink-mute);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* ── 03 · VÁCUO ──────────────────────────── */
+.vacuo {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: clamp(40px, 5vw, 90px);
+  flex: 1;
+  align-items: center;
+  margin-top: 16px;
+}
+.vacuo h2 { margin-bottom: 24px; }
+.cartola-chart {
+  position: relative;
+  height: clamp(320px, 50vh, 460px);
+  border-bottom: 1px solid var(--ink);
+  border-left: 1px solid var(--ink);
+  padding: 8px 0 0 8px;
+}
+.cartola-chart svg { width: 100%; height: 100%; display: block; }
+.cartola-chart .yax {
+  position: absolute;
+  left: -8px;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-mute);
+  text-align: right;
+  transform: translateX(-100%);
+}
+.cartola-chart .annot {
+  position: absolute;
+  font-family: var(--ff-edit);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--ink);
+  max-width: 18ch;
+}
+.cartola-chart .annot::before {
+  content: "";
+  position: absolute;
+  background: var(--ink);
+}
+.vacuo .gap-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  margin-bottom: 18px;
+  border-top: 1px solid var(--rule);
+  padding-top: 22px;
+}
+.vacuo .gap-stat .n {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: clamp(4rem, 6.5vw, 7rem);
+  line-height: 0.85;
+  color: var(--nexa);
+  letter-spacing: -0.04em;
+}
+.vacuo .gap-stat .desc {
+  font-family: var(--ff-edit);
+  font-size: 1.05rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  max-width: 32ch;
+}
+
+/* ── 04 · DEFINIÇÃO ──────────────────────────── */
+.def {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 50px;
+  margin-top: 20px;
+  flex: 1;
+}
+.def-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: end;
+}
+.def-statement {
+  font-family: var(--ff-display);
+  font-weight: 400;
+  font-size: clamp(2rem, 3.4vw, 3.2rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  max-width: 22ch;
+}
+.def-statement em { font-style: italic; color: var(--nexa); }
+.def-anatomy {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--ink);
+}
+.def-anatomy .step {
+  padding: 24px 20px 24px 0;
+  border-right: 1px solid var(--rule);
+  position: relative;
+}
+.def-anatomy .step:last-child { border-right: none; }
+.def-anatomy .step .n {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--ink-mute);
+  margin-bottom: 14px;
+}
+.def-anatomy .step .h {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: clamp(1.5rem, 2vw, 2rem);
+  line-height: 1;
+  margin-bottom: 10px;
+  color: var(--ink);
+}
+.def-anatomy .step .b {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.def-anatomy .step.acc .h { color: var(--nexa); }
+.def-anatomy .step.acc .n::after {
+  content: "·";
+  margin-left: 8px;
+  color: var(--nexa);
+}
+
+/* ── 05 · SEIS MECÂNICAS ──────────────────────────── */
+.mech {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  flex: 1;
+  margin-top: 30px;
+}
+.mech-item {
+  display: grid;
+  grid-template-columns: 56px 1.1fr 1.6fr 0.9fr;
+  gap: 32px;
+  align-items: baseline;
+  padding: 22px 0;
+  border-top: 1px solid var(--rule);
+  transition: background .3s;
+}
+.mech-item:last-child { border-bottom: 1px solid var(--rule); }
+.mech-item:hover { background: var(--paper-deep); }
+.mech-item .n {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: clamp(2rem, 2.6vw, 2.8rem);
+  color: var(--nexa);
+  line-height: 1;
+}
+.mech-item h3 {
+  font-family: var(--ff-display);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 2vw, 2rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.mech-item .p {
+  font-family: var(--ff-edit);
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.mech-item .tag {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  text-align: right;
+}
+.mech-item .tag b { color: var(--ink); font-weight: 500; }
+
+@media (max-width: 900px) {
+  .mech-item { grid-template-columns: 40px 1fr; row-gap: 8px; }
+  .mech-item .p, .mech-item .tag { grid-column: 2 / 3; text-align: left; }
+}
+
+/* ── 06 · LOOP COMPORTAMENTAL ──────────────────────────── */
+.loop {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: clamp(40px, 5vw, 80px);
+  flex: 1;
+  align-items: center;
+  margin-top: 16px;
+}
+.loop-svg-wrap {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  max-width: 540px;
+  margin: 0 auto;
+  width: 100%;
+}
+.loop-svg-wrap svg { width: 100%; height: 100%; }
+.loop-stages {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 28px;
+  margin-top: 28px;
+  font-family: var(--ff-edit);
+}
+.loop-stages .s {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-top: 1px solid var(--rule-soft);
+}
+.loop-stages .s .k {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--nexa);
+  min-width: 32px;
+}
+.loop-stages .s .n {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--ink);
+  margin-right: 4px;
+}
+.loop-stages .s .d {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+/* ── 07 · JANELAS ──────────────────────────── */
+.windows {
+  margin-top: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+.windows-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--ink);
+}
+.windows-grid .w {
+  padding: 28px 22px 22px 0;
+  border-right: 1px solid var(--rule);
+  position: relative;
+}
+.windows-grid .w:nth-child(4) { border-right: none; }
+.windows-grid .w .clk {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink-mute);
+  margin-bottom: 14px;
+}
+.windows-grid .w .clk b { color: var(--nexa); font-weight: 500; }
+.windows-grid .w .h {
+  font-family: var(--ff-display);
+  font-size: clamp(1.5rem, 2vw, 2rem);
+  line-height: 1.05;
+  margin-bottom: 12px;
+  letter-spacing: -0.015em;
+}
+.windows-grid .w .h em { font-style: italic; color: var(--nexa); }
+.windows-grid .w .b {
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.window-clock {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--rule);
+  padding-top: 18px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.window-clock b {
+  font-family: var(--ff-display);
+  font-style: italic;
+  text-transform: none;
+  font-size: 1.6rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-left: 12px;
+}
+
+/* ── 08 · MERCADO ──────────────────────────── */
+.market {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(40px, 5vw, 80px);
+  flex: 1;
+  margin-top: 20px;
+}
+.market-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+}
+.bignum {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 22px;
+  align-items: baseline;
+  padding: 22px 0;
+  border-top: 1px solid var(--rule);
+}
+.bignum:first-of-type { border-top: 1px solid var(--ink); }
+.bignum .n {
+  font-family: var(--ff-display);
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  font-style: italic;
+}
+.bignum .n .unit {
+  font-style: normal;
+  font-family: var(--ff-body);
+  font-size: 0.42em;
+  font-weight: 500;
+  color: var(--ink-mute);
+  letter-spacing: 0.04em;
+  margin-left: 4px;
+  vertical-align: 0.55em;
+}
+.bignum .desc {
+  font-family: var(--ff-edit);
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.bignum .desc b { color: var(--ink); font-weight: 500; }
+
+.market-right {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.share-bar {
+  margin-top: 6px;
+}
+.share-bar h4 {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+.share-bar .bar {
+  display: flex;
+  height: 44px;
+  border: 1px solid var(--ink);
+  overflow: hidden;
+  font-family: var(--ff-body);
+  font-size: 12px;
+  font-weight: 500;
+}
+.share-bar .bar > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--paper);
+  border-right: 1px solid var(--paper);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.share-bar .bar > div:last-child { border-right: none; }
+.share-bar .bar .a { background: var(--ink); flex: 0 0 23%; }
+.share-bar .bar .b { background: var(--nexa-deep); flex: 0 0 20%; }
+.share-bar .bar .c { background: var(--field); flex: 0 0 4%; }
+.share-bar .bar .d {
+  background: var(--paper);
+  color: var(--ink-soft);
+  flex: 1;
+  border-left: 1px solid var(--ink);
+  font-style: italic;
+  font-family: var(--ff-edit);
+}
+.share-bar .legend {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  color: var(--ink-mute);
+  margin-top: 8px;
+}
+
+.tax-table {
+  border-top: 1px solid var(--rule);
+  padding-top: 18px;
+}
+.tax-table h4 {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+.tax-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 60px;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--rule-soft);
+}
+.tax-row .yr {
+  font-family: var(--ff-mono);
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+.tax-row .gauge {
+  height: 8px;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  position: relative;
+}
+.tax-row .gauge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--nexa);
+  width: var(--w);
+  transform-origin: left;
+}
+.tax-row .pct {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 1.3rem;
+  text-align: right;
+  color: var(--ink);
+}
+.tax-row.cur .pct { color: var(--nexa); }
+
+/* ── 09 · MOAT ──────────────────────────── */
+.moat {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: clamp(40px, 5vw, 90px);
+  margin-top: 24px;
+  flex: 1;
+  align-items: start;
+}
+.moat-left h2 { margin-bottom: 24px; }
+.moat-left p.lede { margin-top: 18px; }
+.moat-list {
+  display: grid;
+  gap: 0;
+}
+.moat-list .item {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 24px;
+  padding: 24px 0;
+  border-top: 1px solid var(--rule);
+  align-items: baseline;
+}
+.moat-list .item:last-child { border-bottom: 1px solid var(--rule); }
+.moat-list .item .n {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--ink-mute);
+}
+.moat-list .item h3 {
+  font-family: var(--ff-display);
+  font-weight: 400;
+  font-size: clamp(1.4rem, 1.8vw, 1.85rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.moat-list .item h3 em { font-style: italic; color: var(--nexa); }
+.moat-list .item p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 70ch;
+}
+
+/* ── 10 · CONCORRENTES ──────────────────────────── */
+.comp-table {
+  margin-top: 30px;
+  border-top: 1px solid var(--ink);
+}
+.comp-row {
+  display: grid;
+  grid-template-columns: 240px 1.2fr 1.4fr 1fr;
+  gap: 22px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: center;
+}
+.comp-row.h {
+  border-bottom: 1px solid var(--ink);
+  padding: 16px 0;
+}
+.comp-row.h .l {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.comp-row .name {
+  font-family: var(--ff-display);
+  font-size: clamp(1.6rem, 2.2vw, 2.2rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.comp-row .name em { font-style: italic; }
+.comp-row .name small {
+  display: block;
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-top: 6px;
+}
+.comp-row .strong, .comp-row .weak {
+  font-family: var(--ff-edit);
+  font-size: 0.96rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.comp-row .strong b, .comp-row .weak b { color: var(--ink); font-weight: 500; }
+.comp-row .scale {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+.comp-row.nexa {
+  background: linear-gradient(90deg, var(--nexa-tint), transparent);
+  margin: 0 -16px;
+  padding-left: 16px;
+  padding-right: 16px;
+  border-bottom: 1px solid var(--nexa);
+}
+.comp-row.nexa .name em { color: var(--nexa); }
+
+@media (max-width: 1100px) {
+  .comp-row { grid-template-columns: 1fr; gap: 8px; padding: 18px 0; }
+  .comp-row.h { display: none; }
+}
+
+/* ── 11 · RECEITA ──────────────────────────── */
+.rev {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: clamp(40px, 5vw, 80px);
+  flex: 1;
+  margin-top: 24px;
+  align-items: center;
+}
+.rev-left h2 { margin-bottom: 22px; }
+.rev-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--ink);
+  padding-top: 22px;
+}
+.rev-bar {
+  display: grid;
+  grid-template-columns: 240px 1fr 92px;
+  gap: 18px;
+  align-items: center;
+}
+.rev-bar .nm {
+  font-family: var(--ff-edit);
+  font-size: 0.95rem;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.rev-bar .nm small {
+  display: block;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-top: 3px;
+}
+.rev-bar .gauge {
+  height: 30px;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  position: relative;
+  overflow: hidden;
+}
+.rev-bar .gauge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  width: var(--w);
+}
+.rev-bar.acc .gauge::before { background: var(--nexa); }
+.rev-bar .v {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 1.6rem;
+  line-height: 1;
+  text-align: right;
+  color: var(--ink);
+}
+.rev-bar.acc .v { color: var(--nexa); }
+.rev-total {
+  display: grid;
+  grid-template-columns: 240px 1fr 92px;
+  gap: 18px;
+  align-items: baseline;
+  padding-top: 18px;
+  border-top: 1px solid var(--ink);
+  margin-top: 8px;
+}
+.rev-total .lbl {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.rev-total .v {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: clamp(2.2rem, 3vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-align: right;
+  color: var(--ink);
+}
+
+@media (max-width: 800px) {
+  .rev-bar, .rev-total { grid-template-columns: 1fr; gap: 6px; }
+  .rev-bar .v, .rev-total .v { text-align: left; }
+}
+
+/* ── 12 · UNIT ECONOMICS ──────────────────────────── */
+.unit {
+  margin-top: 30px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: auto 1fr;
+  gap: 22px;
+}
+.unit-head {
+  grid-column: 1 / 8;
+}
+.unit-head h2 { margin-bottom: 22px; }
+.unit-cell {
+  border: 1px solid var(--rule);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 180px;
+  background: var(--paper);
+  position: relative;
+  overflow: hidden;
+}
+.unit-cell .lbl {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.unit-cell .val {
+  font-family: var(--ff-display);
+  font-size: clamp(2rem, 3.4vw, 3.8rem);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  font-style: italic;
+}
+.unit-cell .val .alt {
+  font-style: normal;
+  color: var(--ink-mute);
+  font-size: 0.55em;
+  letter-spacing: -0.01em;
+  margin-left: 4px;
+}
+.unit-cell .sub {
+  font-family: var(--ff-edit);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  margin-top: 12px;
+}
+.unit-cell.acc {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.unit-cell.acc .lbl, .unit-cell.acc .sub { color: oklch(0.78 0.02 75); }
+.unit-cell.acc .val { color: var(--nexa-tint); }
+.unit-cell.warn { border-color: var(--alert); background: var(--alert-soft); }
+.unit-cell.warn .val { color: var(--blood); }
+
+.u-1 { grid-column: 1 / 5; grid-row: 2 / 3; }
+.u-2 { grid-column: 5 / 8; grid-row: 2 / 3; }
+.u-3 { grid-column: 8 / 11; grid-row: 2 / 3; }
+.u-4 { grid-column: 11 / 13; grid-row: 2 / 3; }
+.u-5 { grid-column: 1 / 5; grid-row: 3 / 4; }
+.u-6 { grid-column: 5 / 13; grid-row: 3 / 4; }
+
+@media (max-width: 1000px) {
+  .unit { grid-template-columns: repeat(2, 1fr); }
+  .u-1, .u-2, .u-3, .u-4, .u-5, .u-6 { grid-column: span 1; grid-row: auto; }
+  .unit-head { grid-column: 1 / -1; }
+}
+
+.unit-foot {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--ink);
+  padding-top: 18px;
+  margin-top: 12px;
+  font-family: var(--ff-edit);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--ink-soft);
+  max-width: 80ch;
+  line-height: 1.5;
+}
+
+/* ── 13 · COIN ──────────────────────────── */
+.coin {
+  margin-top: 30px;
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 50px;
+}
+.coin-track {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  position: relative;
+  border-top: 1px solid var(--ink);
+  padding-top: 38px;
+}
+.coin-track::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--ink);
+}
+.coin-phase {
+  padding: 0 32px 0 0;
+  border-right: 1px solid var(--rule);
+  position: relative;
+}
+.coin-phase:last-child { border-right: none; padding-right: 0; }
+.coin-phase .dot {
+  position: absolute;
+  top: -42px;
+  left: 0;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+}
+.coin-phase.cur .dot { background: var(--nexa); border-color: var(--nexa); }
+.coin-phase .ph {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 10px;
+}
+.coin-phase.cur .ph { color: var(--nexa); }
+.coin-phase .tt {
+  font-family: var(--ff-display);
+  font-size: clamp(1.5rem, 2vw, 2.1rem);
+  line-height: 1.05;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+.coin-phase .tt em { font-style: italic; }
+.coin-phase .tm {
+  font-family: var(--ff-edit);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--nexa);
+  margin-bottom: 14px;
+}
+.coin-phase .body {
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+.coin-phase ul {
+  list-style: none;
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--ink-mute);
+}
+.coin-phase ul li {
+  padding: 5px 0;
+  border-top: 1px solid var(--rule-soft);
+  display: flex;
+  gap: 8px;
+}
+.coin-phase ul li::before {
+  content: "—";
+  color: var(--nexa);
+}
+
+/* ── 14 · ROADMAP ──────────────────────────── */
+.road {
+  margin-top: 24px;
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 36px;
+}
+.road-timeline {
+  position: relative;
+  height: 4px;
+  background: var(--paper-deep);
+  margin: 30px 0 0;
+}
+.road-timeline::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  height: 4px;
+  width: 14%;
+  background: var(--nexa);
+}
+.road-timeline .tick {
+  position: absolute;
+  top: -8px;
+  width: 1px; height: 20px;
+  background: var(--ink);
+}
+.road-timeline .tick.cur { background: var(--nexa); height: 28px; top: -12px; width: 2px; }
+.road-timeline .tick span {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--ink-mute);
+  white-space: nowrap;
+}
+.road-h {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--ink);
+  padding-top: 28px;
+}
+.road-h .h {
+  padding-right: 32px;
+  border-right: 1px solid var(--rule);
+}
+.road-h .h:last-child { border-right: none; }
+.road-h .h .lbl {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 10px;
+}
+.road-h .h .tt {
+  font-family: var(--ff-display);
+  font-size: clamp(1.6rem, 2.2vw, 2.2rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.road-h .h .tt em { font-style: italic; color: var(--nexa); }
+.road-h .h .tm {
+  font-family: var(--ff-edit);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--nexa-deep);
+  margin-bottom: 14px;
+}
+.road-h .h ul {
+  list-style: none;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.road-h .h ul li {
+  padding: 6px 0;
+  border-top: 1px solid var(--rule-soft);
+  display: flex;
+  gap: 10px;
+}
+.road-h .h ul li::before {
+  content: "→";
+  color: var(--nexa);
+  flex-shrink: 0;
+}
+.road-h .h .gate {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.road-h .h .gate b { color: var(--ink); font-weight: 500; }
+
+/* ── 15 · RISCOS ──────────────────────────── */
+.risks {
+  margin-top: 24px;
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 30px;
+}
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+.risk-card {
+  background: var(--paper);
+  padding: 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+.risk-card .meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.risk-card .meta .id { color: var(--ink); font-weight: 500; }
+.risk-card .score {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: clamp(2.4rem, 3.5vw, 3.4rem);
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+}
+.risk-card.s9 { background: var(--blood-soft); }
+.risk-card.s9 .score { color: var(--blood); }
+.risk-card.s6 { background: var(--alert-soft); }
+.risk-card.s6 .score { color: var(--alert); }
+.risk-card.s5 .score { color: var(--ink); }
+.risk-card .name {
+  font-family: var(--ff-display);
+  font-size: 1.15rem;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.risk-card .name em { font-style: italic; }
+.risk-card .mit {
+  font-family: var(--ff-edit);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule-soft);
+}
+.risk-card .mit b { color: var(--ink); font-weight: 500; }
+
+@media (max-width: 1200px) {
+  .risk-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 700px) {
+  .risk-grid { grid-template-columns: 1fr; }
+}
+
+.risk-legend {
+  display: flex;
+  gap: 28px;
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  align-items: center;
+}
+.risk-legend .sw {
+  display: inline-block;
+  width: 14px; height: 14px;
+  margin-right: 8px;
+  vertical-align: -3px;
+  border: 1px solid var(--rule);
+}
+.risk-legend .sw.a { background: var(--blood-soft); }
+.risk-legend .sw.b { background: var(--alert-soft); }
+.risk-legend .sw.c { background: var(--paper); }
+
+/* ── 16 · COMPARABLES ──────────────────────────── */
+.comp2 {
+  margin-top: 28px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: clamp(40px, 5vw, 80px);
+}
+.comp2-list {
+  border-top: 1px solid var(--ink);
+}
+.comp2-item {
+  display: grid;
+  grid-template-columns: 0.9fr 0.6fr 0.6fr 0.5fr;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.comp2-item.h {
+  border-bottom: 1px solid var(--ink);
+  padding: 10px 0;
+}
+.comp2-item.h span {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.comp2-item .nm {
+  font-family: var(--ff-display);
+  font-size: clamp(1.25rem, 1.5vw, 1.5rem);
+  line-height: 1;
+  letter-spacing: -0.015em;
+}
+.comp2-item .nm em { font-style: italic; }
+.comp2-item .nm small {
+  display: block;
+  font-family: var(--ff-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-top: 4px;
+}
+.comp2-item .v {
+  font-family: var(--ff-edit);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+.comp2-item .v small {
+  display: block;
+  font-style: normal;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--ink-mute);
+  margin-top: 3px;
+}
+.comp2-item.acc { background: var(--nexa-tint); margin: 0 -12px; padding-left: 12px; padding-right: 12px; }
+.comp2-item.acc .nm em { color: var(--nexa); }
+.comp2-item.acc .v { color: var(--nexa-deep); }
+
+/* ── 17 · EXIT ──────────────────────────── */
+.exit {
+  margin-top: 24px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: clamp(40px, 5vw, 80px);
+}
+.exit-paths {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--ink);
+}
+.exit-path {
+  display: grid;
+  grid-template-columns: 100px 1fr 180px;
+  gap: 30px;
+  padding: 30px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.exit-path .yr {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: clamp(1.4rem, 1.8vw, 1.8rem);
+  color: var(--nexa);
+  line-height: 1;
+}
+.exit-path .body h3 {
+  font-family: var(--ff-display);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 2.2vw, 2.2rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+.exit-path .body p {
+  font-family: var(--ff-edit);
+  font-size: 0.96rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.exit-path .v {
+  font-family: var(--ff-display);
+  font-size: clamp(1.6rem, 2vw, 2rem);
+  line-height: 1;
+  text-align: right;
+  color: var(--ink);
+  font-style: italic;
+}
+.exit-path .v small {
+  display: block;
+  font-style: normal;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-top: 6px;
+}
+
+/* ── 18 · ASK ──────────────────────────── */
+.ask {
+  margin-top: 24px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: clamp(40px, 5vw, 100px);
+}
+.ask-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.ask-fig {
+  font-family: var(--ff-display);
+  font-size: clamp(5rem, 14vw, 14rem);
+  line-height: 0.82;
+  letter-spacing: -0.06em;
+  color: var(--ink);
+  font-style: italic;
+  margin: 18px 0;
+}
+.ask-fig em { color: var(--nexa); font-style: italic; }
+.ask-fig .unit {
+  font-style: normal;
+  font-family: var(--ff-body);
+  font-size: 0.18em;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  display: block;
+  margin-top: 14px;
+}
+.ask-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 26px;
+  border-top: 1px solid var(--ink);
+  padding-top: 18px;
+}
+.ask-meta .c .l {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 4px;
+}
+.ask-meta .c .v {
+  font-family: var(--ff-edit);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+.use {
+  border-top: 1px solid var(--ink);
+  padding-top: 24px;
+}
+.use h3 {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 18px;
+  font-weight: 500;
+}
+.use-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 130px;
+  gap: 16px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule-soft);
+}
+.use-row .ct {
+  font-family: var(--ff-edit);
+  font-size: 0.96rem;
+  color: var(--ink);
+}
+.use-row .gauge {
+  height: 6px;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  position: relative;
+}
+.use-row .gauge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--nexa);
+  width: var(--w);
+}
+.use-row .vv {
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  text-align: right;
+}
+.use-row .vv b {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.2rem;
+}
+
+/* ── CLOSING ──────────────────────────── */
+.closing {
+  background: var(--ink);
+  color: var(--paper);
+  padding: clamp(80px, 14vh, 160px) clamp(20px, 6vw, 96px) clamp(60px, 10vh, 100px);
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  gap: 50px;
+  min-height: 100vh;
+}
+.closing .kicker { color: oklch(0.65 0.02 75); }
+.closing .kicker::before { background: var(--nexa-tint); }
+.closing h1 {
+  font-family: var(--ff-display);
+  font-weight: 400;
+  font-size: clamp(3rem, 8vw, 8rem);
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  max-width: 18ch;
+}
+.closing h1 em { font-style: italic; color: var(--nexa-tint); }
+.closing .lede {
+  font-family: var(--ff-edit);
+  font-style: italic;
+  font-size: clamp(1.2rem, 1.5vw, 1.5rem);
+  line-height: 1.4;
+  max-width: 56ch;
+  color: oklch(0.82 0.018 80);
+  margin-top: 30px;
+}
+.closing .seal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: end;
+  border-top: 1px solid oklch(0.4 0.02 50);
+  padding-top: 24px;
+}
+.closing .seal .l {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: clamp(2rem, 3vw, 3rem);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.closing .seal .l span { color: var(--nexa-tint); }
+.closing .seal .r {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: oklch(0.65 0.02 75);
+  text-align: right;
+  line-height: 1.8;
+}
+.closing .seal .r b { color: var(--paper); font-weight: 500; }
+
+/* ── Reveal animations ──────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1);
+}
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+.reveal.d1 { transition-delay: .08s; }
+.reveal.d2 { transition-delay: .16s; }
+.reveal.d3 { transition-delay: .24s; }
+.reveal.d4 { transition-delay: .32s; }
+.reveal.d5 { transition-delay: .40s; }
+.reveal.d6 { transition-delay: .48s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* ── Responsive collapse ──────────────────────── */
+@media (max-width: 900px) {
+  .tese-grid, .vacuo, .loop, .market, .moat, .rev, .exit, .ask, .comp2 {
+    grid-template-columns: 1fr;
+  }
+  .def-head { grid-template-columns: 1fr; }
+  .def-anatomy { grid-template-columns: repeat(2, 1fr); }
+  .def-anatomy .step:nth-child(2) { border-right: none; }
+  .def-anatomy .step:nth-child(3), .def-anatomy .step:nth-child(4) {
+    border-top: 1px solid var(--rule);
+  }
+  .windows-grid { grid-template-columns: repeat(2, 1fr); }
+  .windows-grid .w:nth-child(2) { border-right: none; }
+  .windows-grid .w:nth-child(3), .windows-grid .w:nth-child(4) {
+    border-top: 1px solid var(--rule);
+  }
+  .road-h { grid-template-columns: 1fr; }
+  .road-h .h { border-right: none; border-bottom: 1px solid var(--rule); padding-bottom: 20px; padding-right: 0; }
+  .cover .strap { grid-template-columns: 1fr; }
+}
+
+/* print */
+@media print {
+  html, body { background: white; color: black; }
+  .frame, .masthead, .progress, .rail { display: none; }
+  .slide { page-break-after: always; min-height: auto; padding: 40px; }
+  .reveal { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="frame" aria-hidden="true"></div>
+
+<header class="masthead">
+  <div class="brand">N<span>E</span>XA</div>
+  <div class="meta"><b>APRESENTAÇÃO INSTITUCIONAL</b> · v5 fantasy-first · 2026·05·21 · confidencial</div>
+  <div class="ctrl">
+    <button id="btnPrint" type="button">Imprimir</button>
+    <button id="btnTop" type="button">Topo</button>
+  </div>
+</header>
+<div class="progress" id="progress"></div>
+
+<nav class="rail" aria-label="Navegação">
+  <a href="#s01" class="active"><span class="n">01</span><span class="t">Cover</span></a>
+  <a href="#s02"><span class="n">02</span><span class="t">Tese</span></a>
+  <a href="#s03"><span class="n">03</span><span class="t">Vácuo</span></a>
+  <a href="#s04"><span class="n">04</span><span class="t">Definição</span></a>
+  <a href="#s05"><span class="n">05</span><span class="t">Mecânicas</span></a>
+  <a href="#s06"><span class="n">06</span><span class="t">Loop</span></a>
+  <a href="#s07"><span class="n">07</span><span class="t">Janelas</span></a>
+  <a href="#s08"><span class="n">08</span><span class="t">Mercado</span></a>
+  <a href="#s09"><span class="n">09</span><span class="t">Moat</span></a>
+  <a href="#s10"><span class="n">10</span><span class="t">Concorrentes</span></a>
+  <a href="#s11"><span class="n">11</span><span class="t">Receita</span></a>
+  <a href="#s12"><span class="n">12</span><span class="t">Unit Economics</span></a>
+  <a href="#s13"><span class="n">13</span><span class="t">Coin</span></a>
+  <a href="#s14"><span class="n">14</span><span class="t">Roadmap</span></a>
+  <a href="#s15"><span class="n">15</span><span class="t">Riscos</span></a>
+  <a href="#s16"><span class="n">16</span><span class="t">Comparables</span></a>
+  <a href="#s17"><span class="n">17</span><span class="t">Exit</span></a>
+  <a href="#s18"><span class="n">18</span><span class="t">Ask</span></a>
+  <a href="#s19"><span class="n">19</span><span class="t">Fim</span></a>
+</nav>
+
+<main>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 01 · COVER                                  -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide cover" id="s01">
+  <div class="slide-num"><span>Capítulo</span><b>01</b></div>
+  <div class="word reveal">N<span class="e">E</span>XA</div>
+  <div class="strap reveal d1">
+    <div class="left">
+      A infraestrutura social do entretenimento esportivo brasileiro — <em>fantasy sports + comunidade + creator economy + cripto utility</em>, monetizando seis linhas independentes sob proteção jurídica do Art. 49 da Lei 14.790/2023.
+    </div>
+    <div class="right">
+      <b>Subsidiária da holding familiar</b><br>
+      Founder · Leonardo Guilherme<br>
+      Aporte solicitado · R$ 1,2 M<br>
+      Ciclo · 12 meses até MRR R$ 220 k
+    </div>
+  </div>
+  <div class="seal reveal d2">
+    <span>Maio · 2026</span>
+    <span>Documento confidencial</span>
+    <span>Distribuição restrita · NDA</span>
+    <span>Edição v5</span>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 02 · TESE                                   -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s02">
+  <div class="slide-num"><span>Capítulo</span><b>02</b></div>
+  <span class="kicker">Tese em três linhas</span>
+  <div class="tese-grid">
+    <div class="tese-left reveal">
+      <h2 class="headline">Não é casa de aposta com<br/>camada social. Nem fantasy<br/><em>free-to-play</em>. É a plataforma<br/>que <em>monetiza ambos</em>.</h2>
+      <p class="lede" style="margin-top:26px">O Brasil tem <em>25,2 milhões de apostadores ativos</em>, 1,66 milhão de cartoleiros, 7 milhões no Rei do Pitaco — e nenhuma plataforma combina fantasy + social + creator economy + cripto utility, monetizando entry fees em produto próprio <em>e</em> afiliação multi-operadora simultaneamente.</p>
+    </div>
+    <div class="tese-right reveal d2">
+      <div class="pull">
+        O vencedor desse mercado <mark>não será uma operadora</mark> com camada social — será uma <mark>plataforma fantasy social-first</mark> que monetiza via afiliação multi-casa, evitando os R$ 30 M de outorga SIGAP e o risco regulatório de operar como bookmaker.
+      </div>
+      <div class="tese-foot">
+        <div class="cell">
+          <div class="lbl">Janela</div>
+          <div class="val"><em>18–30</em> m</div>
+          <div class="sub">até consolidação do setor fantasy BR</div>
+        </div>
+        <div class="cell">
+          <div class="lbl">Comparável global</div>
+          <div class="val">US$ <em>4,15</em> bi</div>
+          <div class="sub">Allwyn–PrizePicks EV pós-earn-outs (out/2025)</div>
+        </div>
+        <div class="cell">
+          <div class="lbl">Custo evitado</div>
+          <div class="val">R$ <em>30</em> M</div>
+          <div class="sub">outorga SPA/MF (NEXA opera sob Art. 49)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 03 · VÁCUO                                  -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s03">
+  <div class="slide-num"><span>Capítulo</span><b>03</b></div>
+  <span class="kicker">O vácuo competitivo</span>
+  <div class="vacuo">
+    <div class="reveal">
+      <h2 class="headline">Cartola perdeu <em>4,7 milhões</em> de inscritos em oito temporadas.</h2>
+      <p class="body">O pico de 2016 foi 6,4 milhões. A primeira rodada de 2024 fechou em 1,66 milhão — queda de 73 %. Esses ex-usuários <b>não migraram em escala</b>: Rei do Pitaco atende o cash gamer puro (7 M MAU mas perfil diferente) e agora pivota pra sportsbook próprio com a licença SPA/MF 2.091.</p>
+      <p class="body">Sobra um vácuo de <b>3 a 5 milhões de torcedores brasileiros</b> que querem fantasy mais social, multi-esporte, com upside opcional. NEXA é desenhada exatamente para esse perfil — e captura o slot fantasy-first multi-operadora afiliada que Rei do Pitaco está abandonando.</p>
+    </div>
+    <div class="reveal d2">
+      <div class="cartola-chart">
+        <span class="yax" style="top:0">6,4 M</span>
+        <span class="yax" style="top:50%">3,2 M</span>
+        <span class="yax" style="bottom:0">0</span>
+        <svg viewBox="0 0 600 400" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="declineFade" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="oklch(0.46 0.17 28)" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="oklch(0.46 0.17 28)" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M 0 0 L 86 35 L 172 90 L 258 145 L 344 195 L 430 248 L 516 295 L 600 320 L 600 400 L 0 400 Z" fill="url(#declineFade)"/>
+          <path d="M 0 0 L 86 35 L 172 90 L 258 145 L 344 195 L 430 248 L 516 295 L 600 320" fill="none" stroke="oklch(0.46 0.17 28)" stroke-width="2"/>
+          <circle cx="0" cy="0" r="5" fill="oklch(0.46 0.17 28)"/>
+          <circle cx="600" cy="320" r="5" fill="oklch(0.46 0.17 28)"/>
+          <text x="14" y="-6" font-family="Geist Mono" font-size="11" fill="oklch(0.32 0.020 40)">2016 · pico</text>
+          <text x="600" y="345" font-family="Geist Mono" font-size="11" fill="oklch(0.32 0.020 40)" text-anchor="end">2024 · 1,66 M</text>
+        </svg>
+        <div class="annot" style="top: 60%; right: 18px;">vácuo de 3–5 M<br/>torcedores sem destino</div>
+      </div>
+      <div class="gap-stat" style="margin-top:36px">
+        <div class="n">−73 %</div>
+        <div class="desc">queda de inscritos do Cartola entre 2016 e 2024 — <b>maior vácuo de demanda fantasy do mercado brasileiro.</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 04 · DEFINIÇÃO                              -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s04">
+  <div class="slide-num"><span>Capítulo</span><b>04</b></div>
+  <span class="kicker">O que é NEXA</span>
+  <div class="def">
+    <div class="def-head">
+      <div class="def-statement reveal">
+        NEXA é o <em>broker do funil</em> entre fantasy social e aposta real — não opera o bookmaker, opera a relação.
+      </div>
+      <p class="lede reveal d2">A aposta real acontece nas operadoras parceiras (Betsul primeira, Bet365 / Betano / KTO / Sportingbet em sequência) via deep-link contextual. NEXA captura <em>CPA por FTD qualificado</em> + <em>RevShare lifetime sobre NGR</em>, opera entry fees DFS sob Art. 49, e roda uma comunidade que retém o usuário entre rodadas. O bookmaker traz o capital regulatório; NEXA traz a identidade.</p>
+      </div>
+    <div class="def-anatomy reveal d3">
+      <div class="step acc">
+        <div class="n">A · ATIVO</div>
+        <div class="h">Fantasy</div>
+        <div class="b">DFS daily + season-long com entry fees R$ 5–500, prêmios garantidos, operados pela própria NEXA sob Art. 49 (dispensa autorização SPA/MF).</div>
+      </div>
+      <div class="step">
+        <div class="n">B · CAMADA</div>
+        <div class="h">Social</div>
+        <div class="b">Feed cronológico + algorítmico, tipsters, copy-bet, lives Mux, clãs, ranking público de habilidade — o que Cartola não fez em 20 anos.</div>
+      </div>
+      <div class="step">
+        <div class="n">C · ECONOMIA</div>
+        <div class="h">Creator</div>
+        <div class="b">Marketplace de picks, cursos, lives e NFTs com fee 10–20 %. NEXA Coin como utility interna (Fase 1 → PSAV parceiro Fase 2 → PSAV próprio Fase 3).</div>
+      </div>
+      <div class="step">
+        <div class="n">D · FLUXO</div>
+        <div class="h">Cross-sell</div>
+        <div class="b">Deep-link contextual fantasy → aposta real em operadora parceira. Benchmark DraftKings Colorado/PA: 50–69 %. Conservador NEXA: 12 % m12.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 05 · MECÂNICAS                              -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s05">
+  <div class="slide-num"><span>Capítulo</span><b>05</b></div>
+  <span class="kicker">As seis mecânicas integradas</span>
+  <h2 class="headline reveal" style="margin-bottom:8px">Seis camadas que <em>nenhum player</em> BR oferece juntas.</h2>
+  <p class="lede reveal d1" style="margin-bottom:24px">Cada uma é, isoladamente, um produto viável. A composição é o moat.</p>
+  <div class="mech">
+    <div class="mech-item reveal d1">
+      <div class="n">01</div>
+      <h3>DFS season-long &amp; daily</h3>
+      <div class="p">Fantasy cash games sob Art. 49, multi-atleta, entry fees R$ 5–500, prêmios garantidos por contest. Receita: rake 12–15 % no modelo Rei do Pitaco / DraftKings.</div>
+      <div class="tag"><b>Linha 2</b><br/>R$ 45 k m12</div>
+    </div>
+    <div class="mech-item reveal d2">
+      <div class="n">02</div>
+      <h3>Feed social &amp; tipsters</h3>
+      <div class="p">Timeline mista, tipsters com win rate público auditável, copy-pick em um clique, ranking de habilidade — modelo Sleeper + Better Collective combinados.</div>
+      <div class="tag"><b>Engajamento</b><br/>retenção D30</div>
+    </div>
+    <div class="mech-item reveal d3">
+      <div class="n">03</div>
+      <h3>Gamificação profunda</h3>
+      <div class="p">XP por ação social (não por aposta — anti-PL 1018), ligas semanais Bronze→Mestre, clãs de 10–50, battle pass sazonal de 90 dias com 100 níveis.</div>
+      <div class="tag"><b>Lock-in</b><br/>identidade</div>
+    </div>
+    <div class="mech-item reveal d4">
+      <div class="n">04</div>
+      <h3>Live streaming integrado</h3>
+      <div class="p">Mux HLS + RTMP, lives de tipsters e jogos comentados, chat moderado, overlays de aposta in-play. Streamers monetizam via Coins, subs e revshare.</div>
+      <div class="tag"><b>Watch-time</b><br/>tipo Twitch</div>
+    </div>
+    <div class="mech-item reveal d5">
+      <div class="n">05</div>
+      <h3>Marketplace creator economy</h3>
+      <div class="p">Picks pagos, cursos, lives, NFTs, avatares — fee NEXA 10–20 %. Payout via Stripe Connect ou Pix mesma titularidade, semanal.</div>
+      <div class="tag"><b>Linha 4</b><br/>R$ 40 k m12</div>
+    </div>
+    <div class="mech-item reveal d6">
+      <div class="n">06</div>
+      <h3>NEXA Coin utility</h3>
+      <div class="p">Off-chain (Postgres) Fase 1 → ERC-20/SPL via PSAV parceiro Fase 2 (Mercado Bitcoin) → PSAV próprio Bacen Fase 3. Utility puro: zero yield, zero security claim.</div>
+      <div class="tag"><b>Linha 5</b><br/>R$ 25 k m12</div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 06 · LOOP                                   -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s06">
+  <div class="slide-num"><span>Capítulo</span><b>06</b></div>
+  <span class="kicker">Loop comportamental</span>
+  <div class="loop">
+    <div class="reveal">
+      <div class="loop-svg-wrap">
+        <svg viewBox="0 0 500 500">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="oklch(0.52 0.22 295)"/>
+            </marker>
+          </defs>
+          <!-- circle path -->
+          <circle cx="250" cy="250" r="180" fill="none" stroke="oklch(0.78 0.020 75)" stroke-width="1" stroke-dasharray="3 5"/>
+          <!-- 6 stage nodes -->
+          <g font-family="Instrument Serif" font-style="italic" font-size="22" fill="oklch(0.18 0.018 35)" text-anchor="middle">
+            <g transform="translate(250, 70)">
+              <circle r="38" fill="oklch(0.965 0.012 88)" stroke="oklch(0.18 0.018 35)" stroke-width="1.5"/>
+              <text dy="6">ver</text>
+            </g>
+            <g transform="translate(406, 165)">
+              <circle r="38" fill="oklch(0.965 0.012 88)" stroke="oklch(0.18 0.018 35)" stroke-width="1.5"/>
+              <text dy="6">interagir</text>
+            </g>
+            <g transform="translate(406, 335)">
+              <circle r="38" fill="oklch(0.92 0.04 295)" stroke="oklch(0.52 0.22 295)" stroke-width="1.5"/>
+              <text dy="6" fill="oklch(0.32 0.18 290)">apostar</text>
+            </g>
+            <g transform="translate(250, 430)">
+              <circle r="38" fill="oklch(0.965 0.012 88)" stroke="oklch(0.18 0.018 35)" stroke-width="1.5"/>
+              <text dy="6">evoluir</text>
+            </g>
+            <g transform="translate(94, 335)">
+              <circle r="38" fill="oklch(0.965 0.012 88)" stroke="oklch(0.18 0.018 35)" stroke-width="1.5"/>
+              <text dy="6">competir</text>
+            </g>
+            <g transform="translate(94, 165)">
+              <circle r="38" fill="oklch(0.965 0.012 88)" stroke="oklch(0.18 0.018 35)" stroke-width="1.5"/>
+              <text dy="6">voltar</text>
+            </g>
+          </g>
+          <!-- arrows -->
+          <g fill="none" stroke="oklch(0.52 0.22 295)" stroke-width="1.8">
+            <path d="M 295 88 A 180 180 0 0 1 380 140" marker-end="url(#arr)"/>
+            <path d="M 420 200 A 180 180 0 0 1 420 300" marker-end="url(#arr)"/>
+            <path d="M 380 360 A 180 180 0 0 1 295 412" marker-end="url(#arr)"/>
+            <path d="M 205 412 A 180 180 0 0 1 120 360" marker-end="url(#arr)"/>
+            <path d="M 80 300 A 180 180 0 0 1 80 200" marker-end="url(#arr)"/>
+            <path d="M 120 140 A 180 180 0 0 1 205 88" marker-end="url(#arr)"/>
+          </g>
+          <text x="250" y="246" text-anchor="middle" font-family="Geist Mono" font-size="10" letter-spacing="3" fill="oklch(0.52 0.018 45)">LOOP CENTRAL</text>
+          <text x="250" y="266" text-anchor="middle" font-family="Instrument Serif" font-style="italic" font-size="20" fill="oklch(0.52 0.22 295)">retention 24–48 m</text>
+        </svg>
+      </div>
+    </div>
+    <div class="reveal d2">
+      <h2 class="headline">Otimizado pra retenção <em>sustentável</em>, não LTV de queima.</h2>
+      <p class="lede" style="margin-top:18px">Operadoras tradicionais queimam usuários em 6–12 meses. NEXA constrói identidade pública (clã, badge, ranking, histórico publicado de picks) que torna o usuário <em>incapaz de sair</em> sem perder reputação acumulada.</p>
+      <div class="loop-stages">
+        <div class="s"><span class="k">01</span><span class="n">ver</span><span class="d">consumo passivo do feed sem pressão pra apostar</span></div>
+        <div class="s"><span class="k">02</span><span class="n">interagir</span><span class="d">like, comentário, follow — ganha XP mais que apostar</span></div>
+        <div class="s"><span class="k">03</span><span class="n">apostar</span><span class="d">opcional, copy-bet de tipster seguido, via casa parceira</span></div>
+        <div class="s"><span class="k">04</span><span class="n">evoluir</span><span class="d">resultado entra no histórico — não amplifica perdas</span></div>
+        <div class="s"><span class="k">05</span><span class="n">competir</span><span class="d">ranking horizontal de liga, não vertical contra whales</span></div>
+        <div class="s"><span class="k">06</span><span class="n">voltar</span><span class="d">push social, nunca de aposta — respeita quiet hours</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 07 · JANELAS                                -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s07">
+  <div class="slide-num"><span>Capítulo</span><b>07</b></div>
+  <span class="kicker">Por que agora · quatro janelas convergentes</span>
+  <h2 class="headline reveal">Janela fecha em <em>18 a 30 meses</em>.<br/>Atrasar é deixar Rei do Pitaco<br/>capturar o slot.</h2>
+  <div class="windows">
+    <div class="windows-grid reveal d2">
+      <div class="w">
+        <div class="clk">Janela 1 · <b>fecha 12–18 m</b></div>
+        <div class="h"><em>Cartola</em> declinante</div>
+        <div class="b">73 % de queda em inscritos desde 2016. 4,7 M de ex-usuários sem destino claro de migração — público latente para fantasy mais social e cash-eligible.</div>
+      </div>
+      <div class="w">
+        <div class="clk">Janela 2 · <b>fecha 12–18 m</b></div>
+        <div class="h"><em>Rei do Pitaco</em> subindo o stack</div>
+        <div class="b">Licença SPA/MF 2.091 obtida dez/2024. Pivot pra sportsbook próprio mira high-roller — deixa vago o slot fantasy-first multi-operadora afiliada que NEXA captura.</div>
+      </div>
+      <div class="w">
+        <div class="clk">Janela 3 · <b>vigente desde 2025</b></div>
+        <div class="h"><em>Art. 49</em> &amp; Portaria 1.231</div>
+        <div class="b">Lei 14.790 art. 49 dispensa fantasy de autorização SPA/MF (evita R$ 30 M). Portaria 1.231/2024 formaliza afiliação com contratos escritos — abre espaço pra deals premium.</div>
+      </div>
+      <div class="w">
+        <div class="clk">Janela 4 · <b>imaturada no BR</b></div>
+        <div class="h">Cross-sell <em>DK-style</em></div>
+        <div class="b">DraftKings prova 50–69 % de conversão DFS→sportsbook em Colorado/PA. BR ainda não tem comparável — Cartola não cross-vende, Rei do Pitaco só pivota agora.</div>
+      </div>
+    </div>
+    <div class="window-clock reveal d3">
+      <span>Sinal de mercado · consolidação fantasy global iniciada</span>
+      <span>Allwyn → PrizePicks <b>US$ 1,6 bi</b> cash · <b>EV US$ 2,5 bi</b> · até <b>US$ 4,15 bi</b> com earn-outs · out 2025</span>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 08 · MERCADO                                -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s08">
+  <div class="slide-num"><span>Capítulo</span><b>08</b></div>
+  <span class="kicker">Mercado &amp; números oficiais</span>
+  <div class="market">
+    <div class="market-left">
+      <h2 class="headline reveal" style="margin-bottom:12px">A formalização<br/>aumentou o TAM em <em>10×</em>.</h2>
+      <div class="bignum reveal d1">
+        <div class="n">R$<em>37</em><span class="unit">bi</span></div>
+        <div class="desc"><b>GGR oficial 2025</b> — SPA/MF Relatório Anual. H1 fechou em R$ 17,4 bi.</div>
+      </div>
+      <div class="bignum reveal d2">
+        <div class="n"><em>25,2</em><span class="unit">M</span></div>
+        <div class="desc"><b>apostadores ativos ano 2025</b> — SIGAP/SPA. 17,7 M no H1, ~11,8 % da população adulta.</div>
+      </div>
+      <div class="bignum reveal d3">
+        <div class="n">R$<em>9,95</em><span class="unit">bi</span></div>
+        <div class="desc"><b>arrecadação fiscal 2025</b> · Poder360. Setor agora paga mais imposto que cinema + streaming somados.</div>
+      </div>
+    </div>
+    <div class="market-right">
+      <p class="lede reveal" style="margin-bottom:12px"><em>Onde a NEXA não joga.</em> Os 47 % do mercado concentrados em três marcas não são adversários — são potenciais parceiros de afiliação, e cada um já paga CPA R$ 200–500 / FTD.</p>
+      <div class="share-bar reveal d2">
+        <h4>Concentração de GGR · H2 2024</h4>
+        <div class="bar">
+          <div class="a">Betano 23 %</div>
+          <div class="b">Bet365 20 %</div>
+          <div class="c">Sup.</div>
+          <div class="d">~180 marcas restantes</div>
+        </div>
+        <div class="legend">Top 3 = 47 % · cauda fragmentada = arena saudável para broker</div>
+      </div>
+      <div class="tax-table reveal d3">
+        <h4>Alíquota GGR · cronograma Lei 14.790</h4>
+        <div class="tax-row cur"><div class="yr">2025</div><div class="gauge" style="--w: 60%"></div><div class="pct">12 %</div></div>
+        <div class="tax-row"><div class="yr">2026</div><div class="gauge" style="--w: 65%"></div><div class="pct">13 %</div></div>
+        <div class="tax-row"><div class="yr">2027</div><div class="gauge" style="--w: 70%"></div><div class="pct">14 %</div></div>
+        <div class="tax-row"><div class="yr">2028</div><div class="gauge" style="--w: 75%"></div><div class="pct">15 %</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 09 · MOAT                                   -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s09">
+  <div class="slide-num"><span>Capítulo</span><b>09</b></div>
+  <span class="kicker">Moat estrutural · quatro fatores</span>
+  <div class="moat">
+    <div class="moat-left reveal">
+      <h2 class="headline">Não é defensável<br/>por <em>código</em>.<br/>É defensável<br/>por <em>estrutura</em>.</h2>
+      <p class="lede">Qualquer concorrente externo pode copiar o frontend em três meses. Nenhum pode replicar o acesso família a operadoras licenciadas SIGAP <em>e</em> ficar fora da regulação SIGAP via Art. 49 simultaneamente.</p>
+    </div>
+    <div class="moat-list reveal d2">
+      <div class="item">
+        <div class="n">01</div>
+        <div>
+          <h3>Acesso família a <em>operadoras licenciadas</em></h3>
+          <p>Holding familiar é sócia de Betsul. NEXA negocia CPA + RevShare premium <b>acima da banda pública BR</b> via relacionamento, com 5 anos de exclusividade prevista. Mesma estrutura não existe pra concorrente externo.</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="n">02</div>
+        <div>
+          <h3>Cobertura jurídica do <em>Art. 49</em></h3>
+          <p>Lei 14.790 art. 49 dispensa fantasy de autorização do poder público. NEXA evita R$ 30 M de outorga, escapa de Portaria 615 (que veda cartão de crédito em depósito de aposta) e de PL 1018 (mira gamificação em apps de aposta — não em apps fantasy).</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="n">03</div>
+        <div>
+          <h3>Engajamento real, não <em>SEO puro</em></h3>
+          <p>Better Collective Q1/2025 caiu 13 % YoY puxado por regulação BR e Google algorithm updates. Catena Media cortou 25 % do headcount no mesmo período. NEXA combina afiliação <b>com</b> comunidade — imune a mudança de algoritmo.</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="n">04</div>
+        <div>
+          <h3>Seis linhas <em>independentes</em></h3>
+          <p>Galera com 87 % de receita concentrada em uma vertical caiu 40–60 % em um trimestre quando o regulador apertou. NEXA por design nenhuma linha &gt; 30 % do MRR no mês 18 — estrutura ofensiva e defensiva ao mesmo tempo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 10 · CONCORRENTES                           -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s10">
+  <div class="slide-num"><span>Capítulo</span><b>10</b></div>
+  <span class="kicker">Análise competitiva</span>
+  <h2 class="headline reveal">Mercado dual: <em>fantasy</em> + <em>mídia afiliada</em>.<br/>NEXA não compete com Bet365.</h2>
+  <div class="comp-table reveal d2">
+    <div class="comp-row h">
+      <span class="l">Player</span>
+      <span class="l">Força</span>
+      <span class="l">Fraqueza vs NEXA</span>
+      <span class="l">Escala BR</span>
+    </div>
+    <div class="comp-row">
+      <div class="name"><em>Cartola FC</em><small>Globo · fantasy free-to-play</small></div>
+      <div class="strong">20 anos de marca, 1,66 M base ativa, distribuição Globo</div>
+      <div class="weak">Sem cash, sem social profundo, sem multi-esporte, <b>sem cross-sell</b> — modelo travado em 2010</div>
+      <div class="scale">1,66 M ↓73 %</div>
+    </div>
+    <div class="comp-row">
+      <div class="name"><em>Rei do Pitaco</em><small>MMD · fantasy + sportsbook</small></div>
+      <div class="strong">7 M MAU, R$ 220 M pagos em prêmios, US$ 56 M de funding (D1 + Kaszek + Globo)</div>
+      <div class="weak">Single-player, <b>sem creator economy nem cripto</b>, agora vira operadora SIGAP — abandona o slot afiliado</div>
+      <div class="scale">7,0 M MAU</div>
+    </div>
+    <div class="comp-row">
+      <div class="name"><em>Better Collective BR</em><small>mídia afiliada SEO</small></div>
+      <div class="strong">~€ 70 M receita BR 2024, escala europeia, IPO listado OMX</div>
+      <div class="weak">Q1/2025 <b>−13 % YoY</b> com regulação BR · sem engajamento real · vulnerável SEO algo + PL 1018</div>
+      <div class="scale">€ 70 M BR</div>
+    </div>
+    <div class="comp-row">
+      <div class="name"><em>Catena Media</em><small>mídia afiliada SEO</small></div>
+      <div class="strong">Listado Nasdaq Nordic</div>
+      <div class="weak"><b>−30 % YoY</b> Q4/2024 · cortou 25 % do headcount · "ban welcome bonus cortou cadastros pela metade"</div>
+      <div class="scale">€ 10 M Q4</div>
+    </div>
+    <div class="comp-row nexa">
+      <div class="name"><em>NEXA</em><small>fantasy social + afiliação multi-casa</small></div>
+      <div class="strong">Seis mecânicas integradas + Art. 49 dispensa SIGAP + acesso família a operadoras licenciadas</div>
+      <div class="weak">Pre-revenue · 21 P0s abertos em fix · dependência crítica de integração Betsul</div>
+      <div class="scale">m12 · 8 k MAU</div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 11 · RECEITA                                -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s11">
+  <div class="slide-num"><span>Capítulo</span><b>11</b></div>
+  <span class="kicker">Modelo de receita · seis linhas</span>
+  <div class="rev">
+    <div class="rev-left reveal">
+      <h2 class="headline">Receita <em>diversificada</em> é defesa contra concentração regulatória.</h2>
+      <p class="body">Nenhuma linha responde por mais de 30 % do MRR no mês 18. Quando o regulador apertou e Galera (87 % concentrada em depósito) caiu 40–60 % num único trimestre, NEXA por design absorve choque setorial — afiliação cobre se entry fees cair, marketplace cobre se afiliação cair, Coin cobre se marketplace cair.</p>
+      <p class="body">A linha 1 (cross-sell para operadoras) é o motor de longo prazo: cada FTD vale R$ 350 de CPA imediato + R$ 800–1.500 de RevShare lifetime em 18–24 meses.</p>
+    </div>
+    <div class="rev-right reveal d2">
+      <div class="rev-bars">
+        <div class="rev-bar acc">
+          <div class="nm">Rev share / CPA multi-operadora<small>CPA R$ 200–500 + RevShare 25–35 % NGR</small></div>
+          <div class="gauge" style="--w: 100%"></div>
+          <div class="v">70 k</div>
+        </div>
+        <div class="rev-bar">
+          <div class="nm">Entry fees · rake DFS<small>12–15 % sobre entry fees · Art. 49</small></div>
+          <div class="gauge" style="--w: 64%"></div>
+          <div class="v">45 k</div>
+        </div>
+        <div class="rev-bar">
+          <div class="nm">Marketplace creator<small>fee 10–20 % · cursos, picks, lives, NFT</small></div>
+          <div class="gauge" style="--w: 57%"></div>
+          <div class="v">40 k</div>
+        </div>
+        <div class="rev-bar">
+          <div class="nm">Premium subscription<small>R$ 19,90–49,90 / mês · AI lineup</small></div>
+          <div class="gauge" style="--w: 50%"></div>
+          <div class="v">35 k</div>
+        </div>
+        <div class="rev-bar">
+          <div class="nm">NEXA Coin utility<small>compra direta + fee transação</small></div>
+          <div class="gauge" style="--w: 36%"></div>
+          <div class="v">25 k</div>
+        </div>
+        <div class="rev-bar">
+          <div class="nm">Patrocínios &amp; brand<small>cotas + native ads (teto Cartola R$ 12 M)</small></div>
+          <div class="gauge" style="--w: 7%"></div>
+          <div class="v">5 k</div>
+        </div>
+        <div class="rev-total">
+          <div class="lbl">MRR · mês 12</div>
+          <div></div>
+          <div class="v">R$ <em>220</em> k</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 12 · UNIT ECONOMICS                         -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s12">
+  <div class="slide-num"><span>Capítulo</span><b>12</b></div>
+  <div class="unit">
+    <div class="unit-head reveal">
+      <span class="kicker">Unit economics · projeção m12</span>
+      <h2 class="headline">Margens estruturalmente superiores ao setor — efeito multiplicador <em>fantasy + social + cross-sell</em>.</h2>
+    </div>
+    <div class="unit-cell u-1 reveal d1">
+      <div class="lbl">CAC blended</div>
+      <div class="val">R$ <em>30</em></div>
+      <div class="sub">orgânico + pago · pago isolado fica R$ 60–90 via Meta/Google</div>
+    </div>
+    <div class="unit-cell u-2 reveal d2">
+      <div class="lbl">ARPU mensal</div>
+      <div class="val">R$ <em>40</em></div>
+      <div class="sub">blended de fantasy + premium + marketplace + coin + afiliação atribuída</div>
+    </div>
+    <div class="unit-cell acc u-3 reveal d3">
+      <div class="lbl">LTV · 24 meses</div>
+      <div class="val">R$ <em>920</em><span class="alt">–1 380</span></div>
+      <div class="sub">cohort modeled com churn 4–5 %/mês steady-state</div>
+    </div>
+    <div class="unit-cell warn u-4 reveal d4">
+      <div class="lbl">LTV / CAC</div>
+      <div class="val"><em>26×</em></div>
+      <div class="sub">benchmark setor 5–10× · número a ser pressure-testado em diligência</div>
+    </div>
+    <div class="unit-cell u-5 reveal d5">
+      <div class="lbl">Margem bruta</div>
+      <div class="val">72<span class="alt">–78 %</span></div>
+      <div class="sub">cost of revenue dominado por payout marketplace e infra streaming</div>
+    </div>
+    <div class="unit-cell u-6 reveal d6">
+      <div class="lbl">Payback &amp; break-even</div>
+      <div class="val"><em>&lt; 1 mês</em> payback · <em>m11</em> EBITDA-positive</div>
+      <div class="sub">burn mensal médio R$ 150 k · runway efetiva 14–22 m com receita orgânica m6+</div>
+    </div>
+    <div class="unit-foot reveal d6">
+      <em>Nota de transparência ·</em> projeção de cross-sell fantasy→sportsbook usa premissa conservadora 12 % m12 (vs 50–69 % do benchmark DraftKings Colorado/PA). Se o número real ficar abaixo de 8 %, a Linha 1 reavalia no Gate M9 — ver Cap 19, decision gates.
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 13 · COIN                                   -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s13">
+  <div class="slide-num"><span>Capítulo</span><b>13</b></div>
+  <span class="kicker">NEXA Coin · três fases regulatórias</span>
+  <h2 class="headline reveal">Cripto faseada · <em>utility puro</em>, nunca security.</h2>
+  <div class="coin">
+    <div class="coin-track reveal d2">
+      <div class="coin-phase cur">
+        <div class="dot"></div>
+        <div class="ph">Fase 1 · vigente</div>
+        <div class="tt"><em>Off-chain</em> utility interna</div>
+        <div class="tm">m1 → m6</div>
+        <div class="body">Saldo em Postgres. Zero blockchain, zero PSAV. Coin ganho por missões sociais, gasto em marketplace, status em clã.</div>
+        <ul>
+          <li>Cap diário 200 Coin / usuário</li>
+          <li>Holding period 15–30 d antes de saque</li>
+          <li>Sem risco regulatório CVM</li>
+        </ul>
+      </div>
+      <div class="coin-phase">
+        <div class="dot"></div>
+        <div class="ph">Fase 2 · m6 → m18</div>
+        <div class="tt"><em>On-chain</em> via PSAV parceiro</div>
+        <div class="tm">m6 → m18</div>
+        <div class="body">Smart contract ERC-20 (Polygon ou Base L2) ou SPL (Solana). Custódia via Mercado Bitcoin (autorizado Bacen IP). TGE público com listing DEX + CEX.</div>
+        <ul>
+          <li>Audit duplo · CertiK + OpenZeppelin</li>
+          <li>Bug bounty Immunefi · seguro Nexus Mutual</li>
+          <li>Timelock + multisig em treasury</li>
+        </ul>
+      </div>
+      <div class="coin-phase">
+        <div class="dot"></div>
+        <div class="ph">Fase 3 · m18 → m24</div>
+        <div class="tt"><em>PSAV próprio</em> NEXA Bacen</div>
+        <div class="tm">m18 → m24+</div>
+        <div class="body">Capitalização Bacen Res. 519/520/521 (R$ 10,8 M–37,2 M). Listing exchanges globais. Possível stablecoin NEXA-BRL para LATAM expansion.</div>
+        <ul>
+          <li>Custódia própria · ativo separado avaliável</li>
+          <li>Vigência Bacen 02/02/2026</li>
+          <li>Aprovação adicional necessária do conselho</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 14 · ROADMAP                                -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s14">
+  <div class="slide-num"><span>Capítulo</span><b>14</b></div>
+  <span class="kicker">Roadmap · três horizons</span>
+  <h2 class="headline reveal">Beta família &gt; GA público &gt; escala LATAM.</h2>
+  <div class="road">
+    <div class="road-timeline reveal d1">
+      <div class="tick cur" style="left: 14%"><span>HOJE · m0</span></div>
+      <div class="tick" style="left: 30%"><span>m2 · beta</span></div>
+      <div class="tick" style="left: 50%"><span>m6 · MRR 50 k</span></div>
+      <div class="tick" style="left: 68%"><span>m12 · GA</span></div>
+      <div class="tick" style="left: 88%"><span>m24 · LATAM</span></div>
+    </div>
+    <div class="road-h reveal d2">
+      <div class="h">
+        <div class="lbl">Horizon 1 · 0–60 d</div>
+        <div class="tt"><em>Beta</em> privado</div>
+        <div class="tm">Q3 2026</div>
+        <ul>
+          <li>5–8 P0s prioritários da Wave 1 fechados (subset dos 21 abertos)</li>
+          <li>NEXA Coin Fase 1 off-chain ativa</li>
+          <li>KYC gov.br POC validada</li>
+          <li>Primeira casa parceira integrada · Betsul</li>
+          <li>20–50 usuários família + amigos jogando contests DFS reais</li>
+        </ul>
+        <div class="gate">Gate H1→H2 · <b>0 P0 prioritário aberto</b> · smoke 100 % · NPS ≥ 40 · conselho aprovou R$ 1,2 M</div>
+      </div>
+      <div class="h">
+        <div class="lbl">Horizon 2 · 60–180 d</div>
+        <div class="tt"><em>GA</em> público</div>
+        <div class="tm">Q4 2026 / Q1 2027</div>
+        <ul>
+          <li>5–8 operadoras parceiras integradas com afiliação ativa</li>
+          <li>TGE NEXA Coin Fase 2 · listing DEX inicial</li>
+          <li>Marketplace V1 · 50 tipsters featured</li>
+          <li>Premium subscription live</li>
+          <li>Primeira cota de patrocínio fechada · R$ 100–300 k anual</li>
+        </ul>
+        <div class="gate">Target · <b>5–8 k MAU · MRR R$ 220 k</b> · cross-sell ≥ 12 %</div>
+      </div>
+      <div class="h">
+        <div class="lbl">Horizon 3 · 180–540 d</div>
+        <div class="tt"><em>Escala</em> &amp; LATAM</div>
+        <div class="tm">2027 → 2028</div>
+        <ul>
+          <li>PSAV próprio NEXA opcional · capital R$ 10,8–37,2 M</li>
+          <li>10+ operadoras adicionais integradas</li>
+          <li>Marketplace V2 com criadores internacionais</li>
+          <li>Expansão LATAM · AR / MX / CO</li>
+          <li>Possível stablecoin NEXA-BRL</li>
+        </ul>
+        <div class="gate">Target · <b>100 k+ MAU · MRR R$ 800 k</b> · 3+ países</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 15 · RISCOS                                 -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s15">
+  <div class="slide-num"><span>Capítulo</span><b>15</b></div>
+  <span class="kicker">Análise de risco · top 5 do registro de 14</span>
+  <h2 class="headline reveal">Riscos mapeados <em>antes</em> que o investidor descubra.</h2>
+  <div class="risks">
+    <div class="risk-grid reveal d2">
+      <div class="risk-card s9">
+        <div class="meta"><span class="id">R1</span><span>P·alta / I·crítico</span></div>
+        <div class="score">9</div>
+        <div class="name"><em>API Betsul</em> atrasa</div>
+        <div class="mit"><b>Mitigação ·</b> lead técnico nomeado m2 · KTO em paralelo se atraso &gt; 60 d · SLA contratual com penalties</div>
+      </div>
+      <div class="risk-card s6">
+        <div class="meta"><span class="id">R3</span><span>P·média / I·crítico</span></div>
+        <div class="score">6</div>
+        <div class="name">Free-money <em>exploit</em> em produção</div>
+        <div class="mit"><b>Mitigação ·</b> 21 P0s em fix · audit independente cross-check pré-release · bug bounty R$ 5 k–50 k a partir m6</div>
+      </div>
+      <div class="risk-card s6">
+        <div class="meta"><span class="id">R7</span><span>P·média / I·crítico</span></div>
+        <div class="score">6</div>
+        <div class="name">Smart contract <em>bug</em> Fase 2</div>
+        <div class="mit"><b>Mitigação ·</b> audit duplo CertiK + OpenZeppelin · bug bounty Immunefi · seguro Nexus Mutual · timelock multisig</div>
+      </div>
+      <div class="risk-card s5">
+        <div class="meta"><span class="id">R5</span><span>P·média / I·alto</span></div>
+        <div class="score">5</div>
+        <div class="name"><em>PL 1018</em> baniu gamificação</div>
+        <div class="mit"><b>Mitigação ·</b> filiação ABFS · earn por ação social (não aposta) · diversificação · fantasy fora do escopo do PL</div>
+      </div>
+      <div class="risk-card s5">
+        <div class="meta"><span class="id">R8</span><span>P·média / I·alto</span></div>
+        <div class="score">5</div>
+        <div class="name">Cross-sell <em>&lt; 20 %</em> vs benchmark</div>
+        <div class="mit"><b>Mitigação ·</b> otimização funil · UX contextual · stress test no modelo financeiro · Gate M9 reavalia premissas</div>
+      </div>
+    </div>
+    <div class="risk-legend reveal d3">
+      <span><i class="sw a"></i>Score 9 · crítico</span>
+      <span><i class="sw b"></i>Score 6 · alto</span>
+      <span><i class="sw c"></i>Score 5 · médio-alto</span>
+      <span style="margin-left:auto">Registro completo no Cap 19 do plano integral</span>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 16 · COMPARABLES                            -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s16">
+  <div class="slide-num"><span>Capítulo</span><b>16</b></div>
+  <span class="kicker">Comparables globais · 2024</span>
+  <div class="comp2">
+    <div class="reveal">
+      <h2 class="headline">Sem <em>comparável BR direto</em>. As referências moram em Estocolmo, Nova York e Atlanta.</h2>
+      <p class="lede" style="margin-top:18px">Múltiplo EV/Revenue para tech esportiva listada fica em 3–5×. Fantasy DFS private (Underdog, PrizePicks) negocia em 5–10×. NEXA fair value m24 (ARR ~R$ 13 M) projeta R$ 40–65 M; m36 com tração R$ 75–130 M.</p>
+    </div>
+    <div class="reveal d2">
+      <div class="comp2-list">
+        <div class="comp2-item h">
+          <span>Empresa · categoria</span>
+          <span>Receita 2024</span>
+          <span>Mkt cap / valuation</span>
+          <span>Múltiplo</span>
+        </div>
+        <div class="comp2-item">
+          <div class="nm"><em>Kambi</em><small>B2B sportsbook · SE</small></div>
+          <div class="v">€ 176 M<small>+2 % YoY</small></div>
+          <div class="v">SEK 3,5 bi<small>mkt cap</small></div>
+          <div class="v">~3×</div>
+        </div>
+        <div class="comp2-item">
+          <div class="nm"><em>Genius Sports</em><small>sportsdata B2B · NYSE</small></div>
+          <div class="v">US$ 511 M<small>+24 % YoY</small></div>
+          <div class="v">US$ 1 bi<small>mkt cap</small></div>
+          <div class="v">~2×</div>
+        </div>
+        <div class="comp2-item">
+          <div class="nm"><em>Sportradar</em><small>sportsdata · NYSE</small></div>
+          <div class="v">€ 1.090 M<small>+24 % YoY</small></div>
+          <div class="v">US$ 3,7–4,1 bi<small>mkt cap</small></div>
+          <div class="v">~3,5×</div>
+        </div>
+        <div class="comp2-item">
+          <div class="nm"><em>Better Collective</em><small>mídia afiliada · OMX</small></div>
+          <div class="v">€ 372 M<small>+13,7 % YoY</small></div>
+          <div class="v">US$ 1 bi<small>mkt cap</small></div>
+          <div class="v">~3×</div>
+        </div>
+        <div class="comp2-item">
+          <div class="nm"><em>Underdog Fantasy</em><small>DFS pick'em · privado</small></div>
+          <div class="v">n/d</div>
+          <div class="v">US$ 1,225 bi<small>Série C · mar/25</small></div>
+          <div class="v">— priv —</div>
+        </div>
+        <div class="comp2-item">
+          <div class="nm"><em>PrizePicks</em><small>pick'em fantasy · privado</small></div>
+          <div class="v">US$ 704 M<small>+67 % YoY</small></div>
+          <div class="v">US$ 1,6–4,15 bi<small>Allwyn out/25</small></div>
+          <div class="v">2,3–5,9×</div>
+        </div>
+        <div class="comp2-item">
+          <div class="nm"><em>DraftKings</em><small>fantasy + sportsbook · NYSE</small></div>
+          <div class="v">US$ 4,77 bi<small>+30 % YoY</small></div>
+          <div class="v">US$ 11,3 bi<small>mkt cap</small></div>
+          <div class="v">~2,4×</div>
+        </div>
+        <div class="comp2-item acc">
+          <div class="nm"><em>NEXA</em><small>fantasy social + afiliação BR · holding</small></div>
+          <div class="v">R$ 2,6 M ARR m12</div>
+          <div class="v">R$ 8–14 M<small>3–5× ARR</small></div>
+          <div class="v">target 3–5×</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 17 · EXIT                                   -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s17">
+  <div class="slide-num"><span>Capítulo</span><b>17</b></div>
+  <span class="kicker">Cenários de exit</span>
+  <div class="exit">
+    <div class="reveal">
+      <h2 class="headline">O setor BR vai <em>consolidar</em>. A pergunta é quem consolida e quem é consolidado.</h2>
+      <p class="lede" style="margin-top:22px">Operadoras tier 1 globais (Bet365, Betano) consolidam via volume. Operadoras tier 2–3 BR consolidam via aquisição. NEXA consolida via <em>plataforma</em> — entregando o que dinheiro não compra: comunidade real de 1 M+ usuários e marca identitária.</p>
+      <p class="body" style="margin-top:18px">Holding família aprovar R$ 1,2 M é comprar a opção de participar dessa consolidação <em>como vendedor</em> (R$ 100–700 M exit) em vez de comprador (R$ 5–20 bi requerido pra construir uma Bet365-clone). <b>Asymmetric upside, downside controlado.</b></p>
+    </div>
+    <div class="exit-paths reveal d2">
+      <div class="exit-path">
+        <div class="yr">Ano 5–7</div>
+        <div class="body">
+          <h3><em>IPO B3</em></h3>
+          <p>ARR target R$ 80–120 M. Múltiplo IPO BR mid-cap tech: 4–6×. Liquidez para founders + holding mantendo controlo.</p>
+        </div>
+        <div class="v">R$ 320–720 M<small>valuation IPO</small></div>
+      </div>
+      <div class="exit-path">
+        <div class="yr">Ano 4–6</div>
+        <div class="body">
+          <h3>Aquisição <em>estratégica</em></h3>
+          <p>Compradores potenciais: DraftKings, Flutter, Entain (entrada LATAM) · Globo (vertical esporte) · Itaú/BTG/Nubank (fintech-sports) · operadora asiática. Múltiplo 6–10× ARR.</p>
+        </div>
+        <div class="v">6–10× ARR<small>premium tech proven</small></div>
+      </div>
+      <div class="exit-path">
+        <div class="yr">Ano 3–5</div>
+        <div class="body">
+          <h3><em>Fusão</em> com tier 1 BR</h3>
+          <p>Casas família consolidam com NEXA tech. Valuation menor, controlo familiar preservado. Caminho mais provável caso PL 1018 endureça.</p>
+        </div>
+        <div class="v">controlo família<small>preservado</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 18 · ASK                                    -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide" id="s18">
+  <div class="slide-num"><span>Capítulo</span><b>18</b></div>
+  <span class="kicker">Ask &amp; uso de capital</span>
+  <div class="ask">
+    <div class="ask-left reveal">
+      <div>
+        <div class="kicker" style="margin-bottom:0">Aporte solicitado</div>
+        <div class="ask-fig">R$ <em>1,2</em>M<span class="unit">holding familiar · 12 meses · sem diluição externa</span></div>
+      </div>
+      <div class="ask-meta">
+        <div class="c">
+          <div class="l">Burn mensal médio</div>
+          <div class="v">R$ 150 k</div>
+        </div>
+        <div class="c">
+          <div class="l">Runway efetiva</div>
+          <div class="v">14–22 meses</div>
+        </div>
+        <div class="c">
+          <div class="l">Receita orgânica m6+</div>
+          <div class="v">R$ 50 k MRR</div>
+        </div>
+        <div class="c">
+          <div class="l">Break-even EBITDA</div>
+          <div class="v">m11</div>
+        </div>
+      </div>
+    </div>
+    <div class="ask-right reveal d2">
+      <div class="use">
+        <h3>Uso dos recursos · 12 meses</h3>
+        <div class="use-row">
+          <div class="ct">Engenharia · 2 senior + 1 mid</div>
+          <div class="gauge" style="--w: 100%"></div>
+          <div class="vv">35 % · <b>525 k</b></div>
+        </div>
+        <div class="use-row">
+          <div class="ct">Marketing, SEO, creator outreach</div>
+          <div class="gauge" style="--w: 80%"></div>
+          <div class="vv">28 % · <b>420 k</b></div>
+        </div>
+        <div class="use-row">
+          <div class="ct">Legal · Art. 49 + ABFS + pareceres</div>
+          <div class="gauge" style="--w: 23%"></div>
+          <div class="vv">8 % · <b>120 k</b></div>
+        </div>
+        <div class="use-row">
+          <div class="ct">Working capital + reserve</div>
+          <div class="gauge" style="--w: 23%"></div>
+          <div class="vv">8 % · <b>120 k</b></div>
+        </div>
+        <div class="use-row">
+          <div class="ct">Smart contract + audit Coin Fase 2</div>
+          <div class="gauge" style="--w: 31%"></div>
+          <div class="vv">11 % · <b>165 k</b></div>
+        </div>
+        <div class="use-row">
+          <div class="ct">Infra · Supabase, Vercel, Mux, KYC</div>
+          <div class="gauge" style="--w: 14%"></div>
+          <div class="vv">5 % · <b>75 k</b></div>
+        </div>
+        <div class="use-row">
+          <div class="ct">Parceiro PSAV setup</div>
+          <div class="gauge" style="--w: 14%"></div>
+          <div class="vv">5 % · <b>75 k</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- 19 · CLOSING                                -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="slide closing" id="s19">
+  <div>
+    <span class="kicker">Próximos 30 dias · decisão do conselho</span>
+    <h1 class="reveal d1">A decisão do conselho família dos próximos<br/>30 dias é a decisão <em>mais importante</em><br/>dos próximos cinco anos.</h1>
+    <p class="lede reveal d2">Aprovar o aporte equivale a participar da janela que se fecha em 18–24 meses. Rejeitar é abandonar a oportunidade para um concorrente capturar — e ser comprado por ele dois anos depois.</p>
+  </div>
+  <div class="seal reveal d3">
+    <div class="l">N<span>E</span>XA · <i>construindo a infraestrutura social do entretenimento esportivo brasileiro</i></div>
+    <div class="r">
+      Leonardo Guilherme · founder<br/>
+      <b>guilherme15072006@gmail.com</b><br/>
+      Documento confidencial · NDA<br/>
+      Edição v5 · 21·05·2026
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function(){
+  // ── progress bar
+  const progress = document.getElementById('progress');
+  const slides = document.querySelectorAll('.slide');
+  const rail = document.querySelectorAll('.rail a');
+  const total = slides.length;
+
+  function onScroll() {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const p = max > 0 ? (window.scrollY / max) * 100 : 0;
+    progress.style.width = p + '%';
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // ── reveal observer
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('in');
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ── rail active state
+  const railIo = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id;
+        rail.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+      }
+    });
+  }, { threshold: 0.45 });
+  slides.forEach(s => railIo.observe(s));
+
+  // ── keyboard nav
+  function currentSlideIndex() {
+    let best = 0;
+    let bestDist = Infinity;
+    slides.forEach((s, i) => {
+      const r = s.getBoundingClientRect();
+      const d = Math.abs(r.top);
+      if (d < bestDist) { bestDist = d; best = i; }
+    });
+    return best;
+  }
+  function goTo(i) {
+    i = Math.max(0, Math.min(slides.length - 1, i));
+    slides[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    const i = currentSlideIndex();
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'j' || e.key === ' ') {
+      e.preventDefault(); goTo(i + 1);
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'k') {
+      e.preventDefault(); goTo(i - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault(); goTo(0);
+    } else if (e.key === 'End') {
+      e.preventDefault(); goTo(slides.length - 1);
+    }
+  });
+
+  // ── controls
+  document.getElementById('btnPrint').addEventListener('click', () => window.print());
+  document.getElementById('btnTop').addEventListener('click', () => goTo(0));
+})();
+</script>
+
+</body>
+</html>
