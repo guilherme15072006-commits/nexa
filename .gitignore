@@ -50,5 +50,22 @@ coverage/
 # Secrets
 *.keystore
 *.jks
+*.pem
+*.p12
+*.mobileprovision
 google-services.json
 GoogleService-Info.plist
+firebase-adminsdk*.json
+service-account*.json
+secrets/
+
+# Business plan (repositorio privado separado)
+business-plan/
+
+# Supabase local
+.supabase/
+supabase/.temp/
+
+# Logs
+*.log
+npm-debug.log*

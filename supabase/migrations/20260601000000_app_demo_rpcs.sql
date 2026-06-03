@@ -1,7 +1,7 @@
 -- ============================================================
--- RPCs demo/app — SECURITY DEFINER
--- Aceita o usuario demo (ID fixo) OU um usuario autenticado real.
--- Guard: p_user_id deve ser o demo OU corresponder a auth.uid().
+-- RPCs app — SECURITY DEFINER
+-- Requer usuario autenticado: auth.uid() deve corresponder a p_user_id.
+-- GRANT apenas para `authenticated` (nunca `anon`).
 -- ============================================================
 
 -- -------------------------------------------------------
@@ -14,14 +14,13 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_demo_id  uuid := '11111111-1111-1111-1111-111111111111';
-  v_today    date := current_date;
-  v_last     date;
-  v_streak   int;
-  v_xp       int;
-  v_coins    int;
+  v_today date := current_date;
+  v_last  date;
+  v_streak int;
+  v_xp    int;
+  v_coins int;
 BEGIN
-  IF p_user_id <> v_demo_id AND auth.uid() <> p_user_id THEN
+  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
     RAISE EXCEPTION 'unauthorized';
   END IF;
 
@@ -45,7 +44,7 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION app_demo_checkin(uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION app_demo_checkin(uuid) TO authenticated;
 
 -- -------------------------------------------------------
 -- app_demo_toggle_like
@@ -57,11 +56,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_demo_id  uuid := '11111111-1111-1111-1111-111111111111';
-  v_liked    bool;
-  v_likes    int;
+  v_liked bool;
+  v_likes int;
 BEGIN
-  IF p_user_id <> v_demo_id AND auth.uid() <> p_user_id THEN
+  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
     RAISE EXCEPTION 'unauthorized';
   END IF;
 
@@ -80,7 +78,7 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION app_demo_toggle_like(uuid, uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION app_demo_toggle_like(uuid, uuid) TO authenticated;
 
 -- -------------------------------------------------------
 -- app_demo_follow_toggle
@@ -92,11 +90,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_demo_id   uuid := '11111111-1111-1111-1111-111111111111';
   v_following bool;
   v_followers int;
 BEGIN
-  IF p_user_id <> v_demo_id AND auth.uid() <> p_user_id THEN
+  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
     RAISE EXCEPTION 'unauthorized';
   END IF;
   IF p_user_id = p_target_user_id THEN
@@ -118,12 +115,11 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION app_demo_follow_toggle(uuid, uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION app_demo_follow_toggle(uuid, uuid) TO authenticated;
 
 -- -------------------------------------------------------
 -- app_demo_award_progress
 -- Delega para fn_award_mission_progress existente.
--- Retorna o numero de missoes avancadas.
 -- -------------------------------------------------------
 CREATE OR REPLACE FUNCTION app_demo_award_progress(p_user_id uuid, p_action_key text, p_count int DEFAULT 1)
 RETURNS int
@@ -132,10 +128,9 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_demo_id uuid := '11111111-1111-1111-1111-111111111111';
   v_updated int;
 BEGIN
-  IF p_user_id <> v_demo_id AND auth.uid() <> p_user_id THEN
+  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
     RAISE EXCEPTION 'unauthorized';
   END IF;
 
@@ -144,7 +139,7 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION app_demo_award_progress(uuid, text, int) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION app_demo_award_progress(uuid, text, int) TO authenticated;
 
 -- -------------------------------------------------------
 -- app_demo_place_bet
@@ -162,11 +157,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_demo_id   uuid := '11111111-1111-1111-1111-111111111111';
-  v_bet_id    uuid;
-  v_balance   numeric;
+  v_bet_id  uuid;
+  v_balance numeric;
 BEGIN
-  IF p_user_id <> v_demo_id AND auth.uid() <> p_user_id THEN
+  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
     RAISE EXCEPTION 'unauthorized';
   END IF;
 
@@ -177,4 +171,4 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION app_demo_place_bet(uuid, uuid, text, numeric) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION app_demo_place_bet(uuid, uuid, text, numeric) TO authenticated;

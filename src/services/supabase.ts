@@ -8,13 +8,17 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Match, FeedPost, Tipster, Mission, Clan, User, Badge } from '../store/nexaStore';
 
-// --- Config (chaves anon/publishable: seguras no cliente) ---
+// --- Config ---
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://ymuziccgrqjbugsdwgjo.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? 'sb_publishable_lqe_c_pFLJqKprdsRhnt0w_PNIPLjkg';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-// Usuario demo (fallback sem login). Aponta para uma linha real em `users`.
-export const CURRENT_USER_ID = process.env.SUPABASE_DEMO_USER_ID ?? '11111111-1111-1111-1111-111111111111';
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('SUPABASE_URL e SUPABASE_ANON_KEY sao obrigatorios. Configure o arquivo .env.');
+}
+
+// UUID do usuario demo (linha real em `users`). Requerido para o modo demo.
+export const CURRENT_USER_ID = process.env.SUPABASE_DEMO_USER_ID ?? '';
 
 // TODO: para persistir sessão entre reloads no RN, adicionar:
 //   import AsyncStorage from '@react-native-async-storage/async-storage';
