@@ -14,6 +14,7 @@ export default function LoginScreen() {
   const signIn = useNexaStore(s => s.signIn);
   const signUp = useNexaStore(s => s.signUp);
   const continueAsDemo = useNexaStore(s => s.continueAsDemo);
+  const demoUsername = useNexaStore(s => s.user.username);
 
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -120,7 +121,9 @@ export default function LoginScreen() {
         </View>
 
         <GhostButton label="Continuar como demo" onPress={continueAsDemo} />
-        <Text style={styles.demoHint}>Explore com o perfil de demonstracao (RocketKing)</Text>
+        {demoUsername && demoUsername !== 'NEXA' && (
+          <Text style={styles.demoHint}>Explore com o perfil de demonstracao ({demoUsername})</Text>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
