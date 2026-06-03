@@ -304,11 +304,90 @@ describe('nexaStore', () => {
   test('simulateOddsChange muda odds dos jogos ao vivo', () => {
     const before = useNexaStore.getState().matches.find(m => m.status === 'live');
     if (!before) return;
-    const oddsBefore = { ...before.odds };
 
     useNexaStore.getState().simulateOddsChange();
     const after = useNexaStore.getState().matches.find(m => m.id === before.id)!;
-    // prevOdds deve ser setado
     expect(after.prevOdds).toBeDefined();
+  });
+
+  test('signOutUser reseta clan e dados do usuario', async () => {
+    useNexaStore.setState({
+      authStatus: 'authed',
+      user: { ...useNexaStore.getState().user, id: 'u1', username: 'Teste', clan: 'Predators' },
+      clan: { id: 'c1', name: 'Predators', tag: 'PRD', members: 5, rank: 1, xp: 1000, weeklyXp: 200, icon: 'P', color: '#7C5CFC' },
+    });
+    await useNexaStore.getState().signOutUser();
+    expect(useNexaStore.getState().authStatus).toBe('guest');
+    expect(useNexaStore.getState().clan.name).toBe('');
+    expect(useNexaStore.getState().user.username).toBe('NEXA');
+  });
+
+  test('claimCheckin com already:true nao incrementa XP novamente', async () => {
+    (supa.rpcCheckin as jest.Mock).mockResolvedValueOnce({ streak: 3, newXp: 500, newCoins: 800, already: true });
+    useNexaStore.setState({ user: { ...useNexaStore.getState().user, xp: 500, coins: 800, streak: 3 } });
+    useNexaStore.getState().claimCheckin();
+    // Aguarda reconciliacao do backend
+    await new Promise(r => setTimeout(r, 10));
+    const u = useNexaStore.getState().user;
+    // Valores devem refletir o que o backend retornou (nao duplicar)
+    expect(u.xp).toBe(500);
+    expect(u.coins).toBe(800);
+    expect(u.streak).toBe(3);
+  });
+
+  test('likePost reconcilia estado com retorno do backend', async () => {
+    const post = useNexaStore.getState().feed[0]; // isLiked: false, likes: 342
+    (supa.rpcToggleLike as jest.Mock).mockResolvedValueOnce({ liked: true, likes: 400 });
+    useNexaStore.getState().likePost(post.id);
+    await new Promise(r => setTimeout(r, 10));
+    const after = useNexaStore.getState().feed.find(p => p.id === post.id)!;
+    expect(after.isLiked).toBe(true);
+    expect(after.likes).toBe(400); // valor autoritativo do backend
+  });
+
+  test('likePost faz rollback se o backend falhar', async () => {
+    const post = useNexaStore.getState().feed[0]; // isLiked: false, likes: 342
+    (supa.rpcToggleLike as jest.Mock).mockRejectedValueOnce(new Error('rede'));
+    useNexaStore.getState().likePost(post.id);
+    await new Promise(r => setTimeout(r, 10));
+    const after = useNexaStore.getState().feed.find(p => p.id === post.id)!;
+    expect(after.isLiked).toBe(false);
+    expect(after.likes).toBe(342); // revertido
+  });
+
+  test('placeBet com multiplas legs usa balance minimo das apostas aprovadas', async () => {
+    (supa.rpcPlaceBet as jest.Mock)
+      .mockResolvedValueOnce({ betId: 'b1', newBalance: 445 })
+      .mockResolvedValueOnce({ betId: 'b2', newBalance: 440 });
+    useNexaStore.setState({
+      matches: TEST_MATCHES,
+      betslip: [
+        { matchId: 'm1', side: 'home', odds: 1.85, match: 'Flamengo vs Palmeiras' },
+        { matchId: 'm2', side: 'away', odds: 1.95, match: 'Real Madrid vs Barcelona' },
+      ],
+    });
+    useNexaStore.getState().placeBet();
+    await new Promise(r => setTimeout(r, 20));
+    // Deve usar o menor balance (440)
+    expect(useNexaStore.getState().user.balance).toBe(440);
+  });
+
+  test('loadTipsters marca isFollowing baseado no following do usuario', async () => {
+    useNexaStore.setState({ user: { ...useNexaStore.getState().user, following: ['uu1'] } });
+    (supa.fetchTipsters as jest.Mock).mockResolvedValueOnce(TEST_TIPSTERS);
+    await useNexaStore.getState().loadTipsters();
+    const t1 = useNexaStore.getState().tipsters.find(t => t.userId === 'uu1')!;
+    const t2 = useNexaStore.getState().tipsters.find(t => t.userId === 'uu2')!;
+    expect(t1.isFollowing).toBe(true);
+    expect(t2.isFollowing).toBe(false);
+  });
+
+  test('continueAsDemo aguarda hydrate antes de retornar', async () => {
+    (supa.fetchCurrentUser as jest.Mock).mockResolvedValueOnce(
+      { ...useNexaStore.getState().user, id: 'demo-1', username: 'RocketKing' }
+    );
+    await useNexaStore.getState().continueAsDemo();
+    expect(useNexaStore.getState().authStatus).toBe('demo');
+    expect(supa.fetchCurrentUser).toHaveBeenCalled();
   });
 });

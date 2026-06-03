@@ -55,8 +55,8 @@ export interface Match {
   minute?: number;
   score?: { home: number; away: number };
   startTime: string;
-  odds: { home: number; draw: number; away: number };
-  prevOdds?: { home: number; draw: number; away: number };
+  odds: { home: number; draw?: number; away: number };
+  prevOdds?: { home: number; draw?: number; away: number };
   bettors: number;
   trending: boolean;
 }
@@ -178,7 +178,7 @@ interface NexaStore {
   // Auth (Supabase) — login opcional, com fallback demo
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, username?: string) => Promise<void>;
-  continueAsDemo: () => void;
+  continueAsDemo: () => Promise<void>;
   signOutUser: () => Promise<void>;
 }
 
@@ -224,17 +224,31 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
   likePost: (postId) => {
     const state = get();
     const post = state.feed.find(p => p.id === postId);
-    const willLike = post && !post.isLiked;
-    analytics.track(willLike ? 'post_liked' : 'post_unliked', { postId, postType: post?.type });
+    if (!post) return;
+    const willLike = !post.isLiked;
+    analytics.track(willLike ? 'post_liked' : 'post_unliked', { postId, postType: post.type });
+    // Snapshot do estado anterior para rollback
+    const prevLiked = post.isLiked;
+    const prevLikes = post.likes;
     set((s) => ({
       feed: s.feed.map(p => p.id === postId
-        ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 }
+        ? { ...p, isLiked: willLike, likes: willLike ? p.likes + 1 : p.likes - 1 }
         : p)
     }));
-    // Persiste no backend (Supabase) sem bloquear a UI
-    rpcToggleLike(postId).catch(err => {
-      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcToggleLike falhou:', err);
-    });
+    rpcToggleLike(postId)
+      .then(res => {
+        // Reconcilia com valores autoritativos do backend
+        set((s) => ({
+          feed: s.feed.map(p => p.id === postId ? { ...p, isLiked: res.liked, likes: res.likes } : p)
+        }));
+      })
+      .catch(err => {
+        // Rollback em caso de falha
+        set((s) => ({
+          feed: s.feed.map(p => p.id === postId ? { ...p, isLiked: prevLiked, likes: prevLikes } : p)
+        }));
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcToggleLike falhou:', err);
+      });
   },
 
   copyBet: (postId) => {
@@ -390,20 +404,22 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     });
     setTimeout(() => set({ celebrating: false }), 1200);
 
-    // Persiste cada seleção como aposta real (saldo, KYC e limites validados no backend)
+    // Persiste cada seleção em paralelo; usa o menor saldo retornado (mais conservador)
     (async () => {
+      const results = await Promise.allSettled(
+        legs.map(leg => rpcPlaceBet(leg.matchId, leg.side, DEMO_BET_STAKE))
+      );
       let placed = 0;
-      let lastBalance: number | undefined;
-      for (const leg of legs) {
-        try {
-          const res = await rpcPlaceBet(leg.matchId, leg.side, DEMO_BET_STAKE);
-          lastBalance = res.newBalance;
+      let minBalance: number | undefined;
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
           placed += 1;
-        } catch (err) {
-          if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[NEXA] rpcPlaceBet falhou:', err);
+          if (minBalance === undefined || r.value.newBalance < minBalance) minBalance = r.value.newBalance;
+        } else if (typeof __DEV__ !== 'undefined' && __DEV__) {
+          console.warn('[NEXA] rpcPlaceBet falhou:', r.reason);
         }
       }
-      if (lastBalance !== undefined) set((s) => ({ user: { ...s.user, balance: lastBalance! } }));
+      if (minBalance !== undefined) set((s) => ({ user: { ...s.user, balance: minBalance! } }));
       if (placed > 0) {
         rpcAwardMissionProgress('bet_placed', placed)
           .then(updated => { if (updated > 0) get().loadMissions(); })
@@ -421,7 +437,7 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
         prevOdds: { ...m.odds },
         odds: {
           home: Math.max(1.01, m.odds.home + vary()),
-          draw: Math.max(1.01, m.odds.draw + vary()),
+          draw: m.odds.draw != null ? Math.max(1.01, m.odds.draw + vary()) : undefined,
           away: Math.max(1.01, m.odds.away + vary()),
         },
         bettors: m.bettors + Math.floor(Math.random() * 8),
@@ -527,10 +543,10 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
     }
   },
 
-  continueAsDemo: () => {
+  continueAsDemo: async () => {
     useDemoUser();
     set({ authStatus: 'demo' });
-    get().hydrate();
+    await get().hydrate();
   },
 
   signOutUser: async () => {
@@ -539,6 +555,7 @@ export const useNexaStore = create<NexaStore>((set, get) => ({
       authStatus: 'guest',
       isOnboarded: false,
       user: EMPTY_USER,
+      clan: EMPTY_CLAN,
       feed: [], matches: [], tipsters: [], missions: [], clans: [], leaderboard: [],
       betslip: [], betslipVisible: false, selectedOdds: {},
     });

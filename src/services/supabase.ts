@@ -8,16 +8,23 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Match, FeedPost, Tipster, Mission, Clan, User, Badge } from '../store/nexaStore';
 
-// --- Config (chaves anon/publishable: seguras no cliente) ---
+// --- Config ---
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://ymuziccgrqjbugsdwgjo.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? 'sb_publishable_lqe_c_pFLJqKprdsRhnt0w_PNIPLjkg';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-// Usuario demo (fallback sem login). Aponta para uma linha real em `users`.
-export const CURRENT_USER_ID = process.env.SUPABASE_DEMO_USER_ID ?? '11111111-1111-1111-1111-111111111111';
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('SUPABASE_URL e SUPABASE_ANON_KEY sao obrigatorios. Configure o arquivo .env.');
+}
 
+// UUID do usuario demo (linha real em `users`). Requerido para o modo demo.
+export const CURRENT_USER_ID = process.env.SUPABASE_DEMO_USER_ID ?? '';
+
+// TODO: para persistir sessão entre reloads no RN, adicionar:
+//   import AsyncStorage from '@react-native-async-storage/async-storage';
+//   e passar storage: AsyncStorage aqui.
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false },
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
 
 // --- Identidade efetiva (demo ou usuario autenticado) ---
@@ -29,7 +36,7 @@ export function getEffectiveUserId(): string {
 }
 
 // Mantem o id efetivo em sincronia com a sessao de auth
-supabase.auth.onAuthStateChange((_event, session) => {
+const { data: _authListener } = supabase.auth.onAuthStateChange((_event, session) => {
   effectiveUserId = session?.user?.id ?? CURRENT_USER_ID;
 });
 
@@ -183,7 +190,7 @@ function relativeTime(iso: string): string {
 export function mapMatch(row: MatchRow): Match {
   const hasScore = row.home_score != null && row.away_score != null && row.status !== 'pre';
   const initial = row.initial_home_odds != null
-    ? { home: num(row.initial_home_odds), draw: num(row.initial_draw_odds), away: num(row.initial_away_odds) }
+    ? { home: num(row.initial_home_odds), draw: row.initial_draw_odds != null ? num(row.initial_draw_odds) : undefined, away: num(row.initial_away_odds) }
     : undefined;
   return {
     id: row.id,
@@ -197,7 +204,7 @@ export function mapMatch(row: MatchRow): Match {
     minute: row.minute ?? undefined,
     score: hasScore ? { home: row.home_score as number, away: row.away_score as number } : undefined,
     startTime: row.scheduled_time ?? '',
-    odds: { home: num(row.home_odds), draw: num(row.draw_odds), away: num(row.away_odds) },
+    odds: { home: num(row.home_odds), draw: row.draw_odds != null ? num(row.draw_odds) : undefined, away: num(row.away_odds) },
     prevOdds: initial,
     bettors: row.bettors ?? 0,
     trending: row.trending ?? false,
@@ -251,7 +258,7 @@ async function fetchLikedPostIds(): Promise<Set<string>> {
 export async function fetchMatches(): Promise<Match[]> {
   const { data, error } = await supabase
     .from('matches')
-    .select('*')
+    .select('id,league,home_team,away_team,status,minute,home_score,away_score,home_odds,draw_odds,away_odds,initial_home_odds,initial_draw_odds,initial_away_odds,bettors,trending,scheduled_time')
     .order('status', { ascending: true })
     .order('bettors', { ascending: false });
   if (error) throw error;
@@ -307,6 +314,7 @@ interface ClanRow {
   xp: number | null;
   weekly_xp: number | null;
   badge: string | null;
+  color: string | null;
 }
 
 interface LeaderboardUserRow {
@@ -378,7 +386,7 @@ export function mapClan(row: ClanRow): Clan {
     xp: row.xp ?? 0,
     weeklyXp: row.weekly_xp ?? 0,
     icon: row.badge ?? row.tag.slice(0, 1).toUpperCase(),
-    color: '#7C5CFC',
+    color: row.color ?? '#7C5CFC',
   };
 }
 
@@ -407,7 +415,7 @@ export function mapLeaderboardUser(row: LeaderboardUserRow): User {
 export async function fetchTipsters(): Promise<Tipster[]> {
   const { data, error } = await supabase
     .from('tipsters')
-    .select('*')
+    .select('id,user_id,username,avatar_url,win_rate,roi,followers,streak,tier,recent_pick_side,recent_pick_odds')
     .order('followers', { ascending: false });
   if (error) throw error;
   return (data as TipsterRow[]).map(mapTipster);
