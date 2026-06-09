@@ -106,6 +106,36 @@ Toda a experiência de **front-end** está implementada e o app é navegável de
 
 ---
 
+## Estratégia de construção — integrar vs. construir na mão
+
+> **Decisão de arquitetura.** A NEXA segue um modelo **híbrido, fortemente puxado para integrações**. A regra: **integrar o encanamento (caro, regulado, commodity) e construir a mágica (o diferencial)**. Tentar construir o motor de apostas, pagamentos ou KYC "na mão" é inviável (anos de trabalho) e, no caso de pagamentos/KYC, um risco **legal e de fraude** — não apenas técnico.
+
+### Integrar (comprar/usar provedor) — camada regulada/commodity
+
+| Peça | Por quê integrar | Provedor típico | Status na NEXA |
+|---|---|---|---|
+| **Sportsbook + feed de odds/resultados** | Gestão de risco, compilação de odds e liquidação levam anos; é o maior "não construa" | Provedor B2B / feed de odds (turnkey/white-label) | A definir |
+| **Pagamentos (Pix/cartão)** | PCI, antifraude, conciliação; inviável/ilegal fazer na mão | PSP (Mercado Pago, Pagar.me, Stripe) | A integrar |
+| **KYC + verificação de idade (+18)** | Regulado, biometria, bases oficiais | idwall, Unico, Veriff | A integrar |
+| **Autenticação** | Sessão e segurança | **Supabase Auth** | ✅ Integrado |
+| **Banco + realtime + storage** | Infra de dados | **Supabase (Postgres)** | ✅ Integrado |
+| **Analytics** | Commodity | **Amplitude** | ✅ Integrado |
+| **Issues / alertas operacionais** | Workflow | **Linear** | ✅ Integrado |
+| **Push notifications** | Commodity | OneSignal / FCM | A integrar |
+| **Licença de apostas** | No Brasil é lei federal (14.790/2023, regulada desde 2025) | Obter licença **ou** operar via parceiro licenciado | A definir |
+
+### Construir na mão — o diferencial (moat)
+
+- 🎮 **Loop de gamificação** (XP, missões, streak, badges, clãs) — *é o produto*.
+- 📱 **Feed social + copy bet**.
+- 🧠 **Decision Engine / personalização** (`detectUserState`, ranking do feed).
+- 🎨 **Design system e UX** (`src/theme`, `src/components/ui.tsx`).
+- 🪙 **Economia NEXA** (moedas, marketplace).
+
+> **Proporção-alvo:** ~80% integração na camada regulada/commodity · 100% construção própria na camada de experiência e retenção. O código já segue isso: Supabase + Amplitude + Linear integrados, e todo o loop de retenção construído internamente.
+
+---
+
 ## Stack
 
 - **React Native** 0.73.4 (iOS + Android) · **React** 18.2.0
@@ -130,7 +160,7 @@ android/ · ios/                  → projetos nativos (template RN 0.73.4)
 App.tsx                          → entry point (splash → login → onboarding ou tabs)
 src/
   theme/index.ts                 → cores, tipografia, espaçamento, sombras, animações, glass
-  store/nexaStore.ts             → estado global + actions (fonte de verdade, dados mock)
+  store/nexaStore.ts             → estado global + actions (fonte de verdade; dados reais via Supabase)
   components/
     ui.tsx                       → biblioteca de componentes (Avatar, OddsBtn, Card, XPBar…)
     Logo.tsx                     → logo da marca
@@ -143,7 +173,7 @@ src/
     RankingScreen.tsx            → leaderboard + clãs + temporada
     PerfilScreen.tsx             → stats, conquistas, carteira, DNA
   services/
-    supabase.ts                  → cliente Supabase + mapeamento DB→tipos (matches + feed) [ATIVO]
+    supabase.ts                  → cliente Supabase + Auth + mapeamento DB→tipos + RPCs de escrita [ATIVO]
     api.ts                       → client HTTP legado (não usado — substituído pelo Supabase)
     analytics.ts                 → integração Amplitude (usado pelo store)
     linear.ts                    → integração Linear (usado pelo store)
@@ -292,10 +322,11 @@ Requisitos obrigatórios para produção (parcialmente preparados):
 **Futuro:** `NexaPlayScreen` (PvP), `SeasonScreen`
 
 Próximos passos técnicos:
-1. Adicionar a arte real em `assets/logo.png`.
-2. Gerar os projetos nativos (`android/`, `ios/`) a partir do template RN 0.73.
-3. Conectar `src/services/api.ts` ao store (trocar mocks por chamadas reais).
-4. Implementar o backend nos Workers (KV/D1/R2/Durable Objects) e o WebSocket de odds.
+1. **Persistência de sessão** do login (`@react-native-async-storage/async-storage`) + testar o auth em device.
+2. **Campo de valor (stake)** na betslip, no lugar do stake fixo de R$5.
+3. Adicionar a arte real em `assets/logo.png` (hoje 0 bytes).
+4. **Integrar a camada regulada** (ver *Estratégia de construção*): PSP de pagamentos (Pix/cartão), KYC (+18) e o feed/motor de odds via provedor.
+5. Validar as builds nativas (`android/` + `pod install` no `ios/`).
 
 ---
 
